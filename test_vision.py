@@ -62,26 +62,29 @@ def analyze_food_image(image_path: str) -> FoodAnalysisResult:
 
     print(f"⏳ Отправляем изображение '{path.name}' в нейросеть...")
 
-    # Пробуем актуальную модель gemini-3.8-flash, при необходимости fallback на gemini-2.5-flash
-    models_to_try = ["gemini-3.8-flash", "gemini-2.5-flash", "gemini-1.5-flash"]
+    # Актуальные модели Gemini
+    models_to_try = ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-3.5-flash"]
     last_error = None
 
+    import time
     for model_name in models_to_try:
-        try:
-            response = client.models.generate_content(
-                model=model_name,
-                contents=[image, prompt],
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    response_json_schema=FoodAnalysisResult.model_json_schema(),
-                ),
-            )
-            raw_json = response.text
-            data = json.loads(raw_json)
-            return FoodAnalysisResult(**data)
-        except Exception as e:
-            last_error = e
-            continue
+        for attempt in range(2):
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=[image, prompt],
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_json_schema=FoodAnalysisResult.model_json_schema(),
+                    ),
+                )
+                raw_json = response.text
+                data = json.loads(raw_json)
+                print(f"✨ Распознано успешно моделью: {model_name}")
+                return FoodAnalysisResult(**data)
+            except Exception as e:
+                last_error = e
+                time.sleep(1.5)
 
     raise RuntimeError(f"Не удалось получить ответ от моделей Gemini. Последняя ошибка: {last_error}")
 
