@@ -3,30 +3,11 @@ import sys
 import json
 from pathlib import Path
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
 from PIL import Image
+from models import IngredientItem, FoodAnalysisResult
 
 # Загружаем переменные окружения из .env
 load_dotenv()
-
-# Описание структуры ответа (Схема данных)
-class IngredientItem(BaseModel):
-    name: str = Field(description="Название ингредиента на русском языке")
-    weight_g: float = Field(description="Примерный вес ингредиента в граммах")
-    calories: float = Field(description="Калорийность порции в ккал")
-    protein: float = Field(description="Белки в граммах")
-    fat: float = Field(description="Жиры в граммах")
-    carbs: float = Field(description="Углеводы в граммах")
-
-class FoodAnalysisResult(BaseModel):
-    dish_name: str = Field(description="Общее понятное название блюда на русском языке")
-    comment: str = Field(description="Короткий комментарий диетолога по составу блюда")
-    items: list[IngredientItem] = Field(description="Список распознанных ингредиентов")
-    total_weight_g: float = Field(description="Общий вес блюда в граммах")
-    total_calories: float = Field(description="Суммарная калорийность (ккал)")
-    total_protein: float = Field(description="Всего белков (г)")
-    total_fat: float = Field(description="Всего жиров (г)")
-    total_carbs: float = Field(description="Всего углеводов (г)")
 
 
 def analyze_food_image(image_path: str) -> FoodAnalysisResult:
