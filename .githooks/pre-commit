@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+# Git pre-commit hook: проверка на утечки секретов и токенов с помощью Gitleaks
+
+if ! command -v gitleaks &> /dev/null; then
+    echo "⚠️  [Gitleaks] Утилита gitleaks не найдена в PATH."
+    echo "   Установите её командой: sudo apt install gitleaks"
+    echo "   Проверка секретов временно пропущена."
+    exit 0
+fi
+
+echo "🔍 [Gitleaks] Сканирование подготовленных к коммиту файлов (staged) на утечки секретов..."
+
+# Поддержка синтаксиса разных версий Gitleaks:
+# v8.19+: gitleaks git --pre-commit --staged -v
+# v8.18 и старее (включая apt v8.16): gitleaks protect --staged -v
+if gitleaks git --help &> /dev/null; then
+    gitleaks git --pre-commit --staged -v
+else
+    gitleaks protect --staged -v
+fi
+
+EXIT_CODE=$?
+
+if [ $EXIT_CODE -ne 0 ]; then
+    echo ""
+    echo "❌ [Gitleaks] ОШИБКА: обнаружены незашифрованные секреты (токены, ключи API, пароли)!"
+    echo "   Коммит заблокирован для защиты репозитория."
+    echo "   Удалите секреты из кода или используйте 'git commit --no-verify', если это ложное срабатывание."
+    exit 1
+fi
+
+echo "✅ [Gitleaks] Проверка пройдена, утечек секретов не обнаружено."
+exit 0
