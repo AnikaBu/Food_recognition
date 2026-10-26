@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../models/meal_models.dart';
@@ -109,10 +110,20 @@ class ApiService {
     }
 
     final bytes = await imageFile.readAsBytes();
+    final filename = imageFile.name.isNotEmpty ? imageFile.name : 'photo.jpg';
+    final lower = filename.toLowerCase();
+    String subtype = 'jpeg';
+    if (lower.endsWith('.png')) {
+      subtype = 'png';
+    } else if (lower.endsWith('.webp')) {
+      subtype = 'webp';
+    }
+
     final multipartFile = http.MultipartFile.fromBytes(
       'file',
       bytes,
-      filename: imageFile.name.isNotEmpty ? imageFile.name : 'photo.jpg',
+      filename: filename,
+      contentType: MediaType('image', subtype),
     );
     request.files.add(multipartFile);
 
