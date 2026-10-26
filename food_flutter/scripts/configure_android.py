@@ -51,10 +51,10 @@ def configure_manifest():
             count=1,
         )
 
-    # Update app label to Food Recognition
+    # Update app label to MyFoodDiary
     content = re.sub(
         r'android:label="[^"]*"',
-        'android:label="Food Recognition"',
+        'android:label="MyFoodDiary"',
         content,
         count=1,
     )
@@ -87,7 +87,7 @@ def configure_gradle():
                 "-keyalg", "RSA", "-keysize", "2048", "-validity", "10000",
                 "-storepass", "food_release_pass",
                 "-keypass", "food_release_pass",
-                "-dname", "CN=FoodRecognition, O=AnikaBu, C=RU"
+                "-dname", "CN=MyFoodDiary, O=AnikaBu, C=RU"
             ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             print("[+] Release keystore generated.")
         except Exception as e:
@@ -198,7 +198,7 @@ def configure_icons():
 
 
 def main():
-    print("[*] Configuring Android project for Food Recognition...")
+    print("[*] Configuring Android project for MyFoodDiary...")
     configure_manifest()
     configure_gradle()
     configure_icons()

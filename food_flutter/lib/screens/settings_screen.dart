@@ -352,7 +352,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 SizedBox(height: 10),
                 Text(
-                  'Food Recognition — мобильный клиент персональной системы распознавания блюд на базе ИИ Google Gemini Flash и SQLite дневника питания.',
+                  'MyFoodDiary — мобильный клиент персональной системы распознавания блюд на базе ИИ Google Gemini Flash и SQLite дневника питания.',
                   style: TextStyle(fontSize: 13, color: Color(0xFF475569), height: 1.4),
                 ),
                 SizedBox(height: 8),
@@ -362,7 +362,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'Версия: 1.0.3 (Release APK)',
+                  'Версия: 1.0.4 (Release APK)',
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
                 ),
               ],
