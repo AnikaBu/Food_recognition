@@ -51,6 +51,7 @@ temp/
 *.png
 *.webp
 !frontend/icons/*.png
+!food_flutter/assets/icon/*.png
 
 # IDE and OS
 .idea/

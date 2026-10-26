@@ -41,7 +41,11 @@ jobs:
         run: |
           flutter create --platforms=android --org com.anikabu --project-name food_flutter .
 
-      - name: Configure Android permissions and signing
+      - name: Install Python image tools
+        run: |
+          python3 -m pip install pillow
+
+      - name: Configure Android permissions, icons and signing
         working-directory: food_flutter
         run: |
           python3 scripts/configure_android.py
@@ -72,8 +76,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.0.2-apk
-          name: "Food Recognition Android APK v1.0.2"
+          tag_name: v1.0.3-apk
+          name: "Food Recognition Android APK v1.0.3"
           body: |
             ## 🥗 Food Recognition — Android App (Release APK)
 

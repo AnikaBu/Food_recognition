@@ -147,10 +147,61 @@ def configure_gradle():
         print("[+] Kotlin build.gradle.kts configured successfully.")
 
 
+def configure_icons():
+    icon_src = os.path.join(BASE_DIR, "assets", "icon", "app_icon.png")
+    if not os.path.exists(icon_src):
+        print("[-] Master icon not found, skipping icon generation.")
+        return
+
+    try:
+        from PIL import Image, ImageDraw
+        import shutil
+
+        master = Image.open(icon_src).convert("RGBA")
+        res_dir = os.path.join(APP_DIR, "src", "main", "res")
+        sizes = {
+            "mipmap-mdpi": 48,
+            "mipmap-hdpi": 72,
+            "mipmap-xhdpi": 96,
+            "mipmap-xxhdpi": 144,
+            "mipmap-xxxhdpi": 192,
+        }
+
+        def create_round_icon(img, size):
+            mask = Image.new("L", (size * 4, size * 4), 0)
+            draw = ImageDraw.Draw(mask)
+            draw.ellipse((0, 0, size * 4, size * 4), fill=255)
+            mask = mask.resize((size, size), Image.Resampling.LANCZOS)
+            rounded = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+            rounded.paste(img, (0, 0), mask=mask)
+            return rounded
+
+        for folder, size in sizes.items():
+            target_folder = os.path.join(res_dir, folder)
+            os.makedirs(target_folder, exist_ok=True)
+
+            resized = master.resize((size, size), Image.Resampling.LANCZOS)
+            resized.save(os.path.join(target_folder, "ic_launcher.png"), "PNG")
+
+            rounded = create_round_icon(resized, size)
+            rounded.save(os.path.join(target_folder, "ic_launcher_round.png"), "PNG")
+
+        # Remove adaptive icon xml if present so launcher uses our PNG directly
+        anydpi_dir = os.path.join(res_dir, "mipmap-anydpi-v26")
+        if os.path.exists(anydpi_dir):
+            shutil.rmtree(anydpi_dir)
+            print("[+] Removed adaptive icon xml to use direct high-res icons.")
+
+        print("[+] All Android launcher icons configured successfully.")
+    except Exception as e:
+        print(f"[!] Warning: Icon generation error: {e}")
+
+
 def main():
     print("[*] Configuring Android project for Food Recognition...")
     configure_manifest()
     configure_gradle()
+    configure_icons()
     print("[+] Android configuration complete.")
 
 
