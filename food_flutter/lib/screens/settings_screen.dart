@@ -334,7 +334,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'Версия: 1.0.0 (Release APK)',
+                  'Версия: 1.0.1 (Release APK)',
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
                 ),
               ],
