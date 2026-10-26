@@ -63,23 +63,23 @@ jobs:
       - name: Prepare APK artifact
         working-directory: food_flutter
         run: |
-          cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/food-recognition.apk
+          cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/myfooddiary.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: food-recognition-apk
-          path: food_flutter/build/app/outputs/flutter-apk/food-recognition.apk
+          name: myfooddiary-apk
+          path: food_flutter/build/app/outputs/flutter-apk/myfooddiary.apk
           if-no-files-found: error
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.0.3-apk
-          name: "Food Recognition Android APK v1.0.3"
+          tag_name: v1.0.4-apk
+          name: "MyFoodDiary Android APK v1.0.4"
           body: |
-            ## 🥗 Food Recognition — Android App (Release APK)
+            ## 🥗 MyFoodDiary — Android App (Release APK)
 
             Персональное мобильное приложение для распознавания блюд и учета КБЖУ на базе искусственного интеллекта.
 
@@ -91,9 +91,9 @@ jobs:
             - ⚙️ **Гибкое подключение**: переключение между домашней сетью Wi-Fi и облачным сервером Google Cloud.
 
             ### Инструкция по установке:
-            1. Скачайте файл **`food-recognition.apk`** ниже на свой Android-смартфон.
+            1. Скачайте файл **`myfooddiary.apk`** ниже на свой Android-смартфон.
             2. Откройте загруженный файл и подтвердите установку («Разрешить установку из неизвестных источников»).
             3. Запустите приложение и во вкладке **«Настройки»** укажите IP-адрес вашего компьютера (например, `http://192.168.1.172:8000`) или облачный URL.
-          files: food_flutter/build/app/outputs/flutter-apk/food-recognition.apk
+          files: food_flutter/build/app/outputs/flutter-apk/myfooddiary.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

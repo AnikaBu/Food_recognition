@@ -64,7 +64,7 @@ class ApiService {
 
       if (res.statusCode == 200) {
         final body = json.decode(utf8.decode(res.bodyBytes));
-        final app = body['app'] ?? 'Food Recognition API';
+        final app = body['app'] ?? 'MyFoodDiary API';
         final authRequired = body['auth_required'] == true;
         final authValid = body['auth_valid'] == true;
 

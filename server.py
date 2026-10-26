@@ -40,9 +40,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Food Recognition API",
+    title="MyFoodDiary API",
     description="Единый бэкенд для распознавания еды, анализа КБЖУ и ведения дневника питания.",
-    version="1.0.0",
+    version="1.0.4",
     lifespan=lifespan,
 )
 
@@ -94,8 +94,8 @@ def read_health(request: Request):
 
     return {
         "status": "online",
-        "app": "Food Recognition API",
-        "version": "1.0.2",
+        "app": "MyFoodDiary API",
+        "version": "1.0.4",
         "auth_required": bool(API_KEY),
         "auth_valid": is_valid_key if API_KEY else True,
         "docs_url": "/docs",

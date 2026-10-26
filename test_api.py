@@ -17,12 +17,12 @@ def test_api_endpoints():
     # 1.1 Проверка раздачи PWA статики (HTML, манифест, сервис-воркер, стили, скрипты)
     resp_pwa_html = client.get("/")
     assert resp_pwa_html.status_code == 200
-    assert "Food Recognition" in resp_pwa_html.text
+    assert "MyFoodDiary" in resp_pwa_html.text
     assert "<link rel=\"manifest\" href=\"/manifest.json\"" in resp_pwa_html.text
 
     resp_manifest = client.get("/manifest.json")
     assert resp_manifest.status_code == 200
-    assert resp_manifest.json()["short_name"] == "FoodAI"
+    assert resp_manifest.json()["short_name"] == "MyFoodDiary"
 
     resp_sw = client.get("/sw.js")
     assert resp_sw.status_code == 200

@@ -20,7 +20,7 @@ if [ ! -f "$PROJECT_DIR/.env" ]; then
 fi
 
 echo "🥗 ===================================================="
-echo "🥗  Запуск Food Recognition"
+echo "🥗  Запуск MyFoodDiary"
 echo "🥗 ===================================================="
 echo "🌐 Веб-приложение PWA:   http://localhost:8000"
 echo "📱 На телефоне (Wi-Fi):  http://$(hostname -I 2>/dev/null | awk '{print $1}'):8000"
@@ -33,7 +33,7 @@ echo "----------------------------------------------------"
 # Аккуратное завершение обоих процессов при Ctrl+C или закрытии окна
 cleanup() {
     echo ""
-    echo "🛑 Остановка сервисов Food Recognition..."
+    echo "🛑 Остановка сервисов MyFoodDiary..."
     [ -n "$BOT_PID" ] && kill "$BOT_PID" 2>/dev/null || true
     [ -n "$SERVER_PID" ] && kill "$SERVER_PID" 2>/dev/null || true
     wait "$BOT_PID" 2>/dev/null || true
