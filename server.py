@@ -1,6 +1,7 @@
 import io
 import os
 import asyncio
+from pathlib import Path
 from typing import Optional, List
 from contextlib import asynccontextmanager
 
@@ -8,6 +9,7 @@ from dotenv import load_dotenv
 from PIL import Image
 from fastapi import FastAPI, File, UploadFile, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 import db
 from models import (
@@ -53,8 +55,8 @@ app.add_middleware(
 )
 
 
-@app.get("/", tags=["Общее"])
-def read_root():
+@app.get("/api/health", tags=["Общее"])
+def read_health():
     """Проверка доступности API-сервера."""
     return {
         "status": "online",
@@ -212,6 +214,12 @@ def get_meals_by_date_endpoint(
 ):
     """Возвращает список всех приемов пищи за указанную дату."""
     return db.get_meals_by_date(date_str=date)
+
+
+# Раздача PWA-клиента (HTML, CSS, JS, манифест и иконки)
+frontend_dir = Path(__file__).resolve().parent / "frontend"
+if frontend_dir.exists():
+    app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
 
 
 if __name__ == "__main__":

@@ -8,12 +8,35 @@ client = TestClient(app)
 def test_api_endpoints():
     print("🚀 Тестирование FastAPI бэкенда (Этап 4)...")
 
-    # 1. Проверка доступности корня API
-    resp_root = client.get("/")
-    assert resp_root.status_code == 200, f"Ошибка корня: {resp_root.text}"
-    data_root = resp_root.json()
-    assert data_root["status"] == "online"
-    print("✅ 1. Корневой эндпоинт '/' доступен.")
+    # 1. Проверка доступности здоровья API и PWA клиента
+    resp_health = client.get("/api/health")
+    assert resp_health.status_code == 200, f"Ошибка health: {resp_health.text}"
+    assert resp_health.json()["status"] == "online"
+    print("✅ 1. Эндпоинт '/api/health' доступен.")
+
+    # 1.1 Проверка раздачи PWA статики (HTML, манифест, сервис-воркер, стили, скрипты)
+    resp_pwa_html = client.get("/")
+    assert resp_pwa_html.status_code == 200
+    assert "Food Recognition" in resp_pwa_html.text
+    assert "<link rel=\"manifest\" href=\"/manifest.json\"" in resp_pwa_html.text
+
+    resp_manifest = client.get("/manifest.json")
+    assert resp_manifest.status_code == 200
+    assert resp_manifest.json()["short_name"] == "FoodAI"
+
+    resp_sw = client.get("/sw.js")
+    assert resp_sw.status_code == 200
+    assert "food-recognition" in resp_sw.text
+
+    resp_css = client.get("/style.css")
+    assert resp_css.status_code == 200
+
+    resp_js = client.get("/app.js")
+    assert resp_js.status_code == 200
+
+    resp_icon = client.get("/icons/icon-192.png")
+    assert resp_icon.status_code == 200
+    print("✅ 1.1. Статические файлы PWA (HTML, CSS, JS, Manifest, SW, Icons) отдаются корректно.")
 
     # 2. Создание приема пищи через API
     payload = {
