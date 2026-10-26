@@ -18,12 +18,14 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _urlController = TextEditingController();
+  final TextEditingController _apiKeyController = TextEditingController();
   final TextEditingController _calController = TextEditingController();
   final TextEditingController _proteinController = TextEditingController();
   final TextEditingController _fatController = TextEditingController();
   final TextEditingController _carbsController = TextEditingController();
 
   bool _isTesting = false;
+  bool _showApiKey = false;
   HealthCheckResult? _healthResult;
 
   @override
@@ -34,6 +36,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadSettings() async {
     final url = await widget.settingsService.getServerUrl();
+    final apiKey = await widget.settingsService.getApiKey();
     final cal = await widget.settingsService.getTargetCalories();
     final p = await widget.settingsService.getTargetProtein();
     final f = await widget.settingsService.getTargetFat();
@@ -41,6 +44,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     setState(() {
       _urlController.text = url;
+      _apiKeyController.text = apiKey;
       _calController.text = cal.toStringAsFixed(0);
       _proteinController.text = p.toStringAsFixed(0);
       _fatController.text = f.toStringAsFixed(0);
@@ -54,8 +58,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await widget.settingsService.setServerUrl(clean);
   }
 
+  Future<void> _saveApiKey() async {
+    await widget.settingsService.setApiKey(_apiKeyController.text.trim());
+  }
+
   Future<void> _testConnection() async {
     await _saveUrl();
+    await _saveApiKey();
     setState(() {
       _isTesting = true;
       _healthResult = null;
@@ -139,6 +148,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     prefixIcon: const Icon(Icons.link, color: Color(0xFF64748B)),
                   ),
                   onChanged: (_) => _saveUrl(),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _apiKeyController,
+                  obscureText: !_showApiKey,
+                  decoration: InputDecoration(
+                    labelText: 'Секретный API-ключ (для облака)',
+                    hintText: 'Оставьте пустым для локального сервера',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: const Icon(Icons.key, color: Color(0xFF64748B)),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _showApiKey ? Icons.visibility_off : Icons.visibility,
+                        color: const Color(0xFF64748B),
+                      ),
+                      onPressed: () => setState(() => _showApiKey = !_showApiKey),
+                    ),
+                  ),
+                  onChanged: (_) => _saveApiKey(),
                 ),
                 const SizedBox(height: 12),
                 SizedBox(
@@ -334,7 +362,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'Версия: 1.0.1 (Release APK)',
+                  'Версия: 1.0.2 (Cloud Ready APK)',
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
                 ),
               ],

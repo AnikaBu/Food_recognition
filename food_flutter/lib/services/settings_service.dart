@@ -2,6 +2,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsService {
   static const String _keyServerUrl = 'server_url';
+  static const String _keyApiKey = 'api_key';
   static const String _keyTargetCalories = 'target_calories';
   static const String _keyTargetProtein = 'target_protein';
   static const String _keyTargetFat = 'target_fat';
@@ -30,6 +31,16 @@ class SettingsService {
       clean = clean.substring(0, clean.length - 1);
     }
     await prefs.setString(_keyServerUrl, clean);
+  }
+
+  Future<String> getApiKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyApiKey) ?? '';
+  }
+
+  Future<void> setApiKey(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyApiKey, key.trim());
   }
 
   Future<double> getTargetCalories() async {

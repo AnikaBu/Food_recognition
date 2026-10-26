@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -42,20 +41,44 @@ class ApiService {
     return await _settingsService.getServerUrl();
   }
 
+  Future<Map<String, String>> _getHeaders({bool isJson = true}) async {
+    final apiKey = await _settingsService.getApiKey();
+    final headers = <String, String>{};
+    if (isJson) {
+      headers['Content-Type'] = 'application/json; charset=utf-8';
+    }
+    if (apiKey.isNotEmpty) {
+      headers['X-API-Key'] = apiKey;
+    }
+    return headers;
+  }
+
   Future<HealthCheckResult> checkHealth() async {
     final stopwatch = Stopwatch()..start();
     try {
       final baseUrl = await _getBaseUrl();
       final uri = Uri.parse('$baseUrl/api/health');
-      final res = await http.get(uri).timeout(const Duration(seconds: 5));
+      final headers = await _getHeaders(isJson: false);
+      final res = await http.get(uri, headers: headers).timeout(const Duration(seconds: 6));
       stopwatch.stop();
 
       if (res.statusCode == 200) {
         final body = json.decode(utf8.decode(res.bodyBytes));
         final app = body['app'] ?? 'Food Recognition API';
+        final authRequired = body['auth_required'] == true;
+        final authValid = body['auth_valid'] == true;
+
+        if (authRequired && !authValid) {
+          return HealthCheckResult(
+            isHealthy: false,
+            message: 'Сервер доступен, но требуется верный API-ключ в настройках',
+            latencyMs: stopwatch.elapsedMilliseconds,
+          );
+        }
+
         return HealthCheckResult(
           isHealthy: true,
-          message: '$app доступен',
+          message: '$app доступен${authRequired ? " (ключ подтвержден)" : ""}',
           latencyMs: stopwatch.elapsedMilliseconds,
         );
       } else {
@@ -80,6 +103,11 @@ class ApiService {
     final uri = Uri.parse('$baseUrl/api/analyze-photo');
 
     final request = http.MultipartRequest('POST', uri);
+    final apiKey = await _settingsService.getApiKey();
+    if (apiKey.isNotEmpty) {
+      request.headers['X-API-Key'] = apiKey;
+    }
+
     final bytes = await imageFile.readAsBytes();
     final multipartFile = http.MultipartFile.fromBytes(
       'file',
@@ -115,6 +143,7 @@ class ApiService {
   }) async {
     final baseUrl = await _getBaseUrl();
     final uri = Uri.parse('$baseUrl/api/meals');
+    final headers = await _getHeaders(isJson: true);
 
     final payload = {
       'meal_type': mealType.value,
@@ -126,7 +155,7 @@ class ApiService {
 
     final res = await http.post(
       uri,
-      headers: {'Content-Type': 'application/json; charset=utf-8'},
+      headers: headers,
       body: json.encode(payload),
     ).timeout(const Duration(seconds: 15));
 
@@ -134,7 +163,12 @@ class ApiService {
       final decoded = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
       return MealRecord.fromJson(decoded);
     } else {
-      throw Exception('Не удалось сохранить блюдо: ${res.statusCode}');
+      String err = 'Не удалось сохранить блюдо: ${res.statusCode}';
+      try {
+        final body = json.decode(utf8.decode(res.bodyBytes));
+        if (body['detail'] != null) err = body['detail'].toString();
+      } catch (_) {}
+      throw Exception(err);
     }
   }
 
@@ -142,34 +176,47 @@ class ApiService {
     final baseUrl = await _getBaseUrl();
     final dateStr = DateFormat('yyyy-MM-dd').format(date);
     final uri = Uri.parse('$baseUrl/api/diary?date=$dateStr');
+    final headers = await _getHeaders(isJson: false);
 
-    final res = await http.get(uri).timeout(const Duration(seconds: 10));
+    final res = await http.get(uri, headers: headers).timeout(const Duration(seconds: 10));
 
     if (res.statusCode == 200) {
       final decoded = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
       return DailySummary.fromJson(decoded);
     } else {
-      throw Exception('Не удалось загрузить сводку: ${res.statusCode}');
+      String err = 'Не удалось загрузить сводку: ${res.statusCode}';
+      try {
+        final body = json.decode(utf8.decode(res.bodyBytes));
+        if (body['detail'] != null) err = body['detail'].toString();
+      } catch (_) {}
+      throw Exception(err);
     }
   }
 
   Future<void> deleteMeal(int mealId) async {
     final baseUrl = await _getBaseUrl();
     final uri = Uri.parse('$baseUrl/api/meals/$mealId');
+    final headers = await _getHeaders(isJson: false);
 
-    final res = await http.delete(uri).timeout(const Duration(seconds: 10));
+    final res = await http.delete(uri, headers: headers).timeout(const Duration(seconds: 10));
     if (res.statusCode != 200) {
-      throw Exception('Ошибка при удалении блюда: ${res.statusCode}');
+      String err = 'Ошибка при удалении блюда: ${res.statusCode}';
+      try {
+        final body = json.decode(utf8.decode(res.bodyBytes));
+        if (body['detail'] != null) err = body['detail'].toString();
+      } catch (_) {}
+      throw Exception(err);
     }
   }
 
   Future<IngredientItem> updateItemWeight(int itemId, double newWeightG) async {
     final baseUrl = await _getBaseUrl();
     final uri = Uri.parse('$baseUrl/api/items/$itemId/weight');
+    final headers = await _getHeaders(isJson: true);
 
     final res = await http.put(
       uri,
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: json.encode({'weight_g': newWeightG}),
     ).timeout(const Duration(seconds: 10));
 
@@ -177,7 +224,12 @@ class ApiService {
       final decoded = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
       return IngredientItem.fromJson(decoded);
     } else {
-      throw Exception('Ошибка обновления веса: ${res.statusCode}');
+      String err = 'Ошибка обновления веса: ${res.statusCode}';
+      try {
+        final body = json.decode(utf8.decode(res.bodyBytes));
+        if (body['detail'] != null) err = body['detail'].toString();
+      } catch (_) {}
+      throw Exception(err);
     }
   }
 }
