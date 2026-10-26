@@ -7,7 +7,8 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from PIL import Image
-from fastapi import FastAPI, File, UploadFile, HTTPException, Query, status
+from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Request, status
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -55,13 +56,48 @@ app.add_middleware(
 )
 
 
+# Настройки безопасности и API-ключ
+API_KEY = os.getenv("API_KEY")
+if API_KEY:
+    print("🔒 Включена защита по API-ключу (заголовок X-API-Key).")
+else:
+    print("ℹ️ Защита по API-ключу отключена (переменная API_KEY не задана).")
+
+
+@app.middleware("http")
+async def verify_api_key_middleware(request: Request, call_next):
+    """
+    Проверяет секретный заголовок X-API-Key для всех API-эндпоинтов (кроме /api/health),
+    если в окружении установлена переменная API_KEY.
+    """
+    path = request.url.path
+    # Защищаем все вызовы /api/ (за исключением /api/health)
+    if API_KEY and path.startswith("/api/") and path != "/api/health":
+        client_key = request.headers.get("X-API-Key")
+        if not client_key or client_key.strip() != API_KEY.strip():
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={
+                    "detail": "Неавторизованный запрос: требуется верный ключ в заголовке X-API-Key"
+                },
+            )
+
+    response = await call_next(request)
+    return response
+
+
 @app.get("/api/health", tags=["Общее"])
-def read_health():
-    """Проверка доступности API-сервера."""
+def read_health(request: Request):
+    """Проверка доступности API-сервера и статуса авторизации."""
+    client_key = request.headers.get("X-API-Key")
+    is_valid_key = bool(API_KEY and client_key and client_key.strip() == API_KEY.strip())
+
     return {
         "status": "online",
         "app": "Food Recognition API",
-        "version": "1.0.0",
+        "version": "1.0.2",
+        "auth_required": bool(API_KEY),
+        "auth_valid": is_valid_key if API_KEY else True,
         "docs_url": "/docs",
     }
 

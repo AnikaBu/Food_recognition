@@ -1,3 +1,4 @@
+import os
 import sqlite3
 from datetime import datetime
 from pathlib import Path
@@ -10,7 +11,12 @@ from models import (
     DailySummary,
 )
 
-DEFAULT_DB_PATH = Path(__file__).resolve().parent / "nutrition.db"
+_ENV_DB_PATH = os.getenv("DB_PATH")
+DEFAULT_DB_PATH = (
+    Path(_ENV_DB_PATH)
+    if _ENV_DB_PATH
+    else (Path(__file__).resolve().parent / "nutrition.db")
+)
 
 
 def get_connection(db_path: Path = DEFAULT_DB_PATH) -> sqlite3.Connection:
