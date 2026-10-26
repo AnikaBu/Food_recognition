@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Food Recognition — AI Дневник питания</title>
+  
+  <!-- PWA Meta -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#10b981" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="FoodAI" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <link rel="icon" type="image/png" href="/icons/icon-192.png" />
+
+  <!-- Стили -->
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="container">
+    
+    <!-- Шапка приложения -->
+    <header>
+      <div class="logo-wrap">
+        <div class="logo-icon">🥗</div>
+        <div>
+          <h1>Food Recognition</h1>
+          <div class="subtitle">AI-распознавание еды и дневник КБЖУ</div>
+        </div>
+      </div>
+      <button id="pwaInstallBtn" class="pwa-btn">📲 Установить</button>
+    </header>
+
+    <!-- Выбор даты -->
+    <div class="date-nav">
+      <button id="prevDayBtn" class="date-btn" aria-label="Предыдущий день">‹</button>
+      <div class="date-display" id="dateDisplay" title="Нажмите, чтобы выбрать дату">
+        📅 <span id="dateLabel">Загрузка...</span>
+        <input type="date" id="hiddenDateInput" class="date-input-hidden" />
+      </div>
+      <button id="nextDayBtn" class="date-btn" aria-label="Следующий день">›</button>
+    </div>
+
+    <!-- Суточная сводка КБЖУ -->
+    <div class="card">
+      <div class="metrics-grid">
+        <div class="metric-pill cal">
+          <span class="metric-val" id="sumCalories">0</span>
+          <span class="metric-label">Ккал</span>
+        </div>
+        <div class="metric-pill pro">
+          <span class="metric-val" id="sumProtein">0</span>
+          <span class="metric-label">Белки</span>
+        </div>
+        <div class="metric-pill fat">
+          <span class="metric-val" id="sumFat">0</span>
+          <span class="metric-label">Жиры</span>
+        </div>
+        <div class="metric-pill carb">
+          <span class="metric-val" id="sumCarbs">0</span>
+          <span class="metric-label">Углев</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Блок добавления фото блюда -->
+    <div class="card">
+      <div class="upload-box" id="dropZone">
+        <div class="upload-icon">📸</div>
+        <div class="upload-title">Сфотографируйте или загрузите еду</div>
+        <div class="upload-desc">Gemini мгновенно определит блюдо и посчитает граммы и КБЖУ</div>
+        
+        <div class="action-buttons">
+          <label class="btn-action primary" for="cameraInput">
+            📷 Камера
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;" />
+          </label>
+          <label class="btn-action" for="fileInput">
+            🖼️ Галерея
+            <input type="file" id="fileInput" accept="image/*" style="display:none;" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Индикатор загрузки / анализа -->
+      <div class="loading-box" id="loadingBox">
+        <div class="spinner"></div>
+        <div style="font-weight: 600;">Изучаем блюдо через Gemini Vision...</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">Это займет 2-3 секунды</div>
+      </div>
+
+      <!-- Карточка с результатами распознавания -->
+      <div class="result-card" id="resultCard">
+        <div class="dish-header">
+          <div class="dish-title" id="dishTitle">Название блюда</div>
+          <div class="dish-comment" id="dishComment">Заметка диетолога</div>
+        </div>
+
+        <!-- Выбор категории приема пищи -->
+        <div class="meal-type-tabs">
+          <button class="type-tab" data-type="breakfast">🍳 Завтрак</button>
+          <button class="type-tab active" data-type="lunch">🍲 Обед</button>
+          <button class="type-tab" data-type="dinner">🥗 Ужин</button>
+          <button class="type-tab" data-type="snack">🍎 Перекус</button>
+        </div>
+
+        <!-- Список ингредиентов с редактированием веса -->
+        <div class="items-list" id="ingredientsList"></div>
+
+        <!-- Итоговые калории карточки -->
+        <div style="font-size: 0.85rem; font-weight: 600; color: var(--primary-hover); background: var(--primary-light); padding: 8px 12px; border-radius: var(--radius-sm); text-align: center;" id="cardTotalText">
+          Итого: 0г • 0 ккал
+        </div>
+
+        <!-- Кнопки сохранения и отмены -->
+        <div class="result-actions">
+          <button class="btn-save" id="saveMealBtn">💾 Сохранить в дневник</button>
+          <button class="btn-cancel" id="cancelMealBtn">Отмена</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Список съеденных блюд за день -->
+    <div class="card">
+      <div class="section-title">
+        <span>История за день</span>
+      </div>
+      <div class="meals-history-list" id="mealsHistoryList">
+        <div class="empty-state">Загрузка дневника...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Всплывающее уведомление (Toast) -->
+  <div class="toast" id="toast">Сохранено</div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
