@@ -18,8 +18,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
 parts/
 sdist/
 var/
@@ -27,6 +27,16 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+food_flutter/build/
+food_flutter/android/
+*.jks
+key.properties
 
 # Databases
 *.db
