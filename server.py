@@ -114,16 +114,24 @@ async def analyze_photo_endpoint(file: UploadFile = File(...)):
     Обрабатывает изображение в оперативной памяти (без сохранения на диск)
     и возвращает список ингредиентов, их вес и КБЖУ.
     """
-    if not file.content_type or not file.content_type.startswith("image/"):
+    content = await file.read()
+    if not content:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Передан пустой файл изображения",
+        )
+
+    # Проверяем, является ли файл реальным изображением через Pillow
+    try:
+        pil_image = Image.open(io.BytesIO(content))
+        pil_image.load()
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Загруженный файл должен быть изображением (image/jpeg, image/png и т.д.)",
         )
 
     try:
-        content = await file.read()
-        pil_image = Image.open(io.BytesIO(content))
-
         # Выполняем синхронный запрос к Gemini в отдельном потоке, чтобы не блокировать сервер
         result = await asyncio.to_thread(analyze_food_image, pil_image)
         return result

@@ -76,8 +76,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.0.4-apk
-          name: "MyFoodDiary Android APK v1.0.4"
+          tag_name: v1.0.5-apk
+          name: "MyFoodDiary Android APK v1.0.5"
           body: |
             ## 🥗 MyFoodDiary — Android App (Release APK)
 
