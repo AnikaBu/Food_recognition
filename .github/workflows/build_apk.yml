@@ -1,0 +1,95 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'food_flutter/**'
+      - '.github/workflows/build_apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    name: Build & Release Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Verify Flutter Doctor
+        run: flutter doctor -v
+
+      - name: Generate Android platform files
+        working-directory: food_flutter
+        run: |
+          flutter create --platforms=android --org com.anikabu --project-name food_flutter .
+
+      - name: Configure Android permissions and signing
+        working-directory: food_flutter
+        run: |
+          python3 scripts/configure_android.py
+
+      - name: Install Flutter dependencies
+        working-directory: food_flutter
+        run: |
+          flutter pub get
+
+      - name: Build Release APK
+        working-directory: food_flutter
+        run: |
+          flutter build apk --release --no-tree-shake-icons
+
+      - name: Prepare APK artifact
+        working-directory: food_flutter
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/food-recognition.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: food-recognition-apk
+          path: food_flutter/build/app/outputs/flutter-apk/food-recognition.apk
+          if-no-files-found: error
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: v1.0.0-apk
+          name: "Food Recognition Android APK v1.0.0"
+          body: |
+            ## 🥗 Food Recognition — Android App (Release APK)
+
+            Персональное мобильное приложение для распознавания блюд и учета КБЖУ на базе искусственного интеллекта.
+
+            ### Возможности:
+            - 📸 **Съемка и выбор фото**: мгновенный снимок с камеры или выбор из галереи;
+            - 🧠 **ИИ-анализ**: распознавание продуктов, ингредиентов и веса через Google Gemini Vision;
+            - ⚖️ **Живой пересчет КБЖУ**: удобная регулировка веса (+/-10г или ручной ввод) с моментальным пересчетом питательных веществ;
+            - 📅 **Дневник питания**: календарь по дням, диаграммы выполнения суточной нормы калорий, белков, жиров и углеводов;
+            - ⚙️ **Гибкое подключение**: переключение между домашней сетью Wi-Fi и облачным сервером Google Cloud.
+
+            ### Инструкция по установке:
+            1. Скачайте файл **`food-recognition.apk`** ниже на свой Android-смартфон.
+            2. Откройте загруженный файл и подтвердите установку («Разрешить установку из неизвестных источников»).
+            3. Запустите приложение и во вкладке **«Настройки»** укажите IP-адрес вашего компьютера (например, `http://192.168.1.172:8000`) или облачный URL.
+          files: food_flutter/build/app/outputs/flutter-apk/food-recognition.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
