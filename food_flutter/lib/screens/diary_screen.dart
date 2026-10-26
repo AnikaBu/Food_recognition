@@ -158,17 +158,39 @@ class _DiaryScreenState extends State<DiaryScreen> {
 
   String _formatDateHeader(DateTime date) {
     final now = DateTime.now();
-    final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
+    if (date.year == now.year && date.month == now.month && date.day == now.day) {
+      return 'Сегодня';
+    }
     final yesterday = now.subtract(const Duration(days: 1));
-    final isYesterday = date.year == yesterday.year && date.month == yesterday.month && date.day == yesterday.day;
+    if (date.year == yesterday.year && date.month == yesterday.month && date.day == yesterday.day) {
+      return 'Вчера';
+    }
+    final tomorrow = now.add(const Duration(days: 1));
+    if (date.year == tomorrow.year && date.month == tomorrow.month && date.day == tomorrow.day) {
+      return 'Завтра';
+    }
 
-    if (isToday) return 'Сегодня';
-    if (isYesterday) return 'Вчера';
-    return DateFormat('d MMMM yyyy', 'ru').format(date);
+    try {
+      return DateFormat('d MMMM yyyy', 'ru').format(date);
+    } catch (_) {
+      const months = [
+        '', 'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+        'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
+      ];
+      final monthName = (date.month >= 1 && date.month <= 12) ? months[date.month] : '';
+      return '${date.day} $monthName ${date.year}'.trim();
+    }
+  }
+
+  bool _isToday(DateTime date) {
+    final now = DateTime.now();
+    return date.year == now.year && date.month == now.month && date.day == now.day;
   }
 
   @override
   Widget build(BuildContext context) {
+    final isSelectedToday = _isToday(_selectedDate);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -232,7 +254,33 @@ class _DiaryScreenState extends State<DiaryScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 14),
+
+            // Quick button to return to today if different date selected
+            if (!isSelectedToday) ...[
+              const SizedBox(height: 6),
+              Center(
+                child: TextButton.icon(
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    foregroundColor: const Color(0xFF10B981),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  ),
+                  icon: const Icon(Icons.today, size: 16),
+                  label: const Text(
+                    'Вернуться к Сегодня',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _selectedDate = DateTime.now();
+                    });
+                    _loadSummary();
+                  },
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 10),
 
             if (_isLoading && _summary == null)
               const Padding(
