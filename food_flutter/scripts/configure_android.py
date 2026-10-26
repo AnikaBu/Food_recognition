@@ -25,7 +25,7 @@ def configure_manifest():
     with open(MANIFEST_PATH, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # Permissions to add
+    # Permissions to add inside <manifest> before <application>
     permissions = [
         '<uses-permission android:name="android.permission.INTERNET"/>',
         '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>',
@@ -34,9 +34,13 @@ def configure_manifest():
         '<uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>',
     ]
 
-    for perm in permissions:
-        if perm not in content:
-            content = content.replace("<manifest", f"{perm}\n<manifest", 1)
+    new_perms = [p for p in permissions if p not in content]
+    if new_perms:
+        content = content.replace(
+            "<application",
+            "\n    ".join(new_perms) + "\n\n    <application",
+            1
+        )
 
     # Enable cleartext traffic (for local HTTP servers) and update label
     if 'android:usesCleartextTraffic="true"' not in content:
@@ -54,6 +58,14 @@ def configure_manifest():
         content,
         count=1,
     )
+
+    # Validate XML integrity
+    import xml.etree.ElementTree as ET
+    try:
+        ET.fromstring(content)
+    except Exception as err:
+        print(f"[-] XML validation failed: {err}")
+        return False
 
     with open(MANIFEST_PATH, "w", encoding="utf-8") as f:
         f.write(content)
