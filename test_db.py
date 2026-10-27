@@ -1,5 +1,5 @@
 from pathlib import Path
-from models import MealType, IngredientItem, FoodAnalysisResult
+from models import MealType, IngredientItem, FoodAnalysisResult, NutritionGoals
 import db
 
 def test_database_workflow():
@@ -86,6 +86,23 @@ def test_database_workflow():
     summary_after_del = db.get_daily_summary(db_path=test_db_path)
     assert summary_after_del.meals_count == 1
     print("✅ 6. Каскадное удаление приема пищи работает корректно.")
+
+    # 9. Тестирование суточных целей КБЖУ
+    default_goals = db.get_goals(db_path=test_db_path)
+    assert default_goals.calories == 2000.0
+    assert default_goals.protein == 90.0
+    print("✅ 7. Суточные цели по умолчанию прочитаны из БД.")
+
+    custom_goals = db.update_goals(
+        NutritionGoals(calories=2300.0, protein=130.0, fat=70.0, carbs=220.0),
+        db_path=test_db_path
+    )
+    assert custom_goals.calories == 2300.0
+    assert custom_goals.protein == 130.0
+    persisted_goals = db.get_goals(db_path=test_db_path)
+    assert persisted_goals.calories == 2300.0
+    assert persisted_goals.protein == 130.0
+    print("✅ 8. Обновленные цели КБЖУ успешно сохранены и прочитаны из БД.")
 
     # Удаляем временную тестовую БД
     if test_db_path.exists():

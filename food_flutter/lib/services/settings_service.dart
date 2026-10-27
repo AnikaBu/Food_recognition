@@ -82,4 +82,13 @@ class SettingsService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_keyTargetCarbs, val);
   }
+
+  Future<void> saveLocalGoals(double cal, double protein, double fat, double carbs) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_keyTargetCalories, cal);
+    await prefs.setDouble(_keyTargetProtein, protein);
+    await prefs.setDouble(_keyTargetFat, fat);
+    await prefs.setDouble(_keyTargetCarbs, carbs);
+  }
 }
+

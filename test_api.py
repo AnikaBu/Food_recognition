@@ -105,6 +105,21 @@ def test_api_endpoints():
     assert resp_not_found.status_code == 404
     print("✅ 6. DELETE /api/meals/{id} — прием пищи успешно удален и возвращает 404.")
 
+    # 6.1 Тестирование сохранения и чтения суточных целей КБЖУ
+    resp_goals = client.get("/api/goals")
+    assert resp_goals.status_code == 200
+    goals = resp_goals.json()
+    assert "calories" in goals and "protein" in goals
+    print(f"✅ 6.1. GET /api/goals — цели получены ({goals['calories']} ккал, {goals['protein']}г белка).")
+
+    new_goals = {"calories": 2150.0, "protein": 115.0, "fat": 65.0, "carbs": 240.0}
+    resp_put_goals = client.put("/api/goals", json=new_goals)
+    assert resp_put_goals.status_code == 200
+    saved_goals = resp_put_goals.json()
+    assert saved_goals["calories"] == 2150.0
+    assert saved_goals["protein"] == 115.0
+    print("✅ 6.2. PUT /api/goals — цели успешно обновлены и сохранены в БД.")
+
     # 7. Тестирование распознавания фото через эндпоинт /api/analyze-photo
     sample_img_path = Path("sample_dish.jpg")
     if sample_img_path.exists():
