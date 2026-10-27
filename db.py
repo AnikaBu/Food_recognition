@@ -9,6 +9,7 @@ from models import (
     FoodAnalysisResult,
     MealRecord,
     DailySummary,
+    NutritionGoals,
 )
 
 _ENV_DB_PATH = os.getenv("DB_PATH")
@@ -49,6 +50,18 @@ def init_db(db_path: Path = DEFAULT_DB_PATH) -> None:
                 fat REAL NOT NULL,
                 carbs REAL NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS nutrition_goals (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                calories REAL NOT NULL DEFAULT 2000.0,
+                protein REAL NOT NULL DEFAULT 90.0,
+                fat REAL NOT NULL DEFAULT 65.0,
+                carbs REAL NOT NULL DEFAULT 250.0,
+                updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+            );
+
+            INSERT OR IGNORE INTO nutrition_goals (id, calories, protein, fat, carbs)
+            VALUES (1, 2000.0, 90.0, 65.0, 250.0);
 
             CREATE INDEX IF NOT EXISTS idx_meals_created_at ON meals(created_at);
             CREATE INDEX IF NOT EXISTS idx_meal_items_meal_id ON meal_items(meal_id);
@@ -262,3 +275,46 @@ def get_daily_summary(
         total_carbs=round(total_c, 1),
         meals=meals,
     )
+
+
+def get_goals(db_path: Path = DEFAULT_DB_PATH) -> NutritionGoals:
+    """Получает текущие суточные цели по КБЖУ из базы данных."""
+    init_db(db_path)
+    with get_connection(db_path) as conn:
+        row = conn.execute(
+            "SELECT calories, protein, fat, carbs, updated_at FROM nutrition_goals WHERE id = 1;"
+        ).fetchone()
+        if row:
+            return NutritionGoals(
+                calories=float(row["calories"]),
+                protein=float(row["protein"]),
+                fat=float(row["fat"]),
+                carbs=float(row["carbs"]),
+                updated_at=str(row["updated_at"]),
+            )
+        return NutritionGoals()
+
+
+def update_goals(
+    goals: NutritionGoals,
+    db_path: Path = DEFAULT_DB_PATH,
+) -> NutritionGoals:
+    """Обновляет суточные цели по КБЖУ в базе данных."""
+    init_db(db_path)
+    with get_connection(db_path) as conn:
+        conn.execute(
+            """
+            INSERT INTO nutrition_goals (id, calories, protein, fat, carbs, updated_at)
+            VALUES (1, ?, ?, ?, ?, datetime('now', 'localtime'))
+            ON CONFLICT(id) DO UPDATE SET
+                calories = excluded.calories,
+                protein = excluded.protein,
+                fat = excluded.fat,
+                carbs = excluded.carbs,
+                updated_at = excluded.updated_at;
+            """,
+            (goals.calories, goals.protein, goals.fat, goals.carbs),
+        )
+        conn.commit()
+    return get_goals(db_path=db_path)
+

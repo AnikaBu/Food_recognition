@@ -243,4 +243,48 @@ class ApiService {
       throw Exception(err);
     }
   }
+
+  Future<NutritionGoals> getGoals() async {
+    final baseUrl = await _getBaseUrl();
+    final uri = Uri.parse('$baseUrl/api/goals');
+    final headers = await _getHeaders(isJson: true);
+
+    final res = await http.get(uri, headers: headers).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      final decoded = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      return NutritionGoals.fromJson(decoded);
+    } else {
+      String err = 'Ошибка получения целей КБЖУ: ${res.statusCode}';
+      try {
+        final body = json.decode(utf8.decode(res.bodyBytes));
+        if (body['detail'] != null) err = body['detail'].toString();
+      } catch (_) {}
+      throw Exception(err);
+    }
+  }
+
+  Future<NutritionGoals> updateGoals(NutritionGoals goals) async {
+    final baseUrl = await _getBaseUrl();
+    final uri = Uri.parse('$baseUrl/api/goals');
+    final headers = await _getHeaders(isJson: true);
+
+    final res = await http.put(
+      uri,
+      headers: headers,
+      body: json.encode(goals.toJson()),
+    ).timeout(const Duration(seconds: 10));
+
+    if (res.statusCode == 200) {
+      final decoded = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      return NutritionGoals.fromJson(decoded);
+    } else {
+      String err = 'Ошибка обновления целей КБЖУ: ${res.statusCode}';
+      try {
+        final body = json.decode(utf8.decode(res.bodyBytes));
+        if (body['detail'] != null) err = body['detail'].toString();
+      } catch (_) {}
+      throw Exception(err);
+    }
+  }
 }
+

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/meal_models.dart';
 import '../services/api_service.dart';
 import '../services/settings_service.dart';
 
@@ -42,14 +43,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final f = await widget.settingsService.getTargetFat();
     final c = await widget.settingsService.getTargetCarbs();
 
-    setState(() {
-      _urlController.text = url;
-      _apiKeyController.text = apiKey;
-      _calController.text = cal.toStringAsFixed(0);
-      _proteinController.text = p.toStringAsFixed(0);
-      _fatController.text = f.toStringAsFixed(0);
-      _carbsController.text = c.toStringAsFixed(0);
-    });
+    if (mounted) {
+      setState(() {
+        _urlController.text = url;
+        _apiKeyController.text = apiKey;
+        _calController.text = cal.toStringAsFixed(0);
+        _proteinController.text = p.toStringAsFixed(0);
+        _fatController.text = f.toStringAsFixed(0);
+        _carbsController.text = c.toStringAsFixed(0);
+      });
+    }
+
+    // Синхронизация с сервером: если на бэкенде уже сохранены цели, подтягиваем их
+    try {
+      final remoteGoals = await widget.apiService.getGoals();
+      if (mounted) {
+        setState(() {
+          _calController.text = remoteGoals.calories.toStringAsFixed(0);
+          _proteinController.text = remoteGoals.protein.toStringAsFixed(0);
+          _fatController.text = remoteGoals.fat.toStringAsFixed(0);
+          _carbsController.text = remoteGoals.carbs.toStringAsFixed(0);
+        });
+        await widget.settingsService.saveLocalGoals(
+          remoteGoals.calories,
+          remoteGoals.protein,
+          remoteGoals.fat,
+          remoteGoals.carbs,
+        );
+      }
+    } catch (_) {
+      // Сервер пока оффлайн или не настроен — используем локальные настройки
+    }
   }
 
   Future<void> _saveUrl() async {
@@ -85,16 +109,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final f = double.tryParse(_fatController.text.replaceAll(',', '.')) ?? 65;
     final c = double.tryParse(_carbsController.text.replaceAll(',', '.')) ?? 250;
 
-    await widget.settingsService.setTargetCalories(cal);
-    await widget.settingsService.setTargetProtein(p);
-    await widget.settingsService.setTargetFat(f);
-    await widget.settingsService.setTargetCarbs(c);
+    // Сначала сохраняем локально
+    await widget.settingsService.saveLocalGoals(cal, p, f, c);
+
+    // Затем сохраняем в базу данных на сервере
+    bool syncedWithServer = false;
+    try {
+      await widget.apiService.updateGoals(NutritionGoals(
+        calories: cal,
+        protein: p,
+        fat: f,
+        carbs: c,
+      ));
+      syncedWithServer = true;
+    } catch (_) {
+      // Сервер оффлайн — настройки сохранены локально
+    }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Суточные цели КБЖУ сохранены! ✅'),
-          backgroundColor: Color(0xFF10B981),
+        SnackBar(
+          content: Text(syncedWithServer
+              ? 'Суточные цели КБЖУ сохранены на сервере в базе! ☁️✅'
+              : 'Суточные цели КБЖУ сохранены локально! 📱✅'),
+          backgroundColor: const Color(0xFF10B981),
         ),
       );
     }

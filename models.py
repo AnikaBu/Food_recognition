@@ -94,3 +94,12 @@ class DailySummary(BaseModel):
     total_fat: float
     total_carbs: float
     meals: list[MealRecord] = []
+
+
+class NutritionGoals(BaseModel):
+    calories: float = Field(default=2000.0, ge=0, description="Суточная норма калорий (ккал)")
+    protein: float = Field(default=90.0, ge=0, description="Суточная норма белков (г)")
+    fat: float = Field(default=65.0, ge=0, description="Суточная норма жиров (г)")
+    carbs: float = Field(default=250.0, ge=0, description="Суточная норма углеводов (г)")
+    updated_at: Optional[str] = Field(default=None, description="Время последнего обновления")
+

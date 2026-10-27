@@ -278,3 +278,37 @@ class DailySummary {
     );
   }
 }
+
+class NutritionGoals {
+  final double calories;
+  final double protein;
+  final double fat;
+  final double carbs;
+  final String? updatedAt;
+
+  NutritionGoals({
+    required this.calories,
+    required this.protein,
+    required this.fat,
+    required this.carbs,
+    this.updatedAt,
+  });
+
+  factory NutritionGoals.fromJson(Map<String, dynamic> json) {
+    return NutritionGoals(
+      calories: (json['calories'] as num?)?.toDouble() ?? 2000.0,
+      protein: (json['protein'] as num?)?.toDouble() ?? 90.0,
+      fat: (json['fat'] as num?)?.toDouble() ?? 65.0,
+      carbs: (json['carbs'] as num?)?.toDouble() ?? 250.0,
+      updatedAt: json['updated_at'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'calories': calories,
+    'protein': protein,
+    'fat': fat,
+    'carbs': carbs,
+  };
+}
+

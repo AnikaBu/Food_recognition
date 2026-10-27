@@ -21,6 +21,7 @@ from models import (
     IngredientItem,
     SaveMealRequest,
     UpdateWeightRequest,
+    NutritionGoals,
 )
 from vision import analyze_food_image
 
@@ -258,6 +259,28 @@ def get_meals_by_date_endpoint(
 ):
     """Возвращает список всех приемов пищи за указанную дату."""
     return db.get_meals_by_date(date_str=date)
+
+
+@app.get(
+    "/api/goals",
+    response_model=NutritionGoals,
+    tags=["Настройки"],
+    summary="Получить суточные цели КБЖУ",
+)
+def get_nutrition_goals_endpoint():
+    """Возвращает сохраненные суточные цели пользователя по калориям, белкам, жирам и углеводам."""
+    return db.get_goals()
+
+
+@app.put(
+    "/api/goals",
+    response_model=NutritionGoals,
+    tags=["Настройки"],
+    summary="Обновить суточные цели КБЖУ",
+)
+def update_nutrition_goals_endpoint(goals: NutritionGoals):
+    """Обновляет и сохраняет в базе данных суточные цели по калориям и макронутриентам."""
+    return db.update_goals(goals)
 
 
 # Раздача PWA-клиента (HTML, CSS, JS, манифест и иконки)
