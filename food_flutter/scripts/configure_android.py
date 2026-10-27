@@ -32,6 +32,7 @@ def configure_manifest():
         '<uses-permission android:name="android.permission.CAMERA"/>',
         '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>',
         '<uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>',
+        '<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>',
     ]
 
     new_perms = [p for p in permissions if p not in content]
@@ -41,6 +42,21 @@ def configure_manifest():
             "\n    ".join(new_perms) + "\n\n    <application",
             1
         )
+
+    # Queries block for url_launcher on Android 11+
+    if "<queries>" not in content:
+        queries_block = """    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="http" />
+        </intent>
+    </queries>\n\n    """
+        content = content.replace("<application", queries_block + "<application", 1)
+
 
     # Enable cleartext traffic (for local HTTP servers) and update label
     if 'android:usesCleartextTraffic="true"' not in content:

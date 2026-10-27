@@ -5,6 +5,8 @@ import '../services/api_service.dart';
 import '../services/settings_service.dart';
 import '../widgets/daily_summary_card.dart';
 import '../widgets/macro_pill.dart';
+import '../services/update_service.dart';
+import '../widgets/update_dialog.dart';
 
 class DiaryScreen extends StatefulWidget {
   final ApiService apiService;
@@ -37,6 +39,19 @@ class _DiaryScreenState extends State<DiaryScreen> {
   void initState() {
     super.initState();
     _loadSettingsAndData();
+    _checkUpdateSilently();
+  }
+
+  Future<void> _checkUpdateSilently() async {
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+    try {
+      final service = UpdateService();
+      final info = await service.checkForUpdate();
+      if (mounted && info != null && info.hasUpdate) {
+        UpdateDialog.show(context, info, service);
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadSettingsAndData() async {
