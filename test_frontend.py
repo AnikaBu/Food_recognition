@@ -1,0 +1,317 @@
+"""
+E2E (End-to-End) тесты веб-интерфейса MyFoodDiary с помощью Playwright.
+
+Этот тест запускает настоящий браузер Chromium, открывает веб-страницу приложения,
+кликает по всем кнопкам, меняет граммовки и проверяет реакцию интерфейса.
+
+Запуск:
+    .venv/bin/pytest test_frontend.py -v
+или напрямую:
+    .venv/bin/python test_frontend.py
+"""
+
+import os
+import sys
+import time
+import threading
+import urllib.request
+from pathlib import Path
+
+import pytest
+import uvicorn
+from playwright.sync_api import sync_playwright, Page, expect
+
+# Используем тестовую базу данных, чтобы не засорять основную
+TEST_DB_PATH = Path("test_frontend_nutrition.db")
+os.environ["DB_PATH"] = str(TEST_DB_PATH)
+
+from server import app
+import db
+
+TEST_PORT = 8009
+BASE_URL = f"http://127.0.0.1:{TEST_PORT}"
+
+
+# =====================================================================
+# Фикстура: автоматический запуск и остановка тестового веб-сервера
+# =====================================================================
+@pytest.fixture(scope="session", autouse=True)
+def live_server():
+    """Запускает FastAPI сервер в отдельном потоке перед тестами и останавливает после."""
+    # Очищаем старую тестовую БД, если осталась
+    if TEST_DB_PATH.exists():
+        TEST_DB_PATH.unlink()
+
+    db.init_db(TEST_DB_PATH)
+
+    config = uvicorn.Config(
+        app=app,
+        host="127.0.0.1",
+        port=TEST_PORT,
+        log_level="error"
+    )
+    server = uvicorn.Server(config)
+    server_thread = threading.Thread(target=server.run, daemon=True)
+    server_thread.start()
+
+    # Ждем, пока сервер поднимется и начнет отвечать
+    server_ready = False
+    for _ in range(50):
+        try:
+            with urllib.request.urlopen(f"{BASE_URL}/api/health", timeout=1) as resp:
+                if resp.status == 200:
+                    server_ready = True
+                    break
+        except Exception:
+            time.sleep(0.1)
+
+    if not server_ready:
+        raise RuntimeError("Не удалось запустить тестовый сервер FastAPI!")
+
+    print(f"\n🚀 Тестовый сервер запущен на {BASE_URL}")
+
+    yield BASE_URL
+
+    # Завершение работы сервера и очистка
+    server.should_exit = True
+    server_thread.join(timeout=2)
+    if TEST_DB_PATH.exists():
+        try:
+            TEST_DB_PATH.unlink()
+        except Exception:
+            pass
+
+
+# =====================================================================
+# ТЕСТЫ КНОПОК И ФУНКЦИОНАЛА
+# =====================================================================
+
+def test_01_date_navigation_buttons(page: Page):
+    """
+    Тест 1: Проверка кнопок навигации по датам (‹ Предыдущий день и › Следующий день).
+    """
+    page.goto(BASE_URL)
+
+    date_label = page.locator("#dateLabel")
+    # Ждем появления надписи "Сегодня..."
+    expect(date_label).to_contain_text("Сегодня")
+    initial_text = date_label.inner_text()
+
+    # --- Кликаем на кнопку "‹ Предыдущий день" ---
+    prev_btn = page.locator("#prevDayBtn")
+    expect(prev_btn).to_be_visible()
+    prev_btn.click()
+
+    # Проверяем: текст изменился на "Вчера, ..."
+    expect(date_label).to_contain_text("Вчера")
+
+    # --- Кликаем на кнопку "› Следующий день" ---
+    next_btn = page.locator("#nextDayBtn")
+    expect(next_btn).to_be_visible()
+    next_btn.click()
+
+    # Проверяем: снова вернулись в "Сегодня"
+    expect(date_label).to_have_text(initial_text)
+
+
+def test_02_meal_category_tabs(page: Page):
+    """
+    Тест 2: Проверка кнопок выбора категории (🍳 Завтрак, 🍲 Обед, 🥗 Ужин, 🍎 Перекус).
+    Важная деталь: кнопки категорий находятся внутри карточки блюда (#resultCard),
+    поэтому сначала делаем карточку видимой (как в реальном сценарии после распознавания).
+    """
+    page.goto(BASE_URL)
+
+    # Отображаем карточку результата, чтобы кнопки стали видимыми на экране
+    page.evaluate("document.getElementById('resultCard').style.display = 'block'")
+
+    tab_breakfast = page.locator('.type-tab[data-type="breakfast"]')
+    tab_lunch = page.locator('.type-tab[data-type="lunch"]')
+    tab_dinner = page.locator('.type-tab[data-type="dinner"]')
+    tab_snack = page.locator('.type-tab[data-type="snack"]')
+
+    # По умолчанию активен "Обед"
+    expect(tab_lunch).to_have_class("type-tab active")
+
+    # 1. Кликаем на "Завтрак"
+    tab_breakfast.click()
+    expect(tab_breakfast).to_have_class("type-tab active")
+    expect(tab_lunch).not_to_have_class("active")
+
+    # 2. Кликаем на "Ужин"
+    tab_dinner.click()
+    expect(tab_dinner).to_have_class("type-tab active")
+    expect(tab_breakfast).not_to_have_class("active")
+
+    # 3. Кликаем на "Перекус"
+    tab_snack.click()
+    expect(tab_snack).to_have_class("type-tab active")
+    expect(tab_dinner).not_to_have_class("active")
+
+    # 4. Возвращаемся на "Обед"
+    tab_lunch.click()
+    expect(tab_lunch).to_have_class("type-tab active")
+    expect(tab_snack).not_to_have_class("active")
+
+
+def test_03_action_buttons_visibility(page: Page):
+    """
+    Тест 3: Проверка наличия кнопок выбора фото (Камера и Галерея).
+    """
+    page.goto(BASE_URL)
+
+    # Проверяем кнопки-лейблы
+    camera_btn = page.locator('label[for="cameraInput"]')
+    gallery_btn = page.locator('label[for="fileInput"]')
+
+    expect(camera_btn).to_be_visible()
+    expect(camera_btn).to_contain_text("Камера")
+
+    expect(gallery_btn).to_be_visible()
+    expect(gallery_btn).to_contain_text("Галерея")
+
+
+def test_04_ingredient_weight_recalculation_and_cancel(page: Page):
+    """
+    Тест 4: Проверка карточки блюда, пересчета веса ингредиента и кнопки 'Отмена'.
+    """
+    page.goto(BASE_URL)
+
+    # Имитируем, что ИИ распознал тестовое блюдо (вызываем функцию фронтенда)
+    mock_meal = {
+        "dish_name": "Тестовая паста с сыром",
+        "comment": "Сытное итальянское блюдо",
+        "items": [
+            {
+                "name": "Спагетти отварные",
+                "weight_g": 150.0,
+                "calories": 230.0,
+                "protein": 8.0,
+                "fat": 1.5,
+                "carbs": 45.0
+            }
+        ],
+        "total_weight_g": 150.0,
+        "total_calories": 230.0,
+        "total_protein": 8.0,
+        "total_fat": 1.5,
+        "total_carbs": 45.0
+    }
+
+    # Передаем объект в JavaScript состояние фронтенда
+    page.evaluate("""(meal) => {
+        state.analyzedMeal = meal;
+        renderAnalysisResult(meal);
+    }""", mock_meal)
+
+    # 1. Проверяем, что карточка результата появилась
+    result_card = page.locator("#resultCard")
+    expect(result_card).to_be_visible()
+    expect(page.locator("#dishTitle")).to_have_text("Тестовая паста с сыром")
+
+    # 2. Проверяем пересчет: увеличиваем вес спагетти со 150г до 300г (в 2 раза)
+    weight_input = page.locator(".weight-input").first
+    expect(weight_input).to_have_value("150")
+
+    # Вводим 300 и эмулируем событие change
+    weight_input.fill("300")
+    weight_input.dispatch_event("change")
+
+    # Проверяем, что калории удвоились (230 * 2 = 460)
+    card_total = page.locator("#cardTotalText")
+    expect(card_total).to_contain_text("460 ккал")
+    expect(card_total).to_contain_text("300г")
+
+    # 3. Нажимаем кнопку "Отмена"
+    cancel_btn = page.locator("#cancelMealBtn")
+    cancel_btn.click()
+
+    # Карточка должна скрыться, а зона загрузки фото снова стать видимой
+    expect(result_card).not_to_be_visible()
+    expect(page.locator("#dropZone")).to_be_visible()
+
+
+def test_05_save_and_delete_workflow(page: Page):
+    """
+    Тест 5: Полный сквозной сценарий:
+    Клик 'Сохранить в дневник' -> проверка появления в истории -> клик 'Удалить' (корзина).
+    """
+    page.goto(BASE_URL)
+
+    # Создаем тестовое блюдо
+    mock_meal = {
+        "dish_name": "Тестовый протеиновый батончик",
+        "comment": "Быстрый перекус",
+        "items": [
+            {
+                "name": "Батончик шоколадный",
+                "weight_g": 60.0,
+                "calories": 210.0,
+                "protein": 20.0,
+                "fat": 7.0,
+                "carbs": 15.0
+            }
+        ],
+        "total_weight_g": 60.0,
+        "total_calories": 210.0,
+        "total_protein": 20.0,
+        "total_fat": 7.0,
+        "total_carbs": 15.0
+    }
+
+    # Отображаем карточку
+    page.evaluate("""(meal) => {
+        state.analyzedMeal = meal;
+        renderAnalysisResult(meal);
+    }""", mock_meal)
+
+    # Выбираем категорию "Перекус"
+    page.locator('.type-tab[data-type="snack"]').click()
+
+    # --- Кликаем кнопку "💾 Сохранить в дневник" ---
+    save_btn = page.locator("#saveMealBtn")
+    save_btn.click()
+
+    # 1. Проверяем тост уведомление
+    toast = page.locator("#toast")
+    expect(toast).to_be_visible()
+    expect(toast).to_contain_text("сохранен", ignore_case=True)
+
+    # 2. Проверяем, что блюдо появилось в блоке "История за день"
+    history_item = page.locator(".history-item").first
+    expect(history_item).to_be_visible()
+    expect(history_item).to_contain_text("Тестовый протеиновый батончик")
+    expect(history_item).to_contain_text("210 ккал")
+
+    # 3. Проверяем, что суточные метрики вверху обновились
+    expect(page.locator("#sumCalories")).to_have_text("210")
+
+    # Регистрируем обработчик диалога: когда браузер вызовет confirm("Удалить...?"),
+    # тест автоматически нажмет "OK" (dialog.accept)
+    page.once("dialog", lambda dialog: dialog.accept())
+
+    # --- Кликаем кнопку удаления (корзина 🗑️) ---
+    delete_btn = history_item.locator(".hist-del-btn")
+    delete_btn.click()
+
+    # 4. Проверяем, что карточка удалилась и вернулось пустое состояние
+    expect(page.locator(".history-item")).to_have_count(0)
+    expect(page.locator(".empty-state")).to_be_visible()
+
+    # Калории за день снова обнулились
+    expect(page.locator("#sumCalories")).to_have_text("0")
+
+
+# =====================================================================
+# Возможность прямого запуска через: python test_frontend.py
+# =====================================================================
+if __name__ == "__main__":
+    print("🚀 Запуск E2E тестов веб-интерфейса MyFoodDiary через Playwright...")
+    # Передаем аргументы в pytest для красивого вывода
+    exit_code = pytest.main([
+        "-v",
+        "-s",
+        __file__,
+        "--browser", "chromium",
+    ])
+    sys.exit(exit_code)
