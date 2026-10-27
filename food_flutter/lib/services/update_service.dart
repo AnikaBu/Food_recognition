@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:ota_update/ota_update.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AppUpdateInfo {
@@ -96,15 +95,16 @@ class UpdateService {
     }
   }
 
-  /// Запускает скачивание APK и вызывает системный установщик Android
-  Stream<OtaEvent> startOtaUpdate(String apkUrl) {
-    return OtaUpdate().execute(
-      apkUrl,
-      destinationFilename: 'myfooddiary.apk',
-    );
+  /// Запускает загрузку и установку APK через системный загрузчик
+  Future<bool> downloadAndInstallApk(String apkUrl) async {
+    final uri = Uri.parse(apkUrl);
+    if (await canLaunchUrl(uri)) {
+      return await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+    return false;
   }
 
-  /// Открывает страницу релиза или прямую ссылку в системном браузере
+  /// Открывает страницу релиза в системном браузере
   Future<bool> openInBrowser(String url) async {
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
