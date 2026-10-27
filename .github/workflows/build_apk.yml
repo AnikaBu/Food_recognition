@@ -72,14 +72,24 @@ jobs:
           path: food_flutter/build/app/outputs/flutter-apk/myfooddiary.apk
           if-no-files-found: error
 
+      - name: Extract version from pubspec.yaml
+        id: get_version
+        working-directory: food_flutter
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "TAG_NAME=v$VERSION" >> $GITHUB_ENV
+          echo "Extracted version: $VERSION"
+
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.0.5-apk
-          name: "MyFoodDiary Android APK v1.0.5"
+          tag_name: ${{ env.TAG_NAME }}
+          name: "MyFoodDiary Android APK ${{ env.TAG_NAME }}"
+          make_latest: true
           body: |
-            ## 🥗 MyFoodDiary — Android App (Release APK)
+            ## 🥗 MyFoodDiary — Android App (Release APK ${{ env.TAG_NAME }})
 
             Персональное мобильное приложение для распознавания блюд и учета КБЖУ на базе искусственного интеллекта.
 
@@ -88,12 +98,15 @@ jobs:
             - 🧠 **ИИ-анализ**: распознавание продуктов, ингредиентов и веса через Google Gemini Vision;
             - ⚖️ **Живой пересчет КБЖУ**: удобная регулировка веса (+/-10г или ручной ввод) с моментальным пересчетом питательных веществ;
             - 📅 **Дневник питания**: календарь по дням, диаграммы выполнения суточной нормы калорий, белков, жиров и углеводов;
+            - 🎯 **Персистентность целей**: нормы КБЖУ синхронизируются с сервером и не сбрасываются;
+            - 🔄 **Автообновление**: проверка новых версий и обновление прямо внутри приложения;
             - ⚙️ **Гибкое подключение**: переключение между домашней сетью Wi-Fi и облачным сервером Google Cloud.
 
             ### Инструкция по установке:
-            1. Скачайте файл **`myfooddiary.apk`** ниже на свой Android-смартфон.
+            1. Скачайте файл **`myfooddiary.apk`** ниже на свой Android-смартфон (или обновитесь внутри приложения).
             2. Откройте загруженный файл и подтвердите установку («Разрешить установку из неизвестных источников»).
             3. Запустите приложение и во вкладке **«Настройки»** укажите IP-адрес вашего компьютера (например, `http://192.168.1.172:8000`) или облачный URL.
           files: food_flutter/build/app/outputs/flutter-apk/myfooddiary.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

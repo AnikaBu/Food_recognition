@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/meal_models.dart';
 import '../services/api_service.dart';
 import '../services/settings_service.dart';
+import '../services/update_service.dart';
+import '../widgets/update_dialog.dart';
 
 class SettingsScreen extends StatefulWidget {
   final SettingsService settingsService;
@@ -25,6 +27,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _fatController = TextEditingController();
   final TextEditingController _carbsController = TextEditingController();
 
+  final UpdateService _updateService = UpdateService();
+  bool _isCheckingUpdate = false;
   bool _isTesting = false;
   bool _showApiKey = false;
   HealthCheckResult? _healthResult;
@@ -132,6 +136,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
           content: Text(syncedWithServer
               ? 'Суточные цели КБЖУ сохранены на сервере в базе! ☁️✅'
               : 'Суточные цели КБЖУ сохранены локально! 📱✅'),
+          backgroundColor: const Color(0xFF10B981),
+        ),
+      );
+    }
+  }
+
+  Future<void> _checkForUpdates() async {
+    setState(() => _isCheckingUpdate = true);
+    final info = await _updateService.checkForUpdate();
+    if (!mounted) return;
+    setState(() => _isCheckingUpdate = false);
+
+    if (info == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Не удалось связаться с сервером обновлений. Проверьте интернет. ⚠️'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (info.hasUpdate) {
+      UpdateDialog.show(context, info, _updateService);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('У вас установлена актуальная версия v${info.currentVersion}! ✅'),
           backgroundColor: const Color(0xFF10B981),
         ),
       );
@@ -375,10 +407,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                const Row(
                   children: [
                     Icon(Icons.info_outline, color: Color(0xFF10B981)),
                     SizedBox(width: 8),
@@ -388,20 +420,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ],
                 ),
-                SizedBox(height: 10),
-                Text(
+                const SizedBox(height: 10),
+                const Text(
                   'MyFoodDiary — мобильный клиент персональной системы распознавания блюд на базе ИИ Google Gemini Flash и SQLite дневника питания.',
                   style: TextStyle(fontSize: 13, color: Color(0xFF475569), height: 1.4),
                 ),
-                SizedBox(height: 8),
-                Text(
+                const SizedBox(height: 8),
+                const Text(
                   'Архитектура: «Один бэкенд (FastAPI) — три клиента (Telegram, PWA, Flutter)».',
                   style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontStyle: FontStyle.italic),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(
-                  'Версия: 1.0.5 (Release APK)',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                  'Версия: ${UpdateService.currentVersion} (Release APK)',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF10B981),
+                      side: const BorderSide(color: Color(0xFF10B981)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: _isCheckingUpdate
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)),
+                          )
+                        : const Icon(Icons.sync_rounded, size: 20),
+                    label: Text(
+                      _isCheckingUpdate ? 'Проверка обновлений...' : 'Проверить обновления',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    onPressed: _isCheckingUpdate ? null : _checkForUpdates,
+                  ),
                 ),
               ],
             ),
