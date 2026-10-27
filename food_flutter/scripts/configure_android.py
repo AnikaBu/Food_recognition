@@ -15,6 +15,7 @@ APP_DIR = os.path.join(ANDROID_DIR, "app")
 MANIFEST_PATH = os.path.join(APP_DIR, "src", "main", "AndroidManifest.xml")
 GRADLE_GROOVY_PATH = os.path.join(APP_DIR, "build.gradle")
 GRADLE_KTS_PATH = os.path.join(APP_DIR, "build.gradle.kts")
+GRADLE_PROPERTIES_PATH = os.path.join(ANDROID_DIR, "gradle.properties")
 
 
 def configure_manifest():
@@ -213,10 +214,48 @@ def configure_icons():
         print(f"[!] Warning: Icon generation error: {e}")
 
 
+def configure_gradle_properties():
+    if not os.path.exists(ANDROID_DIR):
+        return
+
+    lines = []
+    if os.path.exists(GRADLE_PROPERTIES_PATH):
+        with open(GRADLE_PROPERTIES_PATH, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+    props_to_set = {
+        "android.newDsl": "false",
+        "android.builtInKotlin": "false",
+    }
+
+    new_lines = []
+    found_keys = set()
+    for line in lines:
+        stripped = line.strip()
+        matched = False
+        for key, val in props_to_set.items():
+            if stripped.startswith(f"{key}=") or stripped.startswith(f"{key} ="):
+                new_lines.append(f"{key}={val}\n")
+                found_keys.add(key)
+                matched = True
+                break
+        if not matched:
+            new_lines.append(line)
+
+    for key, val in props_to_set.items():
+        if key not in found_keys:
+            new_lines.append(f"{key}={val}\n")
+
+    with open(GRADLE_PROPERTIES_PATH, "w", encoding="utf-8") as f:
+        f.writelines(new_lines)
+    print("[+] gradle.properties configured successfully (android.newDsl=false).")
+
+
 def main():
     print("[*] Configuring Android project for MyFoodDiary...")
     configure_manifest()
     configure_gradle()
+    configure_gradle_properties()
     configure_icons()
     print("[+] Android configuration complete.")
 
