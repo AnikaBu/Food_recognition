@@ -266,8 +266,41 @@ def configure_gradle_properties():
     print("[+] gradle.properties configured successfully (android.newDsl=false).")
 
 
+def sync_version():
+    pubspec_path = os.path.join(BASE_DIR, "pubspec.yaml")
+    service_path = os.path.join(BASE_DIR, "lib", "services", "update_service.dart")
+    if not os.path.exists(pubspec_path) or not os.path.exists(service_path):
+        return
+
+    with open(pubspec_path, "r", encoding="utf-8") as f:
+        pub_content = f.read()
+
+    match = re.search(r"^version:\s*([0-9]+\.[0-9]+\.[0-9]+)", pub_content, re.MULTILINE)
+    if not match:
+        return
+
+    ver = match.group(1)
+    with open(service_path, "r", encoding="utf-8") as f:
+        service_content = f.read()
+
+    new_content = re.sub(
+        r"static const String currentVersion = '[^']+';",
+        f"static const String currentVersion = '{ver}';",
+        service_content,
+        count=1
+    )
+
+    if new_content != service_content:
+        with open(service_path, "w", encoding="utf-8") as f:
+            f.write(new_content)
+        print(f"[+] Synchronized currentVersion = '{ver}' into update_service.dart")
+    else:
+        print(f"[+] update_service.dart already at version '{ver}'.")
+
+
 def main():
     print("[*] Configuring Android project for MyFoodDiary...")
+    sync_version()
     configure_manifest()
     configure_gradle()
     configure_gradle_properties()
@@ -277,3 +310,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
