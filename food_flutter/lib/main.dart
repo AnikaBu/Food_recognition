@@ -110,7 +110,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   void initState() {
     super.initState();
-    _settingsService = SettingsService();
+    _settingsService = SettingsService()..init();
     _apiService = ApiService(settingsService: _settingsService);
   }
 
