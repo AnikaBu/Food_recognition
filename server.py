@@ -1,5 +1,7 @@
 import io
 import os
+import time
+import signal
 import asyncio
 from pathlib import Path
 from typing import Optional, List
@@ -30,6 +32,9 @@ load_dotenv()
 
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8000"))
+IDLE_TIMEOUT_MINUTES = int(os.getenv("IDLE_TIMEOUT_MINUTES", "0"))
+
+_last_activity_time = time.time()
 
 
 @asynccontextmanager
@@ -37,7 +42,26 @@ async def lifespan(app: FastAPI):
     """Жизненный цикл приложения: инициализация ресурсов при старте."""
     db.init_db()
     print("✅ База данных SQLite успешно инициализирована.")
+
+    idle_task = None
+    if IDLE_TIMEOUT_MINUTES > 0:
+        async def idle_watcher():
+            idle_limit = IDLE_TIMEOUT_MINUTES * 60
+            print(f"⏱️ Таймер автозасыпания активен: выключение через {IDLE_TIMEOUT_MINUTES} мин без активности.")
+            while True:
+                await asyncio.sleep(15)
+                idle_sec = time.time() - _last_activity_time
+                if idle_sec >= idle_limit:
+                    print(f"💤 Сервер простаивал {IDLE_TIMEOUT_MINUTES} мин без активности. Завершение работы до следующего запроса...")
+                    os.kill(os.getpid(), signal.SIGTERM)
+                    break
+
+        idle_task = asyncio.create_task(idle_watcher())
+
     yield
+
+    if idle_task:
+        idle_task.cancel()
 
 
 app = FastAPI(
@@ -46,6 +70,15 @@ app = FastAPI(
     version="1.0.4",
     lifespan=lifespan,
 )
+
+
+@app.middleware("http")
+async def track_activity(request: Request, call_next):
+    """Отслеживает время последнего входящего запроса для таймера автозасыпания."""
+    global _last_activity_time
+    _last_activity_time = time.time()
+    return await call_next(request)
+
 
 # Разрешаем CORS-запросы для будущих клиентов (PWA и Flutter)
 app.add_middleware(
