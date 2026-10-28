@@ -422,15 +422,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 10),
                 const Text(
-                  'MyFoodDiary — мобильный клиент персональной системы распознавания блюд на базе ИИ Google Gemini Flash и SQLite дневника питания.',
+                  'Мобильный клиент персональной системы распознавания блюд по фото на базе ИИ Google Gemini Flash.',
                   style: TextStyle(fontSize: 13, color: Color(0xFF475569), height: 1.4),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Архитектура: «Один бэкенд (FastAPI) — три клиента (Telegram, PWA, Flutter)».',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontStyle: FontStyle.italic),
-                ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(
                   'Версия: ${UpdateService.currentVersion} (Release APK)',
                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
