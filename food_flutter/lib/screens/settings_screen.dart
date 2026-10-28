@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/meal_models.dart';
 import '../services/api_service.dart';
@@ -34,11 +35,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isTesting = false;
   bool _showApiKey = false;
   HealthCheckResult? _healthResult;
+  Timer? _goalsDebounceTimer;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
+  }
+
+  @override
+  void dispose() {
+    _goalsDebounceTimer?.cancel();
+    _urlController.dispose();
+    _apiKeyController.dispose();
+    _calController.dispose();
+    _proteinController.dispose();
+    _fatController.dispose();
+    _carbsController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSettings() async {
@@ -109,14 +123,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  void _onGoalsFieldChanged() {
+    final cal = double.tryParse(_calController.text.replaceAll(',', '.')) ?? widget.settingsService.targetCalories;
+    final p = double.tryParse(_proteinController.text.replaceAll(',', '.')) ?? widget.settingsService.targetProtein;
+    final f = double.tryParse(_fatController.text.replaceAll(',', '.')) ?? widget.settingsService.targetFat;
+    final c = double.tryParse(_carbsController.text.replaceAll(',', '.')) ?? widget.settingsService.targetCarbs;
+
+    // Мгновенное сохранение локально и реактивное обновление главного экрана
+    widget.settingsService.saveLocalGoals(cal, p, f, c);
+    widget.onGoalsSaved?.call();
+
+    // Дебаунс синхронизации с базой данных сервера на 800 мс
+    _goalsDebounceTimer?.cancel();
+    _goalsDebounceTimer = Timer(const Duration(milliseconds: 800), () async {
+      try {
+        await widget.apiService.updateGoals(NutritionGoals(
+          calories: cal,
+          protein: p,
+          fat: f,
+          carbs: c,
+        ));
+      } catch (_) {}
+    });
+  }
+
   Future<void> _saveGoals() async {
-    final cal = double.tryParse(_calController.text.replaceAll(',', '.')) ?? 2000;
-    final p = double.tryParse(_proteinController.text.replaceAll(',', '.')) ?? 90;
-    final f = double.tryParse(_fatController.text.replaceAll(',', '.')) ?? 65;
-    final c = double.tryParse(_carbsController.text.replaceAll(',', '.')) ?? 250;
+    _goalsDebounceTimer?.cancel();
+    final cal = double.tryParse(_calController.text.replaceAll(',', '.')) ?? widget.settingsService.targetCalories;
+    final p = double.tryParse(_proteinController.text.replaceAll(',', '.')) ?? widget.settingsService.targetProtein;
+    final f = double.tryParse(_fatController.text.replaceAll(',', '.')) ?? widget.settingsService.targetFat;
+    final c = double.tryParse(_carbsController.text.replaceAll(',', '.')) ?? widget.settingsService.targetCarbs;
 
     // Сначала сохраняем локально
     await widget.settingsService.saveLocalGoals(cal, p, f, c);
+    widget.onGoalsSaved?.call();
 
     // Затем сохраняем в базу данных на сервере
     bool syncedWithServer = false;
@@ -142,8 +182,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       );
     }
-
-    widget.onGoalsSaved?.call();
   }
 
   Future<void> _checkForUpdates() async {
@@ -343,6 +381,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     suffixText: 'ккал',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
+                  onChanged: (_) => _onGoalsFieldChanged(),
                 ),
                 const SizedBox(height: 10),
                 Row(
@@ -356,6 +395,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           suffixText: 'г',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
+                        onChanged: (_) => _onGoalsFieldChanged(),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -368,6 +408,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           suffixText: 'г',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
+                        onChanged: (_) => _onGoalsFieldChanged(),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -380,6 +421,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           suffixText: 'г',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
+                        onChanged: (_) => _onGoalsFieldChanged(),
                       ),
                     ),
                   ],

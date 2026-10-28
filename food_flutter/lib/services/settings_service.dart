@@ -15,6 +15,28 @@ class SettingsService extends ChangeNotifier {
   static const double defaultTargetFat = 65.0;
   static const double defaultTargetCarbs = 250.0;
 
+  double _cachedCalories = defaultTargetCalories;
+  double _cachedProtein = defaultTargetProtein;
+  double _cachedFat = defaultTargetFat;
+  double _cachedCarbs = defaultTargetCarbs;
+  bool _initialized = false;
+
+  double get targetCalories => _cachedCalories;
+  double get targetProtein => _cachedProtein;
+  double get targetFat => _cachedFat;
+  double get targetCarbs => _cachedCarbs;
+
+  Future<void> init() async {
+    if (_initialized) return;
+    final prefs = await SharedPreferences.getInstance();
+    _cachedCalories = prefs.getDouble(_keyTargetCalories) ?? defaultTargetCalories;
+    _cachedProtein = prefs.getDouble(_keyTargetProtein) ?? defaultTargetProtein;
+    _cachedFat = prefs.getDouble(_keyTargetFat) ?? defaultTargetFat;
+    _cachedCarbs = prefs.getDouble(_keyTargetCarbs) ?? defaultTargetCarbs;
+    _initialized = true;
+    notifyListeners();
+  }
+
   Future<String> getServerUrl() async {
     final prefs = await SharedPreferences.getInstance();
     final url = prefs.getString(_keyServerUrl);
@@ -45,64 +67,78 @@ class SettingsService extends ChangeNotifier {
   }
 
   Future<double> getTargetCalories() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getDouble(_keyTargetCalories) ?? defaultTargetCalories;
+    if (!_initialized) await init();
+    return _cachedCalories;
   }
 
   Future<void> setTargetCalories(double val) async {
+    final changed = _cachedCalories != val;
+    _cachedCalories = val;
+    if (changed) notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_keyTargetCalories, val);
-    notifyListeners();
   }
 
   Future<double> getTargetProtein() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getDouble(_keyTargetProtein) ?? defaultTargetProtein;
+    if (!_initialized) await init();
+    return _cachedProtein;
   }
 
   Future<void> setTargetProtein(double val) async {
+    final changed = _cachedProtein != val;
+    _cachedProtein = val;
+    if (changed) notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_keyTargetProtein, val);
-    notifyListeners();
   }
 
   Future<double> getTargetFat() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getDouble(_keyTargetFat) ?? defaultTargetFat;
+    if (!_initialized) await init();
+    return _cachedFat;
   }
 
   Future<void> setTargetFat(double val) async {
+    final changed = _cachedFat != val;
+    _cachedFat = val;
+    if (changed) notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_keyTargetFat, val);
-    notifyListeners();
   }
 
   Future<double> getTargetCarbs() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getDouble(_keyTargetCarbs) ?? defaultTargetCarbs;
+    if (!_initialized) await init();
+    return _cachedCarbs;
   }
 
   Future<void> setTargetCarbs(double val) async {
+    final changed = _cachedCarbs != val;
+    _cachedCarbs = val;
+    if (changed) notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_keyTargetCarbs, val);
-    notifyListeners();
   }
 
   Future<void> saveLocalGoals(double cal, double protein, double fat, double carbs) async {
-    final prefs = await SharedPreferences.getInstance();
-    final oldCal = prefs.getDouble(_keyTargetCalories);
-    final oldP = prefs.getDouble(_keyTargetProtein);
-    final oldF = prefs.getDouble(_keyTargetFat);
-    final oldC = prefs.getDouble(_keyTargetCarbs);
+    final changed = _cachedCalories != cal ||
+        _cachedProtein != protein ||
+        _cachedFat != fat ||
+        _cachedCarbs != carbs;
 
+    _cachedCalories = cal;
+    _cachedProtein = protein;
+    _cachedFat = fat;
+    _cachedCarbs = carbs;
+    _initialized = true;
+
+    if (changed) {
+      notifyListeners();
+    }
+
+    final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_keyTargetCalories, cal);
     await prefs.setDouble(_keyTargetProtein, protein);
     await prefs.setDouble(_keyTargetFat, fat);
     await prefs.setDouble(_keyTargetCarbs, carbs);
-
-    if (oldCal != cal || oldP != protein || oldF != fat || oldC != carbs) {
-      notifyListeners();
-    }
   }
 }
 

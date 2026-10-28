@@ -38,6 +38,10 @@ class DiaryScreenState extends State<DiaryScreen> {
   @override
   void initState() {
     super.initState();
+    _targetCalories = widget.settingsService.targetCalories;
+    _targetProtein = widget.settingsService.targetProtein;
+    _targetFat = widget.settingsService.targetFat;
+    _targetCarbs = widget.settingsService.targetCarbs;
     widget.settingsService.addListener(_onSettingsChanged);
     _loadSettingsAndData();
     _checkUpdateSilently();
@@ -50,20 +54,12 @@ class DiaryScreenState extends State<DiaryScreen> {
   }
 
   void _onSettingsChanged() {
-    _loadGoalsLocalOnly();
-  }
-
-  Future<void> _loadGoalsLocalOnly() async {
-    final cal = await widget.settingsService.getTargetCalories();
-    final p = await widget.settingsService.getTargetProtein();
-    final f = await widget.settingsService.getTargetFat();
-    final c = await widget.settingsService.getTargetCarbs();
     if (mounted) {
       setState(() {
-        _targetCalories = cal;
-        _targetProtein = p;
-        _targetFat = f;
-        _targetCarbs = c;
+        _targetCalories = widget.settingsService.targetCalories;
+        _targetProtein = widget.settingsService.targetProtein;
+        _targetFat = widget.settingsService.targetFat;
+        _targetCarbs = widget.settingsService.targetCarbs;
       });
     }
   }
