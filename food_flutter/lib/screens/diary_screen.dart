@@ -21,10 +21,10 @@ class DiaryScreen extends StatefulWidget {
   });
 
   @override
-  State<DiaryScreen> createState() => _DiaryScreenState();
+  State<DiaryScreen> createState() => DiaryScreenState();
 }
 
-class _DiaryScreenState extends State<DiaryScreen> {
+class DiaryScreenState extends State<DiaryScreen> {
   DateTime _selectedDate = DateTime.now();
   bool _isLoading = false;
   String? _errorMessage;
@@ -38,8 +38,39 @@ class _DiaryScreenState extends State<DiaryScreen> {
   @override
   void initState() {
     super.initState();
+    widget.settingsService.addListener(_onSettingsChanged);
     _loadSettingsAndData();
     _checkUpdateSilently();
+  }
+
+  @override
+  void dispose() {
+    widget.settingsService.removeListener(_onSettingsChanged);
+    super.dispose();
+  }
+
+  void _onSettingsChanged() {
+    _loadGoalsLocalOnly();
+  }
+
+  Future<void> _loadGoalsLocalOnly() async {
+    final cal = await widget.settingsService.getTargetCalories();
+    final p = await widget.settingsService.getTargetProtein();
+    final f = await widget.settingsService.getTargetFat();
+    final c = await widget.settingsService.getTargetCarbs();
+    if (mounted) {
+      setState(() {
+        _targetCalories = cal;
+        _targetProtein = p;
+        _targetFat = f;
+        _targetCarbs = c;
+      });
+    }
+  }
+
+  /// Публичный метод для полного обновления целей и сводки
+  Future<void> reloadGoalsAndData() async {
+    await _loadSettingsAndData();
   }
 
   Future<void> _checkUpdateSilently() async {
@@ -240,7 +271,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _loadSummary,
+        onRefresh: reloadGoalsAndData,
         color: const Color(0xFF10B981),
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
