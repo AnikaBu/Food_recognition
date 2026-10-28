@@ -213,7 +213,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   controller: _urlController,
                   decoration: InputDecoration(
                     labelText: 'URL бэкенда',
-                    hintText: 'http://192.168.1.172:8000',
+                    hintText: 'http://192.168.1.100:8000',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     prefixIcon: const Icon(Icons.link, color: Color(0xFF64748B)),
                   ),

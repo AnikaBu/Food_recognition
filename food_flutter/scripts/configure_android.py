@@ -34,6 +34,7 @@ def configure_manifest():
         '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>',
         '<uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>',
         '<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>',
+        '<uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"/>',
     ]
 
     new_perms = [p for p in permissions if p not in content]
