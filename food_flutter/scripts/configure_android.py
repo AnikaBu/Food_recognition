@@ -93,11 +93,25 @@ def configure_manifest():
 
 
 def configure_gradle():
-    # Generate release keystore if not exists
+    # Setup persistent release keystore
     keystore_path = os.path.join(APP_DIR, "release.jks")
+    b64_keystore_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "release_keystore.b64")
+
+    if os.path.exists(b64_keystore_path):
+        try:
+            import base64
+            print("[*] Restoring persistent release keystore from release_keystore.b64...")
+            with open(b64_keystore_path, "r", encoding="utf-8") as f:
+                data = base64.b64decode(f.read().strip())
+            with open(keystore_path, "wb") as f:
+                f.write(data)
+            print("[+] Persistent release keystore restored successfully.")
+        except Exception as e:
+            print(f"[!] Warning: Could not restore keystore from b64: {e}")
+
     if not os.path.exists(keystore_path):
         try:
-            print("[*] Generating release keystore...")
+            print("[*] Generating fallback release keystore...")
             subprocess.run([
                 "keytool", "-genkeypair", "-v",
                 "-keystore", keystore_path,
