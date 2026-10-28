@@ -8,11 +8,13 @@ import '../widgets/update_dialog.dart';
 class SettingsScreen extends StatefulWidget {
   final SettingsService settingsService;
   final ApiService apiService;
+  final VoidCallback? onGoalsSaved;
 
   const SettingsScreen({
     super.key,
     required this.settingsService,
     required this.apiService,
+    this.onGoalsSaved,
   });
 
   @override
@@ -140,6 +142,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       );
     }
+
+    widget.onGoalsSaved?.call();
   }
 
   Future<void> _checkForUpdates() async {

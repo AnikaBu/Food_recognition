@@ -1,6 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class SettingsService {
+class SettingsService extends ChangeNotifier {
   static const String _keyServerUrl = 'server_url';
   static const String _keyApiKey = 'api_key';
   static const String _keyTargetCalories = 'target_calories';
@@ -51,6 +52,7 @@ class SettingsService {
   Future<void> setTargetCalories(double val) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_keyTargetCalories, val);
+    notifyListeners();
   }
 
   Future<double> getTargetProtein() async {
@@ -61,6 +63,7 @@ class SettingsService {
   Future<void> setTargetProtein(double val) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_keyTargetProtein, val);
+    notifyListeners();
   }
 
   Future<double> getTargetFat() async {
@@ -71,6 +74,7 @@ class SettingsService {
   Future<void> setTargetFat(double val) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_keyTargetFat, val);
+    notifyListeners();
   }
 
   Future<double> getTargetCarbs() async {
@@ -81,14 +85,24 @@ class SettingsService {
   Future<void> setTargetCarbs(double val) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_keyTargetCarbs, val);
+    notifyListeners();
   }
 
   Future<void> saveLocalGoals(double cal, double protein, double fat, double carbs) async {
     final prefs = await SharedPreferences.getInstance();
+    final oldCal = prefs.getDouble(_keyTargetCalories);
+    final oldP = prefs.getDouble(_keyTargetProtein);
+    final oldF = prefs.getDouble(_keyTargetFat);
+    final oldC = prefs.getDouble(_keyTargetCarbs);
+
     await prefs.setDouble(_keyTargetCalories, cal);
     await prefs.setDouble(_keyTargetProtein, protein);
     await prefs.setDouble(_keyTargetFat, fat);
     await prefs.setDouble(_keyTargetCarbs, carbs);
+
+    if (oldCal != cal || oldP != protein || oldF != fat || oldC != carbs) {
+      notifyListeners();
+    }
   }
 }
 

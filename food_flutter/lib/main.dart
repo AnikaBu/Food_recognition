@@ -105,6 +105,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
   late final SettingsService _settingsService;
   late final ApiService _apiService;
+  final GlobalKey<DiaryScreenState> _diaryKey = GlobalKey<DiaryScreenState>();
 
   @override
   void initState() {
@@ -117,12 +118,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     setState(() {
       _currentIndex = index;
     });
+    if (index == 0) {
+      _diaryKey.currentState?.reloadGoalsAndData();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final screens = [
       DiaryScreen(
+        key: _diaryKey,
         apiService: _apiService,
         settingsService: _settingsService,
         onNavigateToScan: () => _onTabSelected(1),
@@ -134,6 +139,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       SettingsScreen(
         settingsService: _settingsService,
         apiService: _apiService,
+        onGoalsSaved: () => _diaryKey.currentState?.reloadGoalsAndData(),
       ),
     ];
 
