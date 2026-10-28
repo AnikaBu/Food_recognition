@@ -23,7 +23,7 @@ class AppUpdateInfo {
 }
 
 class UpdateService {
-  static const String currentVersion = '1.0.7';
+  static const String currentVersion = '1.0.8';
   static const String repoOwner = 'AnikaBu';
   static const String repoName = 'Food_recognition';
 
@@ -101,18 +101,30 @@ class UpdateService {
   /// Запускает загрузку и установку APK через системный загрузчик
   Future<bool> downloadAndInstallApk(String apkUrl) async {
     final uri = Uri.parse(apkUrl);
-    if (await canLaunchUrl(uri)) {
-      return await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+    try {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (launched) return true;
+    } catch (_) {}
+
+    try {
+      return await launchUrl(uri, mode: LaunchMode.platformDefault);
+    } catch (_) {}
+
     return false;
   }
 
   /// Открывает страницу релиза в системном браузере
   Future<bool> openInBrowser(String url) async {
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      return await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+    try {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (launched) return true;
+    } catch (_) {}
+
+    try {
+      return await launchUrl(uri, mode: LaunchMode.platformDefault);
+    } catch (_) {}
+
     return false;
   }
 }

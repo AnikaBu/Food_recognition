@@ -8,7 +8,7 @@ class SettingsService {
   static const String _keyTargetFat = 'target_fat';
   static const String _keyTargetCarbs = 'target_carbs';
 
-  static const String defaultServerUrl = 'http://192.168.1.172:8000';
+  static const String defaultServerUrl = 'http://192.168.1.100:8000';
   static const double defaultTargetCalories = 2000.0;
   static const double defaultTargetProtein = 90.0;
   static const double defaultTargetFat = 65.0;

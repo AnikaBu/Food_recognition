@@ -20,11 +20,32 @@ class UpdateDialog extends StatelessWidget {
   }
 
   void _onDownload(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
     final url = updateInfo.apkDownloadUrl.isNotEmpty
         ? updateInfo.apkDownloadUrl
         : updateInfo.releasePageUrl;
-    await updateService.downloadAndInstallApk(url);
+
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('Загрузка myfooddiary.apk запущена... 🚀'),
+        backgroundColor: Color(0xFF10B981),
+        duration: Duration(seconds: 3),
+      ),
+    );
+
+    final ok = await updateService.downloadAndInstallApk(url);
+    if (!ok) {
+      final fallbackOk = await updateService.openInBrowser(updateInfo.releasePageUrl);
+      if (!fallbackOk) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Не удалось открыть браузер для скачивания обновления.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
