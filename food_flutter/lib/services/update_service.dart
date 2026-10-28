@@ -23,7 +23,7 @@ class AppUpdateInfo {
 }
 
 class UpdateService {
-  static const String currentVersion = '1.0.6';
+  static const String currentVersion = '1.0.7';
   static const String repoOwner = 'AnikaBu';
   static const String repoName = 'Food_recognition';
 
@@ -33,7 +33,10 @@ class UpdateService {
       final url = Uri.parse('https://api.github.com/repos/$repoOwner/$repoName/releases/latest');
       final res = await http.get(
         url,
-        headers: {'Accept': 'application/vnd.github.v3+json'},
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'MyFoodDiary-App',
+        },
       ).timeout(const Duration(seconds: 10));
 
       if (res.statusCode != 200) {
