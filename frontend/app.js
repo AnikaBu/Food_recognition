@@ -3,6 +3,7 @@ let state = {
   currentDate: getTodayDateString(),
   analyzedMeal: null,
   selectedMealType: "lunch",
+  manualSelectedMealType: "lunch",
   deferredPrompt: null,
 };
 
@@ -116,14 +117,34 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Кнопки категорий блюда
-  document.querySelectorAll(".type-tab").forEach((tab) => {
-    tab.addEventListener("click", (e) => {
-      document.querySelectorAll(".type-tab").forEach((t) => t.classList.remove("active"));
+  // Кнопки категорий блюда в карточке анализа фото
+  document.querySelectorAll("#resultCard .type-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll("#resultCard .type-tab").forEach((t) => t.classList.remove("active"));
       tab.classList.add("active");
       state.selectedMealType = tab.dataset.type;
     });
   });
+
+  // Кнопки категорий в модальном окне ручного ввода
+  document.querySelectorAll("#manualMealTypeTabs .type-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll("#manualMealTypeTabs .type-tab").forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+      state.manualSelectedMealType = tab.dataset.type;
+    });
+  });
+
+  // Открытие и закрытие модального окна ручного ввода
+  document.getElementById("openManualMealBtn")?.addEventListener("click", openManualMealModal);
+  document.getElementById("closeManualModalBtn")?.addEventListener("click", closeManualMealModal);
+  document.getElementById("cancelManualBtn")?.addEventListener("click", closeManualMealModal);
+  document.getElementById("manualMealModal")?.addEventListener("click", (e) => {
+    if (e.target.id === "manualMealModal") closeManualMealModal();
+  });
+
+  // Обработка отправки формы ручного ввода
+  document.getElementById("manualMealForm")?.addEventListener("submit", handleManualMealSubmit);
 
   // Сохранение и отмена
   document.getElementById("saveMealBtn").addEventListener("click", saveMeal);
@@ -398,3 +419,95 @@ window.deleteMeal = async function (mealId) {
     showToast("❌ Не удалось удалить запись");
   }
 };
+
+// ----------------- Ручное внесение блюда без фото -----------------
+function openManualMealModal() {
+  const modal = document.getElementById("manualMealModal");
+  if (!modal) return;
+  const dateLabel = document.getElementById("manualModalDateLabel");
+  if (dateLabel) {
+    dateLabel.textContent = `Запись на ${formatDateTitle(state.currentDate)}`;
+  }
+  modal.style.display = "flex";
+  document.getElementById("manualDishName")?.focus();
+}
+
+function closeManualMealModal() {
+  const modal = document.getElementById("manualMealModal");
+  if (!modal) return;
+  modal.style.display = "none";
+  document.getElementById("manualMealForm")?.reset();
+  
+  // Сбрасываем выбранную категорию на Обед
+  state.manualSelectedMealType = "lunch";
+  document.querySelectorAll("#manualMealTypeTabs .type-tab").forEach((t) => {
+    t.classList.toggle("active", t.dataset.type === "lunch");
+  });
+}
+
+async function handleManualMealSubmit(e) {
+  e.preventDefault();
+
+  const submitBtn = document.getElementById("manualSubmitBtn");
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Сохранение...";
+  }
+
+  const dishName = document.getElementById("manualDishName").value.trim();
+  const weight = parseFloat(document.getElementById("manualDishWeight").value) || 100;
+  const calories = parseFloat(document.getElementById("manualCalories").value) || 0;
+  const protein = parseFloat(document.getElementById("manualProtein").value) || 0;
+  const fat = parseFloat(document.getElementById("manualFat").value) || 0;
+  const carbs = parseFloat(document.getElementById("manualCarbs").value) || 0;
+  const comment = document.getElementById("manualComment").value.trim();
+
+  // Формируем дату и время с учетом выбранного в календаре дня
+  const now = new Date();
+  const timeStr = String(now.getHours()).padStart(2, "0") + ":" +
+                  String(now.getMinutes()).padStart(2, "0") + ":" +
+                  String(now.getSeconds()).padStart(2, "0");
+  const fullCreatedAt = `${state.currentDate} ${timeStr}`;
+
+  const payload = {
+    meal_type: state.manualSelectedMealType || "lunch",
+    dish_name: dishName,
+    comment: comment,
+    items: [
+      {
+        name: dishName,
+        weight_g: weight,
+        calories: calories,
+        protein: protein,
+        fat: fat,
+        carbs: carbs,
+      }
+    ],
+    created_at: fullCreatedAt,
+  };
+
+  try {
+    const res = await fetch("/api/meals", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || "Не удалось сохранить прием пищи");
+    }
+
+    showToast(`✅ Блюдо «${dishName}» сохранено в дневник!`);
+    closeManualMealModal();
+    loadDiaryData();
+  } catch (err) {
+    console.error("Ошибка сохранения:", err);
+    showToast(`❌ Ошибка сохранения: ${err.message}`);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "💾 Сохранить в дневник";
+    }
+  }
+}

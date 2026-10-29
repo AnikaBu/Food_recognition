@@ -80,6 +80,9 @@
             🖼️ Галерея
             <input type="file" id="fileInput" accept="image/*" style="display:none;" />
           </label>
+          <button class="btn-action" id="openManualMealBtn" type="button">
+            ✍️ Вручную
+          </button>
         </div>
       </div>
 
@@ -131,6 +134,69 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- Модальное окно ручного внесения блюда -->
+  <div class="modal-overlay" id="manualMealModal" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">✍️ Внести блюдо вручную</div>
+          <div class="modal-subtitle" id="manualModalDateLabel">Запись в дневник</div>
+        </div>
+        <button class="modal-close-btn" id="closeManualModalBtn" type="button" aria-label="Закрыть">&times;</button>
+      </div>
+
+      <form id="manualMealForm" class="modal-form">
+        <!-- Выбор категории -->
+        <label class="form-label">Прием пищи</label>
+        <div class="meal-type-tabs manual-tabs" id="manualMealTypeTabs">
+          <button type="button" class="type-tab" data-type="breakfast">🍳 Завтрак</button>
+          <button type="button" class="type-tab active" data-type="lunch">🍲 Обед</button>
+          <button type="button" class="type-tab" data-type="dinner">🥗 Ужин</button>
+          <button type="button" class="type-tab" data-type="snack">🍎 Перекус</button>
+        </div>
+
+        <!-- Название блюда -->
+        <label class="form-label" for="manualDishName">Название блюда <span class="required">*</span></label>
+        <input type="text" id="manualDishName" class="form-input" placeholder="например: Овсяная каша с ягодами" required />
+
+        <!-- Вес -->
+        <label class="form-label" for="manualDishWeight">Вес порции (граммы)</label>
+        <input type="number" id="manualDishWeight" class="form-input" placeholder="100" value="100" min="1" step="any" />
+
+        <!-- КБЖУ в сетке 2x2 -->
+        <label class="form-label">КБЖУ порции</label>
+        <div class="form-grid-2">
+          <div>
+            <label class="form-sublabel" for="manualCalories">🔥 Калории (ккал) <span class="required">*</span></label>
+            <input type="number" id="manualCalories" class="form-input" placeholder="0" min="0" step="any" required />
+          </div>
+          <div>
+            <label class="form-sublabel" for="manualProtein">💪 Белки (г)</label>
+            <input type="number" id="manualProtein" class="form-input" placeholder="0" value="0" min="0" step="any" />
+          </div>
+          <div>
+            <label class="form-sublabel" for="manualFat">🥑 Жиры (г)</label>
+            <input type="number" id="manualFat" class="form-input" placeholder="0" value="0" min="0" step="any" />
+          </div>
+          <div>
+            <label class="form-sublabel" for="manualCarbs">🍞 Углеводы (г)</label>
+            <input type="number" id="manualCarbs" class="form-input" placeholder="0" value="0" min="0" step="any" />
+          </div>
+        </div>
+
+        <!-- Заметка -->
+        <label class="form-label" for="manualComment" style="margin-top: 8px;">Заметка (необязательно)</label>
+        <input type="text" id="manualComment" class="form-input" placeholder="например: домашний рецепт" />
+
+        <!-- Кнопки сохранения и отмены -->
+        <div class="modal-actions">
+          <button type="submit" class="btn-save" id="manualSubmitBtn">💾 Сохранить в дневник</button>
+          <button type="button" class="btn-cancel" id="cancelManualBtn">Отмена</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- Всплывающее уведомление (Toast) -->
