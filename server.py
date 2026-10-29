@@ -24,8 +24,10 @@ from models import (
     SaveMealRequest,
     UpdateWeightRequest,
     NutritionGoals,
+    EstimateNutritionRequest,
+    EstimateNutritionResponse,
 )
-from vision import analyze_food_image
+from vision import analyze_food_image, estimate_food_nutrition_by_text
 
 # Загружаем настройки из .env
 load_dotenv()
@@ -173,6 +175,39 @@ async def analyze_photo_endpoint(file: UploadFile = File(...)):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка анализа изображения через Gemini: {str(e)}",
+        )
+
+
+@app.post(
+    "/api/estimate-nutrition",
+    response_model=EstimateNutritionResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Распознавание и ИИ"],
+    summary="Оценить КБЖУ продукта или блюда по тексту через Gemini",
+)
+async def estimate_nutrition_endpoint(payload: EstimateNutritionRequest):
+    """
+    Принимает текстовое описание продукта/блюда (например: 'хлеб зерновой 30г')
+    и рассчитывает калории, белки, жиры и углеводы через Gemini.
+    """
+    query = payload.query.strip()
+    if not query:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Текстовый запрос не может быть пустым",
+        )
+
+    try:
+        result = await asyncio.to_thread(
+            estimate_food_nutrition_by_text,
+            query=query,
+            weight_g=payload.weight_g,
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка оценки КБЖУ через Gemini: {str(e)}",
         )
 
 

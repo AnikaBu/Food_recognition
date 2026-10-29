@@ -157,9 +157,14 @@
           <button type="button" class="type-tab" data-type="snack">🍎 Перекус</button>
         </div>
 
-        <!-- Название блюда -->
-        <label class="form-label" for="manualDishName">Название блюда <span class="required">*</span></label>
-        <input type="text" id="manualDishName" class="form-input" placeholder="например: Овсяная каша с ягодами" required />
+        <!-- Название блюда с кнопкой ИИ-расчета -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label class="form-label" for="manualDishName" style="margin-bottom: 0;">Название продукта или блюда <span class="required">*</span></label>
+          <button type="button" class="btn-ai-calc" id="manualAiEstimateBtn" title="Рассчитать КБЖУ по названию через Gemini">
+            ✨ Рассчитать через ИИ
+          </button>
+        </div>
+        <input type="text" id="manualDishName" class="form-input" placeholder="например: хлеб зерновой 30г или яблоко" required />
 
         <!-- Вес -->
         <label class="form-label" for="manualDishWeight">Вес порции (граммы)</label>

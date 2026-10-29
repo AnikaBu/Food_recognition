@@ -145,6 +145,35 @@ class ApiService {
     }
   }
 
+  Future<EstimateNutritionResult> estimateNutrition(String query, {double? weightG}) async {
+    final baseUrl = await _getBaseUrl();
+    final uri = Uri.parse('$baseUrl/api/estimate-nutrition');
+    final headers = await _getHeaders(isJson: true);
+
+    final payload = <String, dynamic>{
+      'query': query,
+      if (weightG != null && weightG > 0) 'weight_g': weightG,
+    };
+
+    final res = await http.post(
+      uri,
+      headers: headers,
+      body: json.encode(payload),
+    ).timeout(const Duration(seconds: 25));
+
+    if (res.statusCode == 200) {
+      final decoded = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      return EstimateNutritionResult.fromJson(decoded);
+    } else {
+      String err = 'Ошибка расчета КБЖУ: ${res.statusCode}';
+      try {
+        final body = json.decode(utf8.decode(res.bodyBytes));
+        if (body['detail'] != null) err = body['detail'].toString();
+      } catch (_) {}
+      throw Exception(err);
+    }
+  }
+
   Future<MealRecord> saveMeal({
     required String dishName,
     required MealType mealType,

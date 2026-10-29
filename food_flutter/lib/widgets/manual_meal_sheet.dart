@@ -33,6 +33,7 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
   final _commentController = TextEditingController();
 
   bool _isSaving = false;
+  bool _isEstimatingAi = false;
   String? _errorMessage;
 
   @override
@@ -66,6 +67,62 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
       return DateFormat('d MMMM yyyy', 'ru').format(date);
     } catch (_) {
       return DateFormat('yyyy-MM-dd').format(date);
+    }
+  }
+
+  Future<void> _estimateWithAi() async {
+    final query = _dishNameController.text.trim();
+    if (query.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Введите название продукта (например: «хлеб зерновой 30г»)'),
+          backgroundColor: Color(0xFFF59E0B),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isEstimatingAi = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final weightVal = double.tryParse(_weightController.text.replaceAll(',', '.'));
+      final result = await widget.apiService.estimateNutrition(
+        query,
+        weightG: (weightVal != null && weightVal > 0) ? weightVal : null,
+      );
+
+      if (mounted) {
+        setState(() {
+          _dishNameController.text = result.name;
+          _weightController.text = result.weightG.toStringAsFixed(0);
+          _caloriesController.text = result.calories.toStringAsFixed(0);
+          _proteinController.text = result.protein.toStringAsFixed(1);
+          _fatController.text = result.fat.toStringAsFixed(1);
+          _carbsController.text = result.carbs.toStringAsFixed(1);
+          if (result.comment != null && result.comment!.isNotEmpty) {
+            _commentController.text = result.comment!;
+          }
+          _isEstimatingAi = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✨ Рассчитано через Gemini: ${result.calories.toStringAsFixed(0)} ккал'),
+            backgroundColor: const Color(0xFF10B981),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString().replaceAll('Exception: ', '');
+          _isEstimatingAi = false;
+        });
+      }
     }
   }
 
@@ -245,9 +302,26 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                 TextFormField(
                   controller: _dishNameController,
                   decoration: InputDecoration(
-                    labelText: 'Название блюда *',
-                    hintText: 'например: Овсяная каша с ягодами',
+                    labelText: 'Название блюда или продукта *',
+                    hintText: 'например: хлеб зерновой 30г или яблоко',
                     prefixIcon: const Icon(Icons.restaurant, color: Color(0xFF10B981), size: 20),
+                    suffixIcon: _isEstimatingAi
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF10B981),
+                              ),
+                            ),
+                          )
+                        : IconButton(
+                            icon: const Icon(Icons.auto_awesome, color: Color(0xFF10B981)),
+                            tooltip: 'Рассчитать КБЖУ через ИИ (Gemini)',
+                            onPressed: _estimateWithAi,
+                          ),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   ),
@@ -258,7 +332,37 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 6),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: _isEstimatingAi ? null : _estimateWithAi,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.auto_awesome,
+                            size: 15,
+                            color: _isEstimatingAi ? const Color(0xFF94A3B8) : const Color(0xFF059669),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _isEstimatingAi ? 'Gemini считает КБЖУ...' : 'Рассчитать КБЖУ через ИИ (Gemini)',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: _isEstimatingAi ? const Color(0xFF94A3B8) : const Color(0xFF059669),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
 
                 // Weight
                 TextFormField(

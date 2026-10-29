@@ -358,6 +358,59 @@ def test_06_manual_meal_entry_workflow(page: Page):
     expect(page.locator(".history-item")).to_have_count(0)
 
 
+def test_07_ai_nutrition_estimate_button(page: Page):
+    """
+    Тест 7: Проверка кнопки '✨ Рассчитать через ИИ' в модальном окне ручного ввода.
+    При вводе 'хлеб зерновой 30г' форма должна автоматически заполниться рассчитанными КБЖУ.
+    """
+    page.goto(BASE_URL)
+
+    # Мокаем вызов /api/estimate-nutrition на уровне window.fetch для надежности UI-теста
+    page.evaluate("""() => {
+        const origFetch = window.fetch;
+        window.fetch = async (url, options) => {
+            if (typeof url === 'string' && url.includes('/api/estimate-nutrition')) {
+                return new Response(JSON.stringify({
+                    name: 'Зерновой хлеб',
+                    weight_g: 30.0,
+                    calories: 75.0,
+                    protein: 3.0,
+                    fat: 1.0,
+                    carbs: 14.0,
+                    comment: 'Сложные углеводы'
+                }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+            }
+            return origFetch(url, options);
+        };
+    }""")
+
+    # 1. Открываем модальное окно
+    page.locator("#openManualMealBtn").click()
+    expect(page.locator("#manualMealModal")).to_be_visible()
+
+    # 2. Вводим название продукта
+    dish_input = page.locator("#manualDishName")
+    dish_input.fill("хлеб зерновой 30г")
+
+    # 3. Нажимаем кнопку "✨ Рассчитать через ИИ"
+    ai_btn = page.locator("#manualAiEstimateBtn")
+    expect(ai_btn).to_be_visible()
+    ai_btn.click()
+
+    # 4. Проверяем автозаполнение полей формы
+    expect(dish_input).to_have_value("Зерновой хлеб")
+    expect(page.locator("#manualDishWeight")).to_have_value("30")
+    expect(page.locator("#manualCalories")).to_have_value("75")
+    expect(page.locator("#manualProtein")).to_have_value("3.0")
+    expect(page.locator("#manualFat")).to_have_value("1.0")
+    expect(page.locator("#manualCarbs")).to_have_value("14.0")
+    expect(page.locator("#manualComment")).to_have_value("Сложные углеводы")
+
+    # 5. Закрываем модальное окно
+    page.locator("#cancelManualBtn").click()
+    expect(page.locator("#manualMealModal")).not_to_be_visible()
+
+
 # =====================================================================
 # Возможность прямого запуска через: python test_frontend.py
 # =====================================================================

@@ -129,9 +129,26 @@ def test_api_endpoints():
             resp_vision = client.post("/api/analyze-photo", files=files)
             if resp_vision.status_code == 200:
                 vision_data = resp_vision.json()
-                print(f"✅ 7. POST /api/analyze-photo успешно распознал блюдо: '{vision_data['dish_name']}' ({vision_data['total_calories']} ккал).")
             else:
-                print(f"⚠️ Распознавание вернуло код {resp_vision.status_code} (возможно временный лимит API): {resp_vision.text}")
+                print(f"⚠️ Распознавание вернуло код {resp_vision.status_code}: {resp_vision.text}")
+
+    # 7.1 Тестирование текстовой оценки КБЖУ через эндпоинт /api/estimate-nutrition
+    # Пустой запрос должен вернуть 400
+    resp_empty = client.post("/api/estimate-nutrition", json={"query": "   "})
+    assert resp_empty.status_code == 400
+    print("✅ 7.1. POST /api/estimate-nutrition — валидация пустого запроса (400) работает.")
+
+    # Реальный запрос на расчет КБЖУ
+    resp_estimate = client.post("/api/estimate-nutrition", json={"query": "хлеб зерновой 30г"})
+    if resp_estimate.status_code == 200:
+        est_data = resp_estimate.json()
+        assert "calories" in est_data and est_data["calories"] > 0
+        assert "weight_g" in est_data and est_data["weight_g"] > 0
+        assert "protein" in est_data
+        print(f"✅ 7.2. POST /api/estimate-nutrition успешно рассчитал КБЖУ: '{est_data['name']}' "
+              f"({est_data['weight_g']}г, {est_data['calories']} ккал, Б:{est_data['protein']}г).")
+    else:
+        print(f"⚠️ Текстовая оценка вернула {resp_estimate.status_code}: {resp_estimate.text}")
 
     print("\n🎉 Все тесты FastAPI бэкенда пройдены успешно!")
 
