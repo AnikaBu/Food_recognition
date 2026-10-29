@@ -343,5 +343,151 @@ class ApiService {
       throw Exception(err);
     }
   }
+
+  // ----------------- Модуль "Рецепты" -----------------
+
+  Future<List<RecipeRecord>> getRecipes() async {
+    final baseUrl = await _getBaseUrl();
+    final uri = Uri.parse('$baseUrl/api/recipes');
+    final headers = await _getHeaders(isJson: true);
+
+    final res = await http.get(uri, headers: headers).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) {
+      final decoded = json.decode(utf8.decode(res.bodyBytes)) as List<dynamic>;
+      return decoded.map((e) => RecipeRecord.fromJson(e as Map<String, dynamic>)).toList();
+    } else {
+      String err = 'Ошибка загрузки рецептов: ${res.statusCode}';
+      try {
+        final body = json.decode(utf8.decode(res.bodyBytes));
+        if (body['detail'] != null) err = body['detail'].toString();
+      } catch (_) {}
+      throw Exception(err);
+    }
+  }
+
+  Future<RecipeRecord> createRecipe({
+    required String title,
+    String? description,
+    double? cookedWeightG,
+    required List<RecipeIngredientItem> items,
+  }) async {
+    final baseUrl = await _getBaseUrl();
+    final uri = Uri.parse('$baseUrl/api/recipes');
+    final headers = await _getHeaders(isJson: true);
+
+    final payload = {
+      'title': title,
+      'description': description,
+      'cooked_weight_g': cookedWeightG,
+      'items': items.map((it) => it.toJson()).toList(),
+    };
+
+    final res = await http.post(
+      uri,
+      headers: headers,
+      body: json.encode(payload),
+    ).timeout(const Duration(seconds: 15));
+
+    if (res.statusCode == 200 || res.statusCode == 201) {
+      final decoded = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      return RecipeRecord.fromJson(decoded);
+    } else {
+      String err = 'Ошибка создания рецепта: ${res.statusCode}';
+      try {
+        final body = json.decode(utf8.decode(res.bodyBytes));
+        if (body['detail'] != null) err = body['detail'].toString();
+      } catch (_) {}
+      throw Exception(err);
+    }
+  }
+
+  Future<RecipeRecord> updateRecipe({
+    required int id,
+    required String title,
+    String? description,
+    double? cookedWeightG,
+    required List<RecipeIngredientItem> items,
+  }) async {
+    final baseUrl = await _getBaseUrl();
+    final uri = Uri.parse('$baseUrl/api/recipes/$id');
+    final headers = await _getHeaders(isJson: true);
+
+    final payload = {
+      'title': title,
+      'description': description,
+      'cooked_weight_g': cookedWeightG,
+      'items': items.map((it) => it.toJson()).toList(),
+    };
+
+    final res = await http.put(
+      uri,
+      headers: headers,
+      body: json.encode(payload),
+    ).timeout(const Duration(seconds: 15));
+
+    if (res.statusCode == 200) {
+      final decoded = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      return RecipeRecord.fromJson(decoded);
+    } else {
+      String err = 'Ошибка обновления рецепта: ${res.statusCode}';
+      try {
+        final body = json.decode(utf8.decode(res.bodyBytes));
+        if (body['detail'] != null) err = body['detail'].toString();
+      } catch (_) {}
+      throw Exception(err);
+    }
+  }
+
+  Future<void> deleteRecipe(int id) async {
+    final baseUrl = await _getBaseUrl();
+    final uri = Uri.parse('$baseUrl/api/recipes/$id');
+    final headers = await _getHeaders(isJson: true);
+
+    final res = await http.delete(uri, headers: headers).timeout(const Duration(seconds: 10));
+    if (res.statusCode != 200 && res.statusCode != 204) {
+      String err = 'Ошибка удаления рецепта: ${res.statusCode}';
+      try {
+        final body = json.decode(utf8.decode(res.bodyBytes));
+        if (body['detail'] != null) err = body['detail'].toString();
+      } catch (_) {}
+      throw Exception(err);
+    }
+  }
+
+  Future<MealRecord> logRecipePortion({
+    required int recipeId,
+    required double portionWeightG,
+    required MealType mealType,
+    String? createdAt,
+  }) async {
+    final baseUrl = await _getBaseUrl();
+    final uri = Uri.parse('$baseUrl/api/recipes/$recipeId/log');
+    final headers = await _getHeaders(isJson: true);
+
+    final payload = {
+      'portion_weight_g': portionWeightG,
+      'meal_type': mealType.value,
+      if (createdAt != null) 'created_at': createdAt,
+    };
+
+    final res = await http.post(
+      uri,
+      headers: headers,
+      body: json.encode(payload),
+    ).timeout(const Duration(seconds: 15));
+
+    if (res.statusCode == 200 || res.statusCode == 201) {
+      final decoded = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      return MealRecord.fromJson(decoded);
+    } else {
+      String err = 'Ошибка логирования порции рецепта: ${res.statusCode}';
+      try {
+        final body = json.decode(utf8.decode(res.bodyBytes));
+        if (body['detail'] != null) err = body['detail'].toString();
+      } catch (_) {}
+      throw Exception(err);
+    }
+  }
 }
+
 

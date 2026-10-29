@@ -104,6 +104,43 @@ def test_database_workflow():
     assert persisted_goals.protein == 130.0
     print("✅ 8. Обновленные цели КБЖУ успешно сохранены и прочитаны из БД.")
 
+    # 10. Тестирование создания и использования рецепта со списанием уварки/ужарки
+    from models import CreateRecipeRequest, RecipeIngredientItem
+    recipe_req = CreateRecipeRequest(
+        title="Творожная запеканка",
+        description="Домашняя запеканка в духовке",
+        cooked_weight_g=480.0,  # Сырой вес: 550г, вес после выпечки (ужарка): 480г
+        items=[
+            RecipeIngredientItem(name="Творог 5%", weight_g=400.0, calories=480.0, protein=72.0, fat=12.0, carbs=12.0),
+            RecipeIngredientItem(name="Яйца куриные", weight_g=100.0, calories=150.0, protein=13.0, fat=11.0, carbs=1.0),
+            RecipeIngredientItem(name="Манная крупа", weight_g=50.0, calories=180.0, protein=5.0, fat=0.5, carbs=36.0),
+        ],
+    )
+    # Сумма сырого: 400 + 100 + 50 = 550г. Калории: 480 + 150 + 180 = 810 ккал.
+    # На 100г готового (480г): 810 * (100 / 480) = 168.75 -> 168.8 ккал.
+    recipe_id = db.create_recipe(recipe_req, db_path=test_db_path)
+    assert recipe_id > 0
+    recipe = db.get_recipe(recipe_id, db_path=test_db_path)
+    assert recipe is not None
+    assert recipe.raw_weight_g == 550.0
+    assert recipe.cooked_weight_g == 480.0
+    assert recipe.calories_100g == 168.8
+    assert len(recipe.items) == 3
+    print(f"✅ 9.1. Рецепт '{recipe.title}' создан: сырой вес {recipe.raw_weight_g}г, готовый {recipe.cooked_weight_g}г, 100г = {recipe.calories_100g} ккал.")
+
+    # Логирование порции 160г в дневник
+    logged_meal = db.log_recipe_portion(recipe_id, meal_type=MealType.SNACK, portion_weight_g=160.0, db_path=test_db_path)
+    assert logged_meal is not None
+    assert logged_meal.total_weight_g == 160.0
+    # 168.8 * 1.6 = 270.08 -> 270.1 ккал
+    assert abs(logged_meal.total_calories - 270.1) < 0.2
+    print(f"✅ 9.2. Порция {logged_meal.total_weight_g}г рецепта успешно внесена в дневник ({logged_meal.total_calories} ккал).")
+
+    # Удаление рецепта
+    assert db.delete_recipe(recipe_id, db_path=test_db_path) is True
+    assert db.get_recipe(recipe_id, db_path=test_db_path) is None
+    print("✅ 9.3. Рецепт успешно удален из базы.")
+
     # Удаляем временную тестовую БД
     if test_db_path.exists():
         test_db_path.unlink()

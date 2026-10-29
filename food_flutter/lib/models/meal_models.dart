@@ -394,3 +394,111 @@ class BarcodeProductResult {
   }
 }
 
+class RecipeIngredientItem {
+  final int? id;
+  final String name;
+  final double weightG;
+  final double calories;
+  final double protein;
+  final double fat;
+  final double carbs;
+
+  RecipeIngredientItem({
+    this.id,
+    required this.name,
+    required this.weightG,
+    required this.calories,
+    required this.protein,
+    required this.fat,
+    required this.carbs,
+  });
+
+  factory RecipeIngredientItem.fromJson(Map<String, dynamic> json) {
+    return RecipeIngredientItem(
+      id: json['id'] as int?,
+      name: json['name'] as String? ?? 'Ингредиент',
+      weightG: (json['weight_g'] as num?)?.toDouble() ?? 0.0,
+      calories: (json['calories'] as num?)?.toDouble() ?? 0.0,
+      protein: (json['protein'] as num?)?.toDouble() ?? 0.0,
+      fat: (json['fat'] as num?)?.toDouble() ?? 0.0,
+      carbs: (json['carbs'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{
+      'name': name,
+      'weight_g': weightG,
+      'calories': calories,
+      'protein': protein,
+      'fat': fat,
+      'carbs': carbs,
+    };
+    if (id != null) {
+      map['id'] = id;
+    }
+    return map;
+  }
+}
+
+class RecipeRecord {
+  final int id;
+  final String title;
+  final String? description;
+  final double? cookedWeightG;
+  final double totalRawWeightG;
+  final double totalCalories;
+  final double totalProtein;
+  final double totalFat;
+  final double totalCarbs;
+  final double calories100g;
+  final double protein100g;
+  final double fat100g;
+  final double carbs100g;
+  final String? createdAt;
+  final List<RecipeIngredientItem> items;
+
+  RecipeRecord({
+    required this.id,
+    required this.title,
+    this.description,
+    this.cookedWeightG,
+    required this.totalRawWeightG,
+    required this.totalCalories,
+    required this.totalProtein,
+    required this.totalFat,
+    required this.totalCarbs,
+    required this.calories100g,
+    required this.protein100g,
+    required this.fat100g,
+    required this.carbs100g,
+    this.createdAt,
+    required this.items,
+  });
+
+  factory RecipeRecord.fromJson(Map<String, dynamic> json) {
+    final itemsList = (json['items'] as List<dynamic>?)
+            ?.map((e) => RecipeIngredientItem.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        [];
+    return RecipeRecord(
+      id: json['id'] as int,
+      title: json['title'] as String? ?? 'Рецепт',
+      description: json['description'] as String?,
+      cookedWeightG: (json['cooked_weight_g'] as num?)?.toDouble(),
+      totalRawWeightG: (json['total_raw_weight_g'] as num?)?.toDouble() ?? 0.0,
+      totalCalories: (json['total_calories'] as num?)?.toDouble() ?? 0.0,
+      totalProtein: (json['total_protein'] as num?)?.toDouble() ?? 0.0,
+      totalFat: (json['total_fat'] as num?)?.toDouble() ?? 0.0,
+      totalCarbs: (json['total_carbs'] as num?)?.toDouble() ?? 0.0,
+      calories100g: (json['calories_100g'] as num?)?.toDouble() ?? 0.0,
+      protein100g: (json['protein_100g'] as num?)?.toDouble() ?? 0.0,
+      fat100g: (json['fat_100g'] as num?)?.toDouble() ?? 0.0,
+      carbs100g: (json['carbs_100g'] as num?)?.toDouble() ?? 0.0,
+      createdAt: json['created_at'] as String?,
+      items: itemsList,
+    );
+  }
+}
+
+

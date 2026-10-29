@@ -5,6 +5,10 @@ let state = {
   selectedMealType: "lunch",
   manualSelectedMealType: "lunch",
   manual100g: null,
+  recipes: [],
+  editingRecipeItems: [],
+  logRecipeSelectedMealType: "lunch",
+  selectedRecipeForLog: null,
   deferredPrompt: null,
 };
 
@@ -166,6 +170,40 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Автоматический пересчет КБЖУ при изменении веса порции
   document.getElementById("manualDishWeight")?.addEventListener("input", onManualWeightChange);
+
+  // ----------------- Слушатели событий модуля Рецептов -----------------
+  document.getElementById("openRecipesBtn")?.addEventListener("click", openRecipesListModal);
+  document.getElementById("closeRecipesListModalBtn")?.addEventListener("click", closeRecipesListModal);
+  document.getElementById("recipesListModal")?.addEventListener("click", (e) => {
+    if (e.target.id === "recipesListModal") closeRecipesListModal();
+  });
+
+  document.getElementById("openNewRecipeEditorBtn")?.addEventListener("click", () => openRecipeEditorModal());
+  document.getElementById("closeRecipeEditorBtn")?.addEventListener("click", closeRecipeEditorModal);
+  document.getElementById("cancelRecipeEditorBtn")?.addEventListener("click", closeRecipeEditorModal);
+  document.getElementById("recipeEditorModal")?.addEventListener("click", (e) => {
+    if (e.target.id === "recipeEditorModal") closeRecipeEditorModal();
+  });
+
+  document.getElementById("recipeAddAiBtn")?.addEventListener("click", handleRecipeAddAi);
+  document.getElementById("recipeAddBarcodeBtn")?.addEventListener("click", handleRecipeAddBarcode);
+  document.getElementById("recipeAddManualBtn")?.addEventListener("click", handleRecipeAddManual);
+  document.getElementById("recipeEditorCookedWeight")?.addEventListener("input", renderRecipeEditorItems);
+  document.getElementById("recipeEditorForm")?.addEventListener("submit", handleSaveRecipeSubmit);
+
+  // Окно логирования порции рецепта
+  document.getElementById("closeLogRecipeModalBtn")?.addEventListener("click", closeLogRecipeModal);
+  document.getElementById("cancelLogRecipeBtn")?.addEventListener("click", closeLogRecipeModal);
+  document.getElementById("logRecipeWeightInput")?.addEventListener("input", updateLogPortionMacros);
+  document.getElementById("logRecipeForm")?.addEventListener("submit", handleConfirmLogRecipe);
+
+  document.querySelectorAll("#logRecipeMealTypeTabs .type-tab").forEach((tab) => {
+    tab.addEventListener("click", (e) => {
+      document.querySelectorAll("#logRecipeMealTypeTabs .type-tab").forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+      state.logRecipeSelectedMealType = tab.dataset.type;
+    });
+  });
 
   // Сохранение и отмена
   document.getElementById("saveMealBtn").addEventListener("click", saveMeal);
@@ -675,3 +713,513 @@ function onManualWeightChange() {
   document.getElementById("manualFat").value = (state.manual100g.fat * factor).toFixed(1);
   document.getElementById("manualCarbs").value = (state.manual100g.carbs * factor).toFixed(1);
 }
+
+// =====================================================================
+// ----------------- Модуль "Конструктор рецептов" ---------------------
+// =====================================================================
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function escapeJsString(str) {
+  return (str || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+}
+
+function openRecipesListModal() {
+  const modal = document.getElementById("recipesListModal");
+  if (!modal) return;
+  modal.style.display = "flex";
+  loadRecipes();
+}
+
+function closeRecipesListModal() {
+  const modal = document.getElementById("recipesListModal");
+  if (!modal) return;
+  modal.style.display = "none";
+}
+
+async function loadRecipes() {
+  const container = document.getElementById("recipesListContainer");
+  if (!container) return;
+  container.innerHTML = `<div class="empty-state">Загрузка рецептов...</div>`;
+
+  try {
+    const res = await fetch("/api/recipes");
+    if (!res.ok) throw new Error("Не удалось загрузить список рецептов");
+    state.recipes = await res.json();
+    renderRecipesList();
+  } catch (err) {
+    console.error("Ошибка загрузки рецептов:", err);
+    container.innerHTML = `<div class="empty-state" style="color: var(--accent-danger);">❌ ${err.message}</div>`;
+  }
+}
+
+function renderRecipesList() {
+  const container = document.getElementById("recipesListContainer");
+  if (!container) return;
+
+  if (!state.recipes || state.recipes.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        🍲 Нет сохраненных рецептов.<br>
+        Создайте свое первое сложное блюдо с точным расчетом уварки!
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = state.recipes.map((r) => {
+    const itemsPreview = (r.items || [])
+      .map((it) => `${it.name} (${Math.round(it.weight_g)}г)`)
+      .join(", ");
+
+    const weightBadge = r.cooked_weight_g
+      ? `Готовый вес: <strong>${Math.round(r.cooked_weight_g)}г</strong> (сырой: ${Math.round(r.total_raw_weight_g)}г)`
+      : `Вес: <strong>${Math.round(r.total_raw_weight_g)}г</strong>`;
+
+    return `
+      <div class="recipe-card" data-id="${r.id}">
+        <div class="recipe-card-header">
+          <div>
+            <div class="recipe-card-title">${escapeHtml(r.title)}</div>
+            ${r.description ? `<div class="recipe-card-desc">${escapeHtml(r.description)}</div>` : ""}
+            <div class="recipe-card-meta">${weightBadge}</div>
+          </div>
+          <div class="recipe-card-actions">
+            <button type="button" class="btn-icon" title="Редактировать" onclick="editRecipeClick(${r.id})">✏️</button>
+            <button type="button" class="btn-icon" title="Удалить" onclick="deleteRecipeClick(${r.id}, '${escapeJsString(r.title)}')">🗑️</button>
+          </div>
+        </div>
+
+        <div class="recipe-100g-box" style="margin: 8px 0;">
+          <div class="recipe-100g-title">На 100 г готового блюда:</div>
+          <div class="recipe-100g-grid">
+            <div class="r-macro-pill cal">${Math.round(r.calories_100g)} ккал</div>
+            <div class="r-macro-pill pro">${r.protein_100g.toFixed(1)} г Б</div>
+            <div class="r-macro-pill fat">${r.fat_100g.toFixed(1)} г Ж</div>
+            <div class="r-macro-pill carb">${r.carbs_100g.toFixed(1)} г У</div>
+          </div>
+        </div>
+
+        ${itemsPreview ? `<div class="recipe-items-preview">Ингредиенты: ${escapeHtml(itemsPreview)}</div>` : ""}
+
+        <div style="margin-top: 10px;">
+          <button type="button" class="btn-primary btn-log-recipe" onclick="openLogRecipeModal(${r.id})" style="width: 100%; padding: 8px; font-size: 0.85rem;">
+            ➕ Внести в дневник
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function openRecipeEditorModal(recipe = null) {
+  const modal = document.getElementById("recipeEditorModal");
+  if (!modal) return;
+
+  const titleEl = document.getElementById("recipeEditorModalTitle");
+  const idInput = document.getElementById("editingRecipeId");
+  const titleInput = document.getElementById("recipeEditorTitle");
+  const descInput = document.getElementById("recipeEditorDesc");
+  const cookedInput = document.getElementById("recipeEditorCookedWeight");
+
+  if (recipe) {
+    if (titleEl) titleEl.textContent = "✏️ Редактирование рецепта";
+    if (idInput) idInput.value = recipe.id;
+    if (titleInput) titleInput.value = recipe.title;
+    if (descInput) descInput.value = recipe.description || "";
+    if (cookedInput) cookedInput.value = recipe.cooked_weight_g ? Math.round(recipe.cooked_weight_g) : "";
+    state.editingRecipeItems = (recipe.items || []).map((it) => ({ ...it }));
+  } else {
+    if (titleEl) titleEl.textContent = "🍲 Конструктор рецепта";
+    if (idInput) idInput.value = "";
+    if (titleInput) titleInput.value = "";
+    if (descInput) descInput.value = "";
+    if (cookedInput) cookedInput.value = "";
+    state.editingRecipeItems = [];
+  }
+
+  modal.style.display = "flex";
+  renderRecipeEditorItems();
+}
+
+function closeRecipeEditorModal() {
+  const modal = document.getElementById("recipeEditorModal");
+  if (!modal) return;
+  modal.style.display = "none";
+}
+
+function renderRecipeEditorItems() {
+  const container = document.getElementById("recipeEditorItemsList");
+  if (!container) return;
+
+  if (state.editingRecipeItems.length === 0) {
+    container.innerHTML = `
+      <div style="font-size: 0.85rem; color: var(--text-muted); padding: 10px 0; text-align: center;">
+        Добавьте сырые ингредиенты через кнопки выше (штрихкод, ИИ или вручную)
+      </div>
+    `;
+  } else {
+    container.innerHTML = state.editingRecipeItems.map((item, idx) => `
+      <div class="recipe-item-row" data-index="${idx}">
+        <div style="flex: 1;">
+          <div style="font-weight: 500;">${escapeHtml(item.name)}</div>
+          <div style="font-size: 0.78rem; color: var(--text-muted);">
+            ${Math.round(item.weight_g)}г • ${Math.round(item.calories)} ккал (Б:${item.protein.toFixed(1)} Ж:${item.fat.toFixed(1)} У:${item.carbs.toFixed(1)})
+          </div>
+        </div>
+        <button type="button" class="btn-delete-item" onclick="removeRecipeItem(${idx})" title="Удалить ингредиент">✕</button>
+      </div>
+    `).join("");
+  }
+
+  // Расчет суммарного сырого веса и калорий
+  const rawWeight = state.editingRecipeItems.reduce((acc, it) => acc + (parseFloat(it.weight_g) || 0), 0);
+  const rawCalories = state.editingRecipeItems.reduce((acc, it) => acc + (parseFloat(it.calories) || 0), 0);
+  const rawProtein = state.editingRecipeItems.reduce((acc, it) => acc + (parseFloat(it.protein) || 0), 0);
+  const rawFat = state.editingRecipeItems.reduce((acc, it) => acc + (parseFloat(it.fat) || 0), 0);
+  const rawCarbs = state.editingRecipeItems.reduce((acc, it) => acc + (parseFloat(it.carbs) || 0), 0);
+
+  const rawWeightEl = document.getElementById("recipeRawWeightSum");
+  const rawCalEl = document.getElementById("recipeRawCaloriesSum");
+  if (rawWeightEl) rawWeightEl.textContent = Math.round(rawWeight);
+  if (rawCalEl) rawCalEl.textContent = Math.round(rawCalories);
+
+  // Расчет КБЖУ на 100 г готового блюда
+  const cookedInputVal = parseFloat(document.getElementById("recipeEditorCookedWeight")?.value);
+  const finalCookedWeight = (cookedInputVal && cookedInputVal > 0) ? cookedInputVal : rawWeight;
+
+  let c100 = 0, p100 = 0, f100 = 0, cb100 = 0;
+  if (finalCookedWeight > 0) {
+    const factor = 100.0 / finalCookedWeight;
+    c100 = Math.round(rawCalories * factor);
+    p100 = (rawProtein * factor).toFixed(1);
+    f100 = (rawFat * factor).toFixed(1);
+    cb100 = (rawCarbs * factor).toFixed(1);
+  }
+
+  const c100El = document.getElementById("rec100Cal");
+  const p100El = document.getElementById("rec100Pro");
+  const f100El = document.getElementById("rec100Fat");
+  const cb100El = document.getElementById("rec100Carb");
+  if (c100El) c100El.textContent = c100;
+  if (p100El) p100El.textContent = p100;
+  if (f100El) f100El.textContent = f100;
+  if (cb100El) cb100El.textContent = cb100;
+}
+
+function removeRecipeItem(index) {
+  if (index >= 0 && index < state.editingRecipeItems.length) {
+    state.editingRecipeItems.splice(index, 1);
+    renderRecipeEditorItems();
+  }
+}
+window.removeRecipeItem = removeRecipeItem;
+
+function editRecipeClick(id) {
+  const recipe = state.recipes.find((r) => r.id === id);
+  if (recipe) {
+    openRecipeEditorModal(recipe);
+  }
+}
+window.editRecipeClick = editRecipeClick;
+
+async function deleteRecipeClick(id, title) {
+  if (!confirm(`Удалить рецепт «${title}»?`)) return;
+
+  try {
+    const res = await fetch(`/api/recipes/${id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error("Не удалось удалить рецепт");
+    showToast("🗑️ Рецепт удален");
+    loadRecipes();
+  } catch (err) {
+    console.error("Ошибка удаления рецепта:", err);
+    showToast(`❌ ${err.message}`);
+  }
+}
+window.deleteRecipeClick = deleteRecipeClick;
+
+// Добавление ингредиента через текстовый запрос к ИИ
+async function handleRecipeAddAi() {
+  const query = prompt("Введите ингредиент и вес (например: Куриное филе 400г):");
+  if (!query || !query.trim()) return;
+
+  showToast("⏳ ИИ рассчитывает КБЖУ ингредиента...");
+  try {
+    const res = await fetch("/api/analyze-query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: query.trim() }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Не удалось распознать ингредиент");
+    }
+
+    const data = await res.json();
+    if (data.items && data.items.length > 0) {
+      data.items.forEach((it) => {
+        state.editingRecipeItems.push({
+          name: it.name,
+          weight_g: it.weight_g || 100,
+          calories: it.calories,
+          protein: it.protein,
+          fat: it.fat,
+          carbs: it.carbs,
+        });
+      });
+    } else {
+      state.editingRecipeItems.push({
+        name: data.dish_name || query.trim(),
+        weight_g: data.weight_g || 100,
+        calories: data.calories,
+        protein: data.protein,
+        fat: data.fat,
+        carbs: data.carbs,
+      });
+    }
+
+    renderRecipeEditorItems();
+    showToast("✨ Ингредиент добавлен!");
+  } catch (err) {
+    console.error("Ошибка добавления через ИИ:", err);
+    showToast(`❌ ${err.message}`);
+  }
+}
+
+// Добавление ингредиента по штрихкоду
+async function handleRecipeAddBarcode() {
+  const code = prompt("Введите штрихкод товара (EAN/UPC):");
+  if (!code || !code.trim()) return;
+
+  showToast("🔍 Поиск товара в базе...");
+  try {
+    const cleanCode = code.trim().replace(/[\s\-]/g, "");
+    const res = await fetch(`/api/barcode/${encodeURIComponent(cleanCode)}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Товар не найден");
+    }
+
+    const data = await res.json();
+    const weightPrompt = prompt(`Найден: ${data.name}.\nУкажите вес сырого ингредиента в граммах:`, Math.round(data.weight_g || 100));
+    const weight = parseFloat(weightPrompt) || data.weight_g || 100;
+
+    const factor = weight / 100.0;
+    state.editingRecipeItems.push({
+      name: data.brand ? `${data.name} (${data.brand})` : data.name,
+      weight_g: weight,
+      calories: Math.round(data.calories_100g * factor),
+      protein: parseFloat((data.protein_100g * factor).toFixed(1)),
+      fat: parseFloat((data.fat_100g * factor).toFixed(1)),
+      carbs: parseFloat((data.carbs_100g * factor).toFixed(1)),
+    });
+
+    renderRecipeEditorItems();
+    showToast(`📦 Добавлен: ${data.name}`);
+  } catch (err) {
+    console.error("Ошибка поиска по штрихкоду:", err);
+    showToast(`❌ ${err.message}`);
+  }
+}
+
+// Ручное добавление ингредиента
+function handleRecipeAddManual() {
+  const name = prompt("Название ингредиента (например: Морковь):");
+  if (!name || !name.trim()) return;
+
+  const wStr = prompt("Вес в граммах:", "100");
+  const weight = parseFloat(wStr) || 100;
+
+  const cStr = prompt("Калории (ккал) на этот вес:", "50");
+  const calories = parseFloat(cStr) || 0;
+
+  const pStr = prompt("Белки (г):", "1.0");
+  const protein = parseFloat(pStr) || 0;
+
+  const fStr = prompt("Жиры (г):", "0.2");
+  const fat = parseFloat(fStr) || 0;
+
+  const carbStr = prompt("Углеводы (г):", "10.0");
+  const carbs = parseFloat(carbStr) || 0;
+
+  state.editingRecipeItems.push({
+    name: name.trim(),
+    weight_g: weight,
+    calories: Math.round(calories),
+    protein: parseFloat(protein.toFixed(1)),
+    fat: parseFloat(fat.toFixed(1)),
+    carbs: parseFloat(carbs.toFixed(1)),
+  });
+
+  renderRecipeEditorItems();
+  showToast("➕ Ингредиент добавлен!");
+}
+
+// Сохранение рецепта (создание или обновление)
+async function handleSaveRecipeSubmit(e) {
+  e.preventDefault();
+
+  if (state.editingRecipeItems.length === 0) {
+    showToast("⚠️ Добавьте хотя бы один ингредиент!");
+    return;
+  }
+
+  const id = document.getElementById("editingRecipeId")?.value;
+  const title = (document.getElementById("recipeEditorTitle")?.value || "").trim();
+  const description = (document.getElementById("recipeEditorDesc")?.value || "").trim() || null;
+  const cookedVal = parseFloat(document.getElementById("recipeEditorCookedWeight")?.value);
+  const cooked_weight_g = (cookedVal && cookedVal > 0) ? cookedVal : null;
+
+  if (!title) {
+    showToast("⚠️ Введите название рецепта");
+    return;
+  }
+
+  const payload = {
+    title,
+    description,
+    cooked_weight_g,
+    items: state.editingRecipeItems,
+  };
+
+  const btn = document.getElementById("saveRecipeSubmitBtn");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Сохранение...";
+  }
+
+  try {
+    const url = id ? `/api/recipes/${id}` : "/api/recipes";
+    const method = id ? "PUT" : "POST";
+
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Не удалось сохранить рецепт");
+    }
+
+    showToast("💾 Рецепт успешно сохранен!");
+    closeRecipeEditorModal();
+    loadRecipes();
+  } catch (err) {
+    console.error("Ошибка сохранения рецепта:", err);
+    showToast(`❌ ${err.message}`);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "💾 Сохранить рецепт";
+    }
+  }
+}
+
+// Окно логирования порции рецепта
+function openLogRecipeModal(recipeId) {
+  const recipe = state.recipes.find((r) => r.id === recipeId);
+  if (!recipe) return;
+
+  state.selectedRecipeForLog = recipe;
+  const modal = document.getElementById("logRecipeModal");
+  if (!modal) return;
+
+  document.getElementById("logRecipeId").value = recipe.id;
+  document.getElementById("logRecipeModalTitle").textContent = `➕ Внести: ${recipe.title}`;
+  document.getElementById("logRecipeModalSubtitle").textContent =
+    `100г = ${Math.round(recipe.calories_100g)} ккал (Б:${recipe.protein_100g.toFixed(1)} Ж:${recipe.fat_100g.toFixed(1)} У:${recipe.carbs_100g.toFixed(1)})`;
+
+  const weightInput = document.getElementById("logRecipeWeightInput");
+  if (weightInput) weightInput.value = "300";
+
+  updateLogPortionMacros();
+  modal.style.display = "flex";
+}
+window.openLogRecipeModal = openLogRecipeModal;
+
+function closeLogRecipeModal() {
+  const modal = document.getElementById("logRecipeModal");
+  if (!modal) return;
+  modal.style.display = "none";
+  state.selectedRecipeForLog = null;
+}
+
+function updateLogPortionMacros() {
+  const recipe = state.selectedRecipeForLog;
+  if (!recipe) return;
+
+  const w = parseFloat(document.getElementById("logRecipeWeightInput")?.value) || 0;
+  const factor = w / 100.0;
+
+  document.getElementById("logPortionCal").textContent = Math.round(recipe.calories_100g * factor);
+  document.getElementById("logPortionPro").textContent = (recipe.protein_100g * factor).toFixed(1);
+  document.getElementById("logPortionFat").textContent = (recipe.fat_100g * factor).toFixed(1);
+  document.getElementById("logPortionCarb").textContent = (recipe.carbs_100g * factor).toFixed(1);
+}
+
+async function handleConfirmLogRecipe(e) {
+  e.preventDefault();
+
+  const recipe = state.selectedRecipeForLog;
+  if (!recipe) return;
+
+  const weight = parseFloat(document.getElementById("logRecipeWeightInput")?.value) || 0;
+  if (weight <= 0) {
+    showToast("⚠️ Укажите корректный вес порции");
+    return;
+  }
+
+  const now = new Date();
+  const timeStr = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0") + ":00";
+  const fullCreatedAt = `${state.currentDate} ${timeStr}`;
+
+  const payload = {
+    portion_weight_g: weight,
+    meal_type: state.logRecipeSelectedMealType || "lunch",
+    created_at: fullCreatedAt,
+  };
+
+  const btn = document.getElementById("confirmLogRecipeBtn");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Добавление...";
+  }
+
+  try {
+    const res = await fetch(`/api/recipes/${recipe.id}/log`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Не удалось добавить порцию в дневник");
+    }
+
+    showToast(`✅ Порция «${recipe.title}» добавлена в дневник!`);
+    closeLogRecipeModal();
+    closeRecipesListModal();
+    loadDiaryData();
+  } catch (err) {
+    console.error("Ошибка внесения порции рецепта:", err);
+    showToast(`❌ ${err.message}`);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "💾 Добавить в дневник";
+    }
+  }
+}
+
