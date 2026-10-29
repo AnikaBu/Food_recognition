@@ -159,6 +159,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           backgroundColor: const Color(0xFF10B981),
         ),
       );
+    }
   }
 
   Future<void> _checkForUpdates() async {
