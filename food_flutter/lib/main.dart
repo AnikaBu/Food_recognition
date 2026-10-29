@@ -48,11 +48,25 @@ void main() async {
     );
   };
 
-  runApp(const FoodRecognitionApp());
+  final settingsService = SettingsService();
+  await settingsService.init();
+  final apiService = ApiService(settingsService: settingsService);
+
+  runApp(FoodRecognitionApp(
+    settingsService: settingsService,
+    apiService: apiService,
+  ));
 }
 
 class FoodRecognitionApp extends StatelessWidget {
-  const FoodRecognitionApp({super.key});
+  final SettingsService settingsService;
+  final ApiService apiService;
+
+  const FoodRecognitionApp({
+    super.key,
+    required this.settingsService,
+    required this.apiService,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -89,13 +103,23 @@ class FoodRecognitionApp extends StatelessWidget {
           color: Colors.white,
         ),
       ),
-      home: const MainNavigationScreen(),
+      home: MainNavigationScreen(
+        settingsService: settingsService,
+        apiService: apiService,
+      ),
     );
   }
 }
 
 class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({super.key});
+  final SettingsService settingsService;
+  final ApiService apiService;
+
+  const MainNavigationScreen({
+    super.key,
+    required this.settingsService,
+    required this.apiService,
+  });
 
   @override
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
@@ -103,16 +127,7 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
-  late final SettingsService _settingsService;
-  late final ApiService _apiService;
   final GlobalKey<DiaryScreenState> _diaryKey = GlobalKey<DiaryScreenState>();
-
-  @override
-  void initState() {
-    super.initState();
-    _settingsService = SettingsService()..init();
-    _apiService = ApiService(settingsService: _settingsService);
-  }
 
   void _onTabSelected(int index) {
     setState(() {
@@ -128,17 +143,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final screens = [
       DiaryScreen(
         key: _diaryKey,
-        apiService: _apiService,
-        settingsService: _settingsService,
+        apiService: widget.apiService,
+        settingsService: widget.settingsService,
         onNavigateToScan: () => _onTabSelected(1),
       ),
       RecognizeScreen(
-        apiService: _apiService,
+        apiService: widget.apiService,
         onSavedSuccess: () => _onTabSelected(0),
       ),
       SettingsScreen(
-        settingsService: _settingsService,
-        apiService: _apiService,
+        settingsService: widget.settingsService,
+        apiService: widget.apiService,
         onGoalsSaved: () => _diaryKey.currentState?.reloadGoalsAndData(),
       ),
     ];

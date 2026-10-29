@@ -97,23 +97,26 @@ class DiaryScreenState extends State<DiaryScreen> {
       });
     }
 
-    // Фоновая синхронизация целей КБЖУ с сервера
-    widget.apiService.getGoals().then((remoteGoals) {
-      if (mounted) {
-        setState(() {
-          _targetCalories = remoteGoals.calories;
-          _targetProtein = remoteGoals.protein;
-          _targetFat = remoteGoals.fat;
-          _targetCarbs = remoteGoals.carbs;
-        });
-        widget.settingsService.saveLocalGoals(
-          remoteGoals.calories,
-          remoteGoals.protein,
-          remoteGoals.fat,
-          remoteGoals.carbs,
-        );
-      }
-    }).catchError((_) {});
+    // Синхронизация с сервером только если пользователь еще не задал свои цели локально
+    if (!widget.settingsService.hasCustomGoals) {
+      widget.apiService.getGoals().then((remoteGoals) {
+        if (mounted && !widget.settingsService.hasCustomGoals && remoteGoals.calories > 0) {
+          setState(() {
+            _targetCalories = remoteGoals.calories;
+            _targetProtein = remoteGoals.protein;
+            _targetFat = remoteGoals.fat;
+            _targetCarbs = remoteGoals.carbs;
+          });
+          widget.settingsService.saveLocalGoals(
+            remoteGoals.calories,
+            remoteGoals.protein,
+            remoteGoals.fat,
+            remoteGoals.carbs,
+            isExplicitUserAction: false,
+          );
+        }
+      }).catchError((_) {});
+    }
 
     await _loadSummary();
   }

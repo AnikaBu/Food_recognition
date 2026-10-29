@@ -142,26 +142,33 @@ def configure_gradle():
             content
         )
 
-        # Ensure release signing uses either release.jks or debug signing
+        # Ensure release signing uses release.jks
         if os.path.exists(keystore_path):
-            signing_block = """
+            groovy_signing_block = """    signingConfigs {
         release {
             keyAlias 'food_release'
             keyPassword 'food_release_pass'
             storeFile file('release.jks')
             storePassword 'food_release_pass'
         }
-"""
-            if "signingConfigs {" in content and "release {" not in content:
-                content = content.replace("signingConfigs {", f"signingConfigs {{\n{signing_block}")
-                content = content.replace(
-                    "signingConfig = signingConfigs.debug",
-                    "signingConfig = signingConfigs.release"
-                )
-                content = content.replace(
-                    "signingConfig signingConfigs.debug",
-                    "signingConfig signingConfigs.release"
-                )
+        debug {
+            keyAlias 'food_release'
+            keyPassword 'food_release_pass'
+            storeFile file('release.jks')
+            storePassword 'food_release_pass'
+        }
+    }\n\n"""
+            if "signingConfigs {" in content:
+                if "release {" not in content:
+                    content = content.replace(
+                        "signingConfigs {",
+                        "signingConfigs {\n        release {\n            keyAlias 'food_release'\n            keyPassword 'food_release_pass'\n            storeFile file('release.jks')\n            storePassword 'food_release_pass'\n        }"
+                    )
+            elif "buildTypes {" in content:
+                content = content.replace("buildTypes {", groovy_signing_block + "    buildTypes {")
+
+            content = content.replace("signingConfig = signingConfigs.debug", "signingConfig = signingConfigs.release")
+            content = content.replace("signingConfig signingConfigs.debug", "signingConfig signingConfigs.release")
 
         with open(GRADLE_GROOVY_PATH, "w", encoding="utf-8") as f:
             f.write(content)
@@ -173,6 +180,34 @@ def configure_gradle():
             content = f.read()
 
         content = re.sub(r"minSdk\s*=\s*(?:flutter\.minSdkVersion|\d+)", "minSdk = 21", content)
+
+        # Ensure release signing uses release.jks in Kotlin DSL
+        if os.path.exists(keystore_path):
+            kts_signing_block = """    signingConfigs {
+        create("release") {
+            keyAlias = "food_release"
+            keyPassword = "food_release_pass"
+            storeFile = file("release.jks")
+            storePassword = "food_release_pass"
+        }
+        getByName("debug") {
+            keyAlias = "food_release"
+            keyPassword = "food_release_pass"
+            storeFile = file("release.jks")
+            storePassword = "food_release_pass"
+        }
+    }\n\n"""
+            if "signingConfigs {" in content:
+                if 'create("release")' not in content:
+                    content = content.replace(
+                        "signingConfigs {",
+                        'signingConfigs {\n        create("release") {\n            keyAlias = "food_release"\n            keyPassword = "food_release_pass"\n            storeFile = file("release.jks")\n            storePassword = "food_release_pass"\n        }'
+                    )
+            elif "buildTypes {" in content:
+                content = content.replace("buildTypes {", kts_signing_block + "    buildTypes {")
+
+            content = content.replace('signingConfigs.getByName("debug")', 'signingConfigs.getByName("release")')
+            content = content.replace('signingConfig = signingConfigs.debug', 'signingConfig = signingConfigs.getByName("release")')
 
         with open(GRADLE_KTS_PATH, "w", encoding="utf-8") as f:
             f.write(content)

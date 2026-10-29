@@ -1,9 +1,23 @@
+import pytest
 from pathlib import Path
 from fastapi.testclient import TestClient
 from server import app
 import db
 
 client = TestClient(app)
+
+@pytest.fixture(autouse=True)
+def isolate_db():
+    orig_db_path = db.DEFAULT_DB_PATH
+    test_db_path = Path("test_api.db")
+    if test_db_path.exists():
+        test_db_path.unlink()
+    db.DEFAULT_DB_PATH = test_db_path
+    db.init_db(test_db_path)
+    yield
+    db.DEFAULT_DB_PATH = orig_db_path
+    if test_db_path.exists():
+        test_db_path.unlink()
 
 def test_api_endpoints():
     print("🚀 Тестирование FastAPI бэкенда (Этап 4)...")
