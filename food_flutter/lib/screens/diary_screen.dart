@@ -8,6 +8,7 @@ import '../widgets/macro_pill.dart';
 import '../services/update_service.dart';
 import '../widgets/update_dialog.dart';
 import '../widgets/manual_meal_sheet.dart';
+import '../theme/app_colors.dart';
 
 class DiaryScreen extends StatefulWidget {
   final ApiService apiService;
@@ -35,6 +36,14 @@ class DiaryScreenState extends State<DiaryScreen> {
   double _targetProtein = 90;
   double _targetFat = 65;
   double _targetCarbs = 250;
+
+  // Track expanded category cards
+  final Set<MealType> _expandedCategories = {
+    MealType.breakfast,
+    MealType.lunch,
+    MealType.dinner,
+    MealType.snack,
+  };
 
   @override
   void initState() {
@@ -97,7 +106,6 @@ class DiaryScreenState extends State<DiaryScreen> {
       });
     }
 
-    // Синхронизация с сервером только если пользователь еще не задал свои цели локально
     if (!widget.settingsService.hasCustomGoals) {
       widget.apiService.getGoals().then((remoteGoals) {
         if (mounted && !widget.settingsService.hasCustomGoals && remoteGoals.calories > 0) {
@@ -145,13 +153,6 @@ class DiaryScreenState extends State<DiaryScreen> {
     }
   }
 
-  Future<void> _changeDate(int offsetDays) async {
-    setState(() {
-      _selectedDate = _selectedDate.add(Duration(days: offsetDays));
-    });
-    await _loadSummary();
-  }
-
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -162,9 +163,9 @@ class DiaryScreenState extends State<DiaryScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF10B981),
+              primary: AppColors.primary,
               onPrimary: Colors.white,
-              onSurface: Color(0xFF0F172A),
+              onSurface: AppColors.lightTextPrimary,
             ),
           ),
           child: child!,
@@ -179,7 +180,7 @@ class DiaryScreenState extends State<DiaryScreen> {
     }
   }
 
-  void _showManualAddMealModal() {
+  void _showManualAddMealModal({MealType? mealType}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -187,27 +188,40 @@ class DiaryScreenState extends State<DiaryScreen> {
       builder: (ctx) => ManualMealSheet(
         date: _selectedDate,
         apiService: widget.apiService,
+        initialMealType: mealType,
         onMealSaved: _loadSummary,
       ),
     );
   }
 
   Future<void> _confirmDeleteMeal(MealRecord meal) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Удалить прием пищи?'),
-        content: Text('Вы действительно хотите удалить «${meal.dishName}» из дневника?'),
+        backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          'Удалить прием пищи?',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+          ),
+        ),
+        content: Text(
+          'Вы действительно хотите удалить «${meal.dishName}» из дневника?',
+          style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Отмена', style: TextStyle(color: Color(0xFF64748B))),
+            child: Text('Отмена', style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
+              backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Удалить'),
@@ -219,455 +233,604 @@ class DiaryScreenState extends State<DiaryScreen> {
     if (confirmed == true) {
       try {
         await widget.apiService.deleteMeal(meal.id);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Прием пищи удален'),
-            backgroundColor: Color(0xFF10B981),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Прием пищи удален ✅'),
+              backgroundColor: AppColors.primary,
+            ),
+          );
+        }
         await _loadSummary();
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка удаления: $e'), backgroundColor: const Color(0xFFEF4444)),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Ошибка удаления: $e'), backgroundColor: AppColors.error),
+          );
+        }
       }
     }
+  }
+
+  List<DateTime> _getWeekDates(DateTime centerDate) {
+    final monday = centerDate.subtract(Duration(days: centerDate.weekday - 1));
+    return List.generate(7, (i) => DateTime(monday.year, monday.month, monday.day).add(Duration(days: i)));
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
   String _formatDateHeader(DateTime date) {
     final now = DateTime.now();
-    if (date.year == now.year && date.month == now.month && date.day == now.day) {
-      return 'Сегодня';
-    }
+    if (_isSameDay(date, now)) return 'Сегодня';
     final yesterday = now.subtract(const Duration(days: 1));
-    if (date.year == yesterday.year && date.month == yesterday.month && date.day == yesterday.day) {
-      return 'Вчера';
-    }
+    if (_isSameDay(date, yesterday)) return 'Вчера';
     final tomorrow = now.add(const Duration(days: 1));
-    if (date.year == tomorrow.year && date.month == tomorrow.month && date.day == tomorrow.day) {
-      return 'Завтра';
-    }
+    if (_isSameDay(date, tomorrow)) return 'Завтра';
 
-    try {
-      return DateFormat('d MMMM yyyy', 'ru').format(date);
-    } catch (_) {
-      const months = [
-        '', 'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-        'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
-      ];
-      final monthName = (date.month >= 1 && date.month <= 12) ? months[date.month] : '';
-      return '${date.day} $monthName ${date.year}'.trim();
-    }
-  }
-
-  bool _isToday(DateTime date) {
-    final now = DateTime.now();
-    return date.year == now.year && date.month == now.month && date.day == now.day;
+    const days = ['', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+    const months = ['', 'янв.', 'февр.', 'марта', 'апр.', 'мая', 'июня', 'июля', 'авг.', 'сент.', 'окт.', 'нояб.', 'дек.'];
+    return '${days[date.weekday]}, ${date.day} ${months[date.month]}';
   }
 
   @override
   Widget build(BuildContext context) {
-    final isSelectedToday = _isToday(_selectedDate);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final weekDates = _getWeekDates(_selectedDate);
+    final isSelectedToday = _isSameDay(_selectedDate, DateTime.now());
+
+    final weekDayNames = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Дневник питания',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_note, size: 26),
-            onPressed: _showManualAddMealModal,
-            tooltip: 'Внести вручную',
-          ),
-          IconButton(
-            icon: const Icon(Icons.calendar_today_outlined),
-            onPressed: _pickDate,
-            tooltip: 'Выбрать дату',
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: reloadGoalsAndData,
-        color: const Color(0xFF10B981),
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          children: [
-            // Date Switcher Row
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Row(
+      backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightScaffold,
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: reloadGoalsAndData,
+          color: AppColors.primary,
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            children: [
+              // 1. Top Header (Date + Refresh Button)
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left, color: Color(0xFF0F172A)),
-                    onPressed: () => _changeDate(-1),
-                    tooltip: 'Предыдущий день',
-                  ),
-                  InkWell(
+                  GestureDetector(
                     onTap: _pickDate,
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _formatDateHeader(_selectedDate),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF0F172A),
+                          isSelectedToday ? 'СЕГОДНЯ' : 'ДАТА',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                           ),
                         ),
-                        Text(
-                          DateFormat('yyyy-MM-dd').format(_selectedDate),
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Text(
+                              _formatDateHeader(_selectedDate),
+                              style: TextStyle(
+                                fontSize: 19,
+                                fontWeight: FontWeight.w800,
+                                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.keyboard_arrow_down,
+                              size: 20,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right, color: Color(0xFF0F172A)),
-                    onPressed: () => _changeDate(1),
-                    tooltip: 'Следующий день',
+                  InkWell(
+                    onTap: reloadGoalsAndData,
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          const Icon(Icons.refresh, size: 20, color: AppColors.primary),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              width: 7,
+                              height: 7,
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ),
 
-            // Quick button to return to today if different date selected
-            if (!isSelectedToday) ...[
-              const SizedBox(height: 6),
-              Center(
-                child: TextButton.icon(
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    foregroundColor: const Color(0xFF10B981),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  ),
-                  icon: const Icon(Icons.today, size: 16),
-                  label: const Text(
-                    'Вернуться к Сегодня',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _selectedDate = DateTime.now();
-                    });
-                    _loadSummary();
-                  },
-                ),
+              const SizedBox(height: 12),
+
+              // 2. Horizontal Week Strip
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: List.generate(7, (idx) {
+                  final dayDate = weekDates[idx];
+                  final isSelected = _isSameDay(dayDate, _selectedDate);
+
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedDate = dayDate;
+                      });
+                      _loadSummary();
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 44,
+                      height: 58,
+                      decoration: BoxDecoration(
+                        gradient: isSelected
+                            ? const LinearGradient(
+                                colors: [AppColors.primary, AppColors.primaryDark],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              )
+                            : null,
+                        color: isSelected
+                            ? null
+                            : (isDark ? AppColors.darkCard : AppColors.lightCard),
+                        borderRadius: BorderRadius.circular(16),
+                        border: isSelected
+                            ? null
+                            : Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: AppColors.primary.withOpacity(0.4),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            weekDayNames[idx],
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: isSelected
+                                  ? Colors.white.withOpacity(0.9)
+                                  : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            dayDate.day.toString(),
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
+                              color: isSelected
+                                  ? Colors.white
+                                  : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                            ),
+                          ),
+                          if (isSelected) ...[
+                            const SizedBox(height: 3),
+                            Container(
+                              width: 4,
+                              height: 4,
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                }),
               ),
-            ],
 
-            const SizedBox(height: 10),
+              const SizedBox(height: 14),
 
-            if (_isLoading && _summary == null)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 40),
-                child: Center(
-                  child: CircularProgressIndicator(color: Color(0xFF10B981)),
-                ),
-              )
-            else if (_errorMessage != null)
-              Card(
-                color: const Color(0xFFFEF2F2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: Color(0xFFFECACA)),
-                ),
-                child: Padding(
+              // 3. Daily Summary Card
+              if (_isLoading && _summary == null)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                )
+              else if (_errorMessage != null)
+                Container(
                   padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF2D1515) : const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.error.withOpacity(0.4)),
+                  ),
                   child: Column(
                     children: [
-                      const Icon(Icons.cloud_off, size: 40, color: Color(0xFFEF4444)),
-                      const SizedBox(height: 10),
+                      const Icon(Icons.cloud_off, size: 36, color: AppColors.error),
+                      const SizedBox(height: 8),
                       Text(
                         _errorMessage!,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: Color(0xFF991B1B), fontSize: 13),
+                        style: const TextStyle(color: AppColors.error, fontSize: 13),
                       ),
-                      const SizedBox(height: 12),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.refresh, size: 16),
-                        label: const Text('Повторить попытку'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFEF4444),
-                          foregroundColor: Colors.white,
-                        ),
+                      const SizedBox(height: 10),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
                         onPressed: _loadSummary,
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else if (_summary != null) ...[
-              // Summary card
-              DailySummaryCard(
-                summary: _summary!,
-                targetCalories: _targetCalories,
-                targetProtein: _targetProtein,
-                targetFat: _targetFat,
-                targetCarbs: _targetCarbs,
-              ),
-              const SizedBox(height: 20),
-
-              // Meals list header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Приемы пищи (${_summary!.meals.length})',
-                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextButton.icon(
-                        style: TextButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        ),
-                        icon: const Icon(Icons.edit_note, size: 18, color: Color(0xFF10B981)),
-                        label: const Text(
-                          'Вручную',
-                          style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                        onPressed: _showManualAddMealModal,
-                      ),
-                      const SizedBox(width: 4),
-                      TextButton.icon(
-                        style: TextButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        ),
-                        icon: const Icon(Icons.camera_alt, size: 16, color: Color(0xFF10B981)),
-                        label: const Text(
-                          'Фото',
-                          style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                        onPressed: widget.onNavigateToScan,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              if (_summary!.meals.isEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Column(
-                    children: [
-                      const Icon(Icons.restaurant_outlined, size: 48, color: Color(0xFF94A3B8)),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Записей за этот день еще нет',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Сфотографируйте ваше блюдо или внесите его вручную с известным КБЖУ',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF10B981),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        ),
-                        icon: const Icon(Icons.camera_alt),
-                        label: const Text('Сфотографировать блюдо'),
-                        onPressed: widget.onNavigateToScan,
-                      ),
-                      const SizedBox(height: 8),
-                      OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF10B981),
-                          side: const BorderSide(color: Color(0xFF10B981)),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        ),
-                        icon: const Icon(Icons.edit_note),
-                        label: const Text('Внести вручную без фото'),
-                        onPressed: _showManualAddMealModal,
+                        child: const Text('Повторить', style: TextStyle(color: Colors.white)),
                       ),
                     ],
                   ),
                 )
-              else
-                ..._summary!.meals.map((meal) => _buildMealCard(meal)),
+              else if (_summary != null) ...[
+                DailySummaryCard(
+                  summary: _summary!,
+                  targetCalories: _targetCalories,
+                  targetProtein: _targetProtein,
+                  targetFat: _targetFat,
+                  targetCarbs: _targetCarbs,
+                ),
+
+                const SizedBox(height: 18),
+
+                // 4. Meal Sections Accordion
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'ПРИЕМЫ ПИЩИ',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                      ),
+                    ),
+                    Text(
+                      '${_summary!.meals.length} ${_getPluralMeals(_summary!.meals.length)}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+
+                _buildMealCategoryCard(
+                  type: MealType.breakfast,
+                  emoji: '🍳',
+                  title: 'Завтрак',
+                  badge: null,
+                  bgColor: AppColors.catBreakfastBg,
+                  textColor: AppColors.catBreakfastText,
+                ),
+                const SizedBox(height: 10),
+                _buildMealCategoryCard(
+                  type: MealType.lunch,
+                  emoji: '🥗',
+                  title: 'Обед',
+                  badge: 'Основной',
+                  bgColor: AppColors.catLunchBg,
+                  textColor: AppColors.catLunchText,
+                ),
+                const SizedBox(height: 10),
+                _buildMealCategoryCard(
+                  type: MealType.dinner,
+                  emoji: '🥑',
+                  title: 'Ужин',
+                  badge: null,
+                  bgColor: AppColors.catDinnerBg,
+                  textColor: AppColors.catDinnerText,
+                ),
+                const SizedBox(height: 10),
+                _buildMealCategoryCard(
+                  type: MealType.snack,
+                  emoji: '🍏',
+                  title: 'Перекус',
+                  badge: null,
+                  bgColor: AppColors.catSnackBg,
+                  textColor: AppColors.catSnackText,
+                ),
+              ],
+
+              const SizedBox(height: 80),
             ],
-            const SizedBox(height: 80),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showManualAddMealModal,
-        backgroundColor: const Color(0xFF10B981),
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.edit_note, size: 22),
-        label: const Text(
-          'Внести вручную',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildMealCard(MealRecord meal) {
-    String timeStr = '';
-    if (meal.createdAt.contains(' ')) {
-      final parts = meal.createdAt.split(' ');
-      if (parts.length > 1) {
-        timeStr = parts[1].substring(0, 5); // HH:MM
-      }
-    }
+  String _getPluralMeals(int count) {
+    if (count % 10 == 1 && count % 100 != 11) return 'прием';
+    if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 >= 20)) return 'приема';
+    return 'приемов';
+  }
 
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE2E8F0)),
+  Widget _buildMealCategoryCard({
+    required MealType type,
+    required String emoji,
+    required String title,
+    required String? badge,
+    required Color bgColor,
+    required Color textColor,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final meals = _summary?.meals.where((m) => m.mealType == type).toList() ?? [];
+    final categoryCals = meals.fold<double>(0.0, (acc, m) => acc + m.totalCalories);
+    final isExpanded = _expandedCategories.contains(type);
+
+    final cardBg = isDark ? AppColors.darkCard : AppColors.lightCard;
+    final cardBorder = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+
+    final summaryText = meals.isEmpty
+        ? 'Нет добавленных блюд'
+        : meals.map((m) => m.dishName).join(', ');
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: cardBorder),
       ),
-      color: Colors.white,
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        shape: const Border(),
-        leading: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: const Color(0xFF10B981).withOpacity(0.12),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Center(
-            child: Text(
-              _getMealEmoji(meal.mealType),
-              style: const TextStyle(fontSize: 22),
-            ),
-          ),
-        ),
-        title: Text(
-          meal.dishName,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0F172A)),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Row(
-            children: [
-              Text(
-                '${meal.totalCalories.toStringAsFixed(0)} ккал • ${meal.totalWeightG.toStringAsFixed(0)} г',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF10B981)),
-              ),
-              if (timeStr.isNotEmpty) ...[
-                const SizedBox(width: 8),
-                Text('($timeStr)', style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
-              ],
-            ],
-          ),
-        ),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+      child: Column(
         children: [
-          const Divider(color: Color(0xFFF1F5F9)),
-          const SizedBox(height: 4),
-          // Total dish macros
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              MacroPill(label: 'Белки', value: '${meal.totalProtein.toStringAsFixed(1)}г', type: MacroType.protein),
-              MacroPill(label: 'Жиры', value: '${meal.totalFat.toStringAsFixed(1)}г', type: MacroType.fat),
-              MacroPill(label: 'Углеводы', value: '${meal.totalCarbs.toStringAsFixed(1)}г', type: MacroType.carbs),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Ingredient items
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Состав (${meal.items.length}):',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
-            ),
-          ),
-          const SizedBox(height: 6),
-          ...meal.items.map((it) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 3),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '• ${it.name}',
-                        style: const TextStyle(fontSize: 13, color: Color(0xFF334155)),
+          // Header click to toggle
+          InkWell(
+            onTap: () {
+              setState(() {
+                if (isExpanded) {
+                  _expandedCategories.remove(type);
+                } else {
+                  _expandedCategories.add(type);
+                }
+              });
+            },
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: isDark ? bgColor.withOpacity(0.18) : bgColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark ? textColor.withOpacity(0.3) : Colors.transparent,
                       ),
                     ),
-                    Text(
-                      '${it.weightG.toStringAsFixed(0)} г  (${it.calories.toStringAsFixed(0)} ккал)',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-                    ),
-                  ],
-                ),
-              )),
-          if (meal.comment != null && meal.comment!.trim().isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.info_outline, size: 16, color: Color(0xFF10B981)),
-                  const SizedBox(width: 8),
+                    alignment: Alignment.center,
+                    child: Text(emoji, style: const TextStyle(fontSize: 18)),
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      meal.comment!,
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF475569), fontStyle: FontStyle.italic),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              title,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                              ),
+                            ),
+                            if (badge != null) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                                ),
+                                child: Text(
+                                  badge,
+                                  style: const TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primaryDark,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          summaryText,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            categoryCals.toStringAsFixed(0),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.macroCalorie,
+                            ),
+                          ),
+                          Text(
+                            'ккал',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w500,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(
+                        isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                        size: 20,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Expanded items list + quick add
+          if (isExpanded) ...[
+            Divider(color: cardBorder, height: 1),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  if (meals.isNotEmpty) ...[
+                    ...meals.map((meal) => _buildDishRow(meal)),
+                    const SizedBox(height: 8),
+                  ],
+                  // Quick Add to category button
+                  InkWell(
+                    onTap: () => _showManualAddMealModal(mealType: type),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.darkSurface : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDark ? AppColors.darkBorder : const Color(0xFFCBD5E1),
+                          style: BorderStyle.solid,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.add, size: 16, color: AppColors.primary),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Добавить блюдо к «$title»',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ],
-          const SizedBox(height: 10),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              icon: const Icon(Icons.delete_outline, size: 16, color: Color(0xFFEF4444)),
-              label: const Text('Удалить блюдо', style: TextStyle(color: Color(0xFFEF4444))),
-              onPressed: () => _confirmDeleteMeal(meal),
-            ),
-          ),
         ],
       ),
     );
   }
 
-  String _getMealEmoji(MealType type) {
-    switch (type) {
-      case MealType.breakfast:
-        return '🍳';
-      case MealType.lunch:
-        return '🍲';
-      case MealType.dinner:
-        return '🥗';
-      case MealType.snack:
-        return '🍎';
-    }
+  Widget _buildDishRow(MealRecord meal) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final rowBg = isDark ? AppColors.darkSurface : const Color(0xFFF8FAFC);
+    final rowBorder = isDark ? AppColors.darkBorder : AppColors.lightBorderSubtle;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: rowBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: rowBorder),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  meal.dishName,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${meal.totalWeightG.toStringAsFixed(0)}г • Б: ${meal.totalProtein.toStringAsFixed(0)}г • Ж: ${meal.totalFat.toStringAsFixed(0)}г • У: ${meal.totalCarbs.toStringAsFixed(0)}г',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '${meal.totalCalories.toStringAsFixed(0)} ккал',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: AppColors.macroCalorie,
+            ),
+          ),
+          const SizedBox(width: 4),
+          InkWell(
+            onTap: () => _confirmDeleteMeal(meal),
+            borderRadius: BorderRadius.circular(8),
+            child: const Padding(
+              padding: EdgeInsets.all(4),
+              child: Icon(Icons.delete_outline, size: 16, color: Color(0xFF94A3B8)),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

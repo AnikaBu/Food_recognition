@@ -1,5 +1,7 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../models/meal_models.dart';
+import '../theme/app_colors.dart';
 
 class DailySummaryCard extends StatelessWidget {
   final DailySummary summary;
@@ -17,16 +19,18 @@ class DailySummaryCard extends StatelessWidget {
     required this.targetCarbs,
   });
 
-  Widget _buildProgressBar({
+  Widget _buildMacroBar({
     required BuildContext context,
     required String label,
     required double current,
     required double target,
     required Color color,
-    required String unit,
+    required bool isDark,
   }) {
     final progress = target > 0 ? (current / target).clamp(0.0, 1.0) : 0.0;
-    final percent = (progress * 100).toInt();
+    final trackColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9);
+    final textColor = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final subColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -34,24 +38,59 @@ class DailySummaryCard extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              label,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    boxShadow: isDark
+                        ? [BoxShadow(color: color.withOpacity(0.6), blurRadius: 6)]
+                        : null,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
+                ),
+              ],
             ),
             Text(
-              '${current.toStringAsFixed(0)} / ${target.toStringAsFixed(0)} $unit ($percent%)',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color),
+              '${current.toStringAsFixed(0)} / ${target.toStringAsFixed(0)} г',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: subColor,
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 5),
         ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: LinearProgressIndicator(
-            value: progress,
-            minHeight: 8,
-            backgroundColor: color.withOpacity(0.15),
-            valueColor: AlwaysStoppedAnimation<Color>(color),
+          borderRadius: BorderRadius.circular(999),
+          child: Container(
+            height: 7,
+            color: trackColor,
+            alignment: Alignment.centerLeft,
+            child: FractionallySizedBox(
+              widthFactor: progress,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: isDark
+                      ? [BoxShadow(color: color.withOpacity(0.5), blurRadius: 4)]
+                      : null,
+                ),
+              ),
+            ),
           ),
         ),
       ],
@@ -60,141 +99,222 @@ class DailySummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final calProgress = targetCalories > 0 ? (summary.totalCalories / targetCalories).clamp(0.0, 1.0) : 0.0;
-    final calRemaining = (targetCalories - summary.totalCalories).clamp(0.0, double.infinity);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final calProgress = targetCalories > 0
+        ? (summary.totalCalories / targetCalories).clamp(0.0, 1.0)
+        : 0.0;
+    final remaining = targetCalories - summary.totalCalories;
+    final isOver = remaining < 0;
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: Color(0xFFE2E8F0)),
+    final cardBg = isDark ? AppColors.darkCard : AppColors.lightCard;
+    final cardBorder = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final headerTextColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: cardBorder, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                // Big Circular Progress for Calories
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 86,
-                      height: 86,
-                      child: CircularProgressIndicator(
-                        value: calProgress,
-                        strokeWidth: 9,
-                        backgroundColor: const Color(0xFF10B981).withOpacity(0.15),
-                        valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
-                        strokeCap: StrokeCap.round,
-                      ),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        children: [
+          // Header with pinging dot and status pill
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 9,
+                    height: 9,
+                    decoration: const BoxDecoration(
+                      color: AppColors.macroCalorie,
+                      shape: BoxShape.circle,
                     ),
-                    Column(
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'СВОДКА БАЛАНСА ДНЯ',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.6,
+                      color: headerTextColor,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
+                decoration: BoxDecoration(
+                  color: isOver
+                      ? (isDark ? AppColors.macroCalorie.withOpacity(0.18) : const Color(0xFFFFF1F2))
+                      : (isDark ? AppColors.primary.withOpacity(0.15) : AppColors.primaryLight),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: isOver
+                        ? AppColors.macroCalorie.withOpacity(0.4)
+                        : AppColors.primary.withOpacity(0.35),
+                  ),
+                ),
+                child: Text(
+                  isOver
+                      ? 'Перебор +${(-remaining).toStringAsFixed(0)} ккал'
+                      : 'Осталось ${remaining.toStringAsFixed(0)} ккал',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: isOver ? AppColors.macroCalorie : AppColors.primaryDark,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Calorie Ring + Macros Bars
+          Row(
+            children: [
+              // Custom Gradient Calorie Ring
+              SizedBox(
+                width: 104,
+                height: 104,
+                child: CustomPaint(
+                  painter: _CalorieRingPainter(
+                    progress: calProgress,
+                    isDark: isDark,
+                  ),
+                  child: Center(
+                    child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        const Icon(
+                          Icons.local_fire_department,
+                          color: AppColors.macroCalorie,
+                          size: 18,
+                        ),
                         Text(
                           summary.totalCalories.toStringAsFixed(0),
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF0F172A),
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
                           ),
                         ),
-                        const Text(
-                          'ккал',
+                        Text(
+                          'из ${targetCalories.toStringAsFixed(0)}',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 10,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFF64748B),
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
-                const SizedBox(width: 20),
-                // Daily calorie stats
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Калории за день',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Осталось: ${calRemaining.toStringAsFixed(0)} из ${targetCalories.toStringAsFixed(0)} ккал',
-                        style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              'Блюд: ${summary.mealsCount}',
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              'Вес: ${summary.totalWeightG.toStringAsFixed(0)} г',
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            const Divider(color: Color(0xFFF1F5F9), height: 1),
-            const SizedBox(height: 16),
-            // Macro Bars (P / F / C)
-            _buildProgressBar(
-              context: context,
-              label: 'Белки',
-              current: summary.totalProtein,
-              target: targetProtein,
-              color: const Color(0xFF3B82F6),
-              unit: 'г',
-            ),
-            const SizedBox(height: 10),
-            _buildProgressBar(
-              context: context,
-              label: 'Жиры',
-              current: summary.totalFat,
-              target: targetFat,
-              color: const Color(0xFFF59E0B),
-              unit: 'г',
-            ),
-            const SizedBox(height: 10),
-            _buildProgressBar(
-              context: context,
-              label: 'Углеводы',
-              current: summary.totalCarbs,
-              target: targetCarbs,
-              color: const Color(0xFF8B5CF6),
-              unit: 'г',
-            ),
-          ],
-        ),
+              ),
+
+              const SizedBox(width: 18),
+
+              // Macro Bars Breakdown
+              Expanded(
+                child: Column(
+                  children: [
+                    _buildMacroBar(
+                      context: context,
+                      label: 'Белки',
+                      current: summary.totalProtein,
+                      target: targetProtein,
+                      color: AppColors.macroProtein,
+                      isDark: isDark,
+                    ),
+                    const SizedBox(height: 10),
+                    _buildMacroBar(
+                      context: context,
+                      label: 'Жиры',
+                      current: summary.totalFat,
+                      target: targetFat,
+                      color: AppColors.macroFat,
+                      isDark: isDark,
+                    ),
+                    const SizedBox(height: 10),
+                    _buildMacroBar(
+                      context: context,
+                      label: 'Углеводы',
+                      current: summary.totalCarbs,
+                      target: targetCarbs,
+                      color: AppColors.macroCarb,
+                      isDark: isDark,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
+  }
+}
+
+class _CalorieRingPainter extends CustomPainter {
+  final double progress;
+  final bool isDark;
+
+  _CalorieRingPainter({
+    required this.progress,
+    required this.isDark,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width - 12) / 2;
+
+    // Background track
+    final trackPaint = Paint()
+      ..color = isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 10.0;
+
+    canvas.drawCircle(center, radius, trackPaint);
+
+    if (progress <= 0) return;
+
+    // Progress arc with gradient
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    final gradient = SweepGradient(
+      startAngle: -math.pi / 2,
+      endAngle: 3 * math.pi / 2,
+      colors: const [
+        AppColors.macroCalorieLight,
+        AppColors.macroCalorieDark,
+      ],
+    );
+
+    final progressPaint = Paint()
+      ..shader = gradient.createShader(rect)
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 10.0;
+
+    final sweepAngle = 2 * math.pi * progress;
+    canvas.drawArc(rect, -math.pi / 2, sweepAngle, false, progressPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _CalorieRingPainter oldDelegate) {
+    return oldDelegate.progress != progress || oldDelegate.isDark != isDark;
   }
 }

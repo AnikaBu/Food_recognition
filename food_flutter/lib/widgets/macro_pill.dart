@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 
 enum MacroType { calories, protein, fat, carbs, weight }
 
@@ -19,13 +20,13 @@ class MacroPill extends StatelessWidget {
   Color _getPrimaryColor() {
     switch (type) {
       case MacroType.calories:
-        return const Color(0xFF10B981); // Emerald
+        return AppColors.macroCalorie; // #F97316 Coral
       case MacroType.protein:
-        return const Color(0xFF3B82F6); // Blue
+        return AppColors.macroProtein; // #6366F1 Indigo
       case MacroType.fat:
-        return const Color(0xFFF59E0B); // Amber
+        return AppColors.macroFat; // #F59E0B Amber
       case MacroType.carbs:
-        return const Color(0xFF8B5CF6); // Purple
+        return AppColors.macroCarb; // #14B8A6 Mint-teal
       case MacroType.weight:
         return const Color(0xFF64748B); // Slate
     }

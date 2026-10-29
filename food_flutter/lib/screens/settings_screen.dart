@@ -1,10 +1,10 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/meal_models.dart';
 import '../services/api_service.dart';
 import '../services/settings_service.dart';
 import '../services/update_service.dart';
 import '../widgets/update_dialog.dart';
+import '../theme/app_colors.dart';
 
 class SettingsScreen extends StatefulWidget {
   final SettingsService settingsService;
@@ -72,8 +72,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       });
     }
 
-    // Если у пользователя еще НЕТ своих сохраненных целей на устройстве,
-    // пробуем подгрузить их с сервера при первом запуске
     if (!widget.settingsService.hasCustomGoals) {
       try {
         final remoteGoals = await widget.apiService.getGoals();
@@ -156,7 +154,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           content: Text(syncedWithServer
               ? 'Ваши новые цели КБЖУ сохранены в приложении и в базе! ☁️✅'
               : 'Ваши новые цели КБЖУ зафиксированы в приложении! 📱✅'),
-          backgroundColor: const Color(0xFF10B981),
+          backgroundColor: AppColors.primary,
         ),
       );
     }
@@ -184,7 +182,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('У вас установлена актуальная версия v${info.currentVersion}! ✅'),
-          backgroundColor: const Color(0xFF10B981),
+          backgroundColor: AppColors.primary,
         ),
       );
     }
@@ -192,50 +190,299 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? AppColors.darkCard : AppColors.lightCard;
+    final cardBorder = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
     return Scaffold(
+      backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightScaffold,
       appBar: AppBar(
         title: const Text(
-          'Настройки',
+          'Цели & Профиль',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: [
-          // Server Connection Card
+          // 1. User Profile Badge Card
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: cardBorder),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [AppColors.primary, AppColors.emerald400],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.35),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: const Text(
+                    'ДП',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Дневник питания',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Персональные цели и баланс КБЖУ',
+                        style: TextStyle(fontSize: 12, color: textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // 2. Target Nutrients Form (Суточный целевой баланс)
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              color: cardBg,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: cardBorder),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Icon(Icons.dns_outlined, color: Color(0xFF10B981)),
-                    SizedBox(width: 8),
                     Text(
-                      'Подключение к бэкенду',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                      'СУТОЧНЫЙ ЦЕЛЕВОЙ БАЛАНС',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6,
+                        color: textSecondary,
+                      ),
+                    ),
+                    const Icon(Icons.fitness_center, size: 16, color: AppColors.primary),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // Calories Input
+                Text(
+                  'Норма калорий (ккал)',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _calController,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.macroCalorie,
+                  ),
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.local_fire_department, color: AppColors.macroCalorie),
+                    suffixText: 'ккал/день',
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // 3-Column Macros Grid
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppColors.macroProtein, shape: BoxShape.circle)),
+                              const SizedBox(width: 4),
+                              Text('Белки (г)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textPrimary)),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: _proteinController,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.macroProtein),
+                            decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppColors.macroFat, shape: BoxShape.circle)),
+                              const SizedBox(width: 4),
+                              Text('Жиры (г)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textPrimary)),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: _fatController,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.macroFat),
+                            decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppColors.macroCarb, shape: BoxShape.circle)),
+                              const SizedBox(width: 4),
+                              Text('Углеводы (г)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textPrimary)),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: _carbsController,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.macroCarb),
+                            decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Укажите адрес вашего сервера FastAPI. Это может быть локальный IP компьютера в сети Wi-Fi или облачный адрес Google Cloud.',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
+
+                const SizedBox(height: 16),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    onPressed: _saveGoals,
+                    child: const Text('Сохранить цели КБЖУ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  ),
                 ),
-                const SizedBox(height: 14),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // 3. Theme Mode Switch Card
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: cardBorder),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      isDark ? Icons.dark_mode : Icons.light_mode,
+                      color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706),
+                      size: 22,
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isDark ? 'Тёмная тема оформления' : 'Светлая тема оформления',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textPrimary),
+                        ),
+                        Text(
+                          isDark ? 'Глубокий ночной фон #0D131F' : 'Чистый светлый фон #F8FAFC',
+                          style: TextStyle(fontSize: 11, color: textSecondary),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Switch(
+                  value: isDark,
+                  activeColor: AppColors.primary,
+                  onChanged: (val) => widget.settingsService.setDarkMode(val),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // 4. Server Connection Card
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: cardBorder),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.dns_outlined, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Подключение к серверу',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimary),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: _urlController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'URL бэкенда',
                     hintText: 'http://192.168.1.100:8000',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    prefixIcon: const Icon(Icons.link, color: Color(0xFF64748B)),
+                    prefixIcon: Icon(Icons.link),
                   ),
                   onChanged: (_) => _saveUrl(),
                 ),
@@ -244,15 +491,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   controller: _apiKeyController,
                   obscureText: !_showApiKey,
                   decoration: InputDecoration(
-                    labelText: 'Секретный API-ключ (для облака)',
+                    labelText: 'API-ключ (для облака)',
                     hintText: 'Оставьте пустым для локального сервера',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    prefixIcon: const Icon(Icons.key, color: Color(0xFF64748B)),
+                    prefixIcon: const Icon(Icons.key),
                     suffixIcon: IconButton(
-                      icon: Icon(
-                        _showApiKey ? Icons.visibility_off : Icons.visibility,
-                        color: const Color(0xFF64748B),
-                      ),
+                      icon: Icon(_showApiKey ? Icons.visibility_off : Icons.visibility),
                       onPressed: () => setState(() => _showApiKey = !_showApiKey),
                     ),
                   ),
@@ -263,61 +506,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: const BorderSide(color: Color(0xFF10B981)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                      side: const BorderSide(color: AppColors.primary),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                     icon: _isTesting
                         ? const SizedBox(
                             width: 16,
                             height: 16,
-                            child: CircularProgressIndicator(color: Color(0xFF10B981), strokeWidth: 2),
+                            child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2),
                           )
-                        : const Icon(Icons.wifi_tethering, color: Color(0xFF10B981)),
+                        : const Icon(Icons.wifi_tethering, color: AppColors.primary),
                     label: Text(
                       _isTesting ? 'Проверка связи...' : 'Проверить подключение',
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
                     ),
                     onPressed: _isTesting ? null : _testConnection,
                   ),
                 ),
                 if (_healthResult != null) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: _healthResult!.isHealthy ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
+                      color: _healthResult!.isHealthy
+                          ? (isDark ? AppColors.primary.withOpacity(0.15) : AppColors.primaryLight)
+                          : (isDark ? const Color(0xFF2D1515) : const Color(0xFFFEF2F2)),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: _healthResult!.isHealthy ? const Color(0xFFA7F3D0) : const Color(0xFFFECACA),
+                        color: _healthResult!.isHealthy
+                            ? AppColors.primary.withOpacity(0.4)
+                            : AppColors.error.withOpacity(0.4),
                       ),
                     ),
                     child: Row(
                       children: [
                         Icon(
                           _healthResult!.isHealthy ? Icons.check_circle : Icons.error,
-                          color: _healthResult!.isHealthy ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                          size: 20,
+                          color: _healthResult!.isHealthy ? AppColors.primary : AppColors.error,
+                          size: 18,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _healthResult!.message,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                  color: _healthResult!.isHealthy ? const Color(0xFF065F46) : const Color(0xFF991B1B),
-                                ),
-                              ),
-                              if (_healthResult!.isHealthy)
-                                Text(
-                                  'Задержка: ${_healthResult!.latencyMs} мс',
-                                  style: const TextStyle(fontSize: 11, color: Color(0xFF047857)),
-                                ),
-                            ],
+                          child: Text(
+                            _healthResult!.message,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: _healthResult!.isHealthy ? AppColors.primaryDark : AppColors.error,
+                            ),
                           ),
                         ),
                       ],
@@ -327,149 +564,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
 
-          // Daily Goals Card
+          const SizedBox(height: 14),
+
+          // 5. System & Update Card
           Container(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardBg,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: cardBorder),
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
-                  children: [
-                    Icon(Icons.flag_outlined, color: Color(0xFF10B981)),
-                    SizedBox(width: 8),
-                    Text(
-                      'Суточные нормы КБЖУ',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: _calController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Цель калорий (ккал)',
-                    suffixText: 'ккал',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                const SizedBox(height: 10),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _proteinController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: 'Белки',
-                          suffixText: 'г',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: _fatController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: 'Жиры',
-                          suffixText: 'г',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: _carbsController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: 'Углеводы',
-                          suffixText: 'г',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                    ),
+                    Text('Версия приложения', style: TextStyle(fontSize: 12, color: textSecondary)),
+                    Text(UpdateService.currentVersion, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textPrimary)),
                   ],
                 ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF10B981),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onPressed: _saveGoals,
-                    child: const Text('Сохранить цели КБЖУ', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // About App Card
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Icon(Icons.info_outline, color: Color(0xFF10B981)),
-                    SizedBox(width: 8),
-                    Text(
-                      'О приложении',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
-                    ),
+                    Text('Нейросеть FoodVision AI', style: TextStyle(fontSize: 12, color: textSecondary)),
+                    const Text('Gemini Vision v4.2', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary)),
                   ],
                 ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Мобильный клиент персональной системы распознавания блюд по фото на базе ИИ Google Gemini Flash.',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF475569), height: 1.4),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Версия: ${UpdateService.currentVersion} (Release APK)',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
-                ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF10B981),
-                      side: const BorderSide(color: Color(0xFF10B981)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: TextButton.icon(
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      foregroundColor: AppColors.primary,
                     ),
                     icon: _isCheckingUpdate
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)),
-                          )
-                        : const Icon(Icons.sync_rounded, size: 20),
+                        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2))
+                        : const Icon(Icons.system_update_alt, size: 18),
                     label: Text(
-                      _isCheckingUpdate ? 'Проверка обновлений...' : 'Проверить обновления',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      _isCheckingUpdate ? 'Проверка...' : 'Проверить обновления',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                     onPressed: _isCheckingUpdate ? null : _checkForUpdates,
                   ),
@@ -477,7 +613,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 30),
+
+          const SizedBox(height: 40),
         ],
       ),
     );

@@ -9,6 +9,7 @@ class SettingsService extends ChangeNotifier {
   static const String _keyTargetFat = 'target_fat';
   static const String _keyTargetCarbs = 'target_carbs';
   static const String _keyHasCustomGoals = 'has_user_custom_goals';
+  static const String _keyIsDarkMode = 'is_dark_mode';
 
   static const String defaultServerUrl = 'http://192.168.1.100:8000';
   static const double defaultTargetCalories = 2000.0;
@@ -21,6 +22,7 @@ class SettingsService extends ChangeNotifier {
   double _cachedFat = defaultTargetFat;
   double _cachedCarbs = defaultTargetCarbs;
   bool _hasCustomGoals = false;
+  bool _isDarkMode = true; // Prototype opens in Dark Mode by default
   bool _initialized = false;
 
   double get targetCalories => _cachedCalories;
@@ -28,11 +30,13 @@ class SettingsService extends ChangeNotifier {
   double get targetFat => _cachedFat;
   double get targetCarbs => _cachedCarbs;
   bool get hasCustomGoals => _hasCustomGoals;
+  bool get isDarkMode => _isDarkMode;
 
   Future<void> init() async {
     if (_initialized) return;
     final prefs = await SharedPreferences.getInstance();
     _hasCustomGoals = prefs.getBool(_keyHasCustomGoals) ?? false;
+    _isDarkMode = prefs.getBool(_keyIsDarkMode) ?? true;
     _cachedCalories = prefs.getDouble(_keyTargetCalories) ?? defaultTargetCalories;
     _cachedProtein = prefs.getDouble(_keyTargetProtein) ?? defaultTargetProtein;
     _cachedFat = prefs.getDouble(_keyTargetFat) ?? defaultTargetFat;
@@ -155,6 +159,18 @@ class SettingsService extends ChangeNotifier {
     if (isExplicitUserAction) {
       await prefs.setBool(_keyHasCustomGoals, true);
     }
+  }
+
+  Future<void> setDarkMode(bool isDark) async {
+    if (_isDarkMode == isDark) return;
+    _isDarkMode = isDark;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyIsDarkMode, isDark);
+  }
+
+  Future<void> toggleDarkMode() async {
+    await setDarkMode(!_isDarkMode);
   }
 }
 
