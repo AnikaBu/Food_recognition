@@ -312,3 +312,35 @@ class NutritionGoals {
   };
 }
 
+class EstimateNutritionResult {
+  final String name;
+  final double weightG;
+  final double calories;
+  final double protein;
+  final double fat;
+  final double carbs;
+  final String? comment;
+
+  EstimateNutritionResult({
+    required this.name,
+    required this.weightG,
+    required this.calories,
+    required this.protein,
+    required this.fat,
+    required this.carbs,
+    this.comment,
+  });
+
+  factory EstimateNutritionResult.fromJson(Map<String, dynamic> json) {
+    return EstimateNutritionResult(
+      name: json['name'] as String? ?? '',
+      weightG: (json['weight_g'] as num?)?.toDouble() ?? 100.0,
+      calories: (json['calories'] as num?)?.toDouble() ?? 0.0,
+      protein: (json['protein'] as num?)?.toDouble() ?? 0.0,
+      fat: (json['fat'] as num?)?.toDouble() ?? 0.0,
+      carbs: (json['carbs'] as num?)?.toDouble() ?? 0.0,
+      comment: json['comment'] as String?,
+    );
+  }
+}
+

@@ -146,6 +146,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // Обработка отправки формы ручного ввода
   document.getElementById("manualMealForm")?.addEventListener("submit", handleManualMealSubmit);
 
+  // Кнопка ИИ-расчета КБЖУ в модальном окне ручного ввода
+  document.getElementById("manualAiEstimateBtn")?.addEventListener("click", handleAiEstimateClick);
+
   // Сохранение и отмена
   document.getElementById("saveMealBtn").addEventListener("click", saveMeal);
   document.getElementById("cancelMealBtn").addEventListener("click", cancelAnalyzedMeal);
@@ -509,5 +512,60 @@ async function handleManualMealSubmit(e) {
       submitBtn.disabled = false;
       submitBtn.textContent = "💾 Сохранить в дневник";
     }
+  }
+}
+
+async function handleAiEstimateClick() {
+  const dishInput = document.getElementById("manualDishName");
+  const weightInput = document.getElementById("manualDishWeight");
+  const btn = document.getElementById("manualAiEstimateBtn");
+
+  const query = dishInput.value.trim();
+  if (!query) {
+    showToast("⚠️ Введите название продукта (например: «хлеб зерновой 30г»)");
+    dishInput.focus();
+    return;
+  }
+
+  btn.disabled = true;
+  const originalText = btn.innerHTML;
+  btn.innerHTML = "⏳ Считаем...";
+
+  const weightVal = parseFloat(weightInput.value);
+  const payload = {
+    query: query,
+    weight_g: (!isNaN(weightVal) && weightVal > 0) ? weightVal : null,
+  };
+
+  try {
+    const res = await fetch("/api/estimate-nutrition", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Не удалось рассчитать КБЖУ");
+    }
+
+    const data = await res.json();
+    dishInput.value = data.name;
+    weightInput.value = Math.round(data.weight_g);
+    document.getElementById("manualCalories").value = Math.round(data.calories);
+    document.getElementById("manualProtein").value = data.protein.toFixed(1);
+    document.getElementById("manualFat").value = data.fat.toFixed(1);
+    document.getElementById("manualCarbs").value = data.carbs.toFixed(1);
+    if (data.comment) {
+      document.getElementById("manualComment").value = data.comment;
+    }
+
+    showToast(`✨ Gemini: ${Math.round(data.calories)} ккал (${Math.round(data.weight_g)}г)`);
+  } catch (err) {
+    console.error("Ошибка ИИ-оценки:", err);
+    showToast(`❌ ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
   }
 }

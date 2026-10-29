@@ -3,10 +3,10 @@ import sys
 import json
 import time
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 from dotenv import load_dotenv
 from PIL import Image
-from models import FoodAnalysisResult
+from models import FoodAnalysisResult, EstimateNutritionResponse
 
 load_dotenv()
 
@@ -69,3 +69,51 @@ def analyze_food_image(image_input: Union[str, Path, Image.Image]) -> FoodAnalys
                 time.sleep(1.5)
 
     raise RuntimeError(f"Не удалось распознать блюдо через Gemini. Ошибка: {last_error}")
+
+
+PROMPT_ESTIMATE_NUTRITION = (
+    "Ты опытный диетолог и специалист по точному расчету состава продуктов. "
+    "Пользователь передал текстовое описание продукта или блюда. "
+    "Твоя задача: "
+    "1. Сформулировать чистое понятное название продукта на русском языке (без указания граммовки в названии). "
+    "2. Определить точный вес в граммах. Если вес указан пользователем в тексте (например '30г', '150 грамм', '2 куска ~60г') или передан параметром — используй его. Если вес вообще не указан, возьми стандартный размер порции или 100г. "
+    "3. Точно рассчитать калорийность (ккал), белки, жиры и углеводы именно для этого веса. "
+    "4. Дать короткий полезный комментарий диетолога по составу."
+)
+
+
+def estimate_food_nutrition_by_text(query: str, weight_g: Optional[float] = None) -> EstimateNutritionResponse:
+    """
+    Принимает строку запроса (например: 'хлеб зерновой 30г' или 'куриное филе')
+    и опциональный вес в граммах.
+    Отправляет в Gemini API и возвращает EstimateNutritionResponse.
+    """
+    from google.genai import types
+
+    client = get_gemini_client()
+
+    user_content = f"Описание продукта: '{query}'"
+    if weight_g is not None and weight_g > 0:
+        user_content += f", вес порции: {weight_g} г"
+
+    last_error = None
+
+    for model_name in MODELS_TO_TRY:
+        for attempt in range(2):
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=[PROMPT_ESTIMATE_NUTRITION, user_content],
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_json_schema=EstimateNutritionResponse.model_json_schema(),
+                    ),
+                )
+                raw_json = response.text
+                data = json.loads(raw_json)
+                return EstimateNutritionResponse(**data)
+            except Exception as e:
+                last_error = e
+                time.sleep(1.5)
+
+    raise RuntimeError(f"Не удалось оценить КБЖУ через Gemini. Ошибка: {last_error}")

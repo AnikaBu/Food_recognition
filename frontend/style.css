@@ -634,3 +634,26 @@ h1 {
   gap: 10px;
   margin-top: 16px;
 }
+
+.btn-ai-calc {
+  background: var(--primary-light);
+  border: 1px solid var(--primary-border);
+  color: var(--primary-hover);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+.btn-ai-calc:hover {
+  background: #d1fae5;
+  border-color: var(--primary);
+}
+.btn-ai-calc:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

@@ -103,3 +103,18 @@ class NutritionGoals(BaseModel):
     carbs: float = Field(default=250.0, ge=0, description="Суточная норма углеводов (г)")
     updated_at: Optional[str] = Field(default=None, description="Время последнего обновления")
 
+
+class EstimateNutritionRequest(BaseModel):
+    query: str = Field(description="Текстовое описание продукта, например 'хлеб зерновой 30г'")
+    weight_g: Optional[float] = Field(default=None, description="Опциональный вес в граммах")
+
+
+class EstimateNutritionResponse(BaseModel):
+    name: str = Field(description="Понятное название продукта на русском языке")
+    weight_g: float = Field(description="Вес в граммах")
+    calories: float = Field(description="Калорийность (ккал)")
+    protein: float = Field(description="Белки (г)")
+    fat: float = Field(description="Жиры (г)")
+    carbs: float = Field(description="Углеводы (г)")
+    comment: Optional[str] = Field(default="", description="Краткий комментарий диетолога")
+
