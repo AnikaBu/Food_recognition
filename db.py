@@ -10,6 +10,9 @@ from models import (
     MealRecord,
     DailySummary,
     NutritionGoals,
+    RecipeIngredientItem,
+    CreateRecipeRequest,
+    RecipeRecord,
 )
 
 _ENV_DB_PATH = os.getenv("DB_PATH")
@@ -63,8 +66,35 @@ def init_db(db_path: Path = DEFAULT_DB_PATH) -> None:
             INSERT OR IGNORE INTO nutrition_goals (id, calories, protein, fat, carbs)
             VALUES (1, 2000.0, 90.0, 65.0, 250.0);
 
+            CREATE TABLE IF NOT EXISTS recipes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT,
+                raw_weight_g REAL NOT NULL DEFAULT 0.0,
+                cooked_weight_g REAL NOT NULL DEFAULT 0.0,
+                calories_100g REAL NOT NULL DEFAULT 0.0,
+                protein_100g REAL NOT NULL DEFAULT 0.0,
+                fat_100g REAL NOT NULL DEFAULT 0.0,
+                carbs_100g REAL NOT NULL DEFAULT 0.0,
+                created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+            );
+
+            CREATE TABLE IF NOT EXISTS recipe_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                recipe_id INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                weight_g REAL NOT NULL,
+                calories REAL NOT NULL,
+                protein REAL NOT NULL,
+                fat REAL NOT NULL,
+                carbs REAL NOT NULL
+            );
+
             CREATE INDEX IF NOT EXISTS idx_meals_created_at ON meals(created_at);
             CREATE INDEX IF NOT EXISTS idx_meal_items_meal_id ON meal_items(meal_id);
+            CREATE INDEX IF NOT EXISTS idx_recipes_updated_at ON recipes(updated_at);
+            CREATE INDEX IF NOT EXISTS idx_recipe_items_recipe_id ON recipe_items(recipe_id);
         """)
 
 
@@ -317,4 +347,218 @@ def update_goals(
         )
         conn.commit()
     return get_goals(db_path=db_path)
+
+
+# ---------------------------------------------------------------------
+# Рецепты и сложные составные блюда (учет уварки/ужарки)
+# ---------------------------------------------------------------------
+
+def _calculate_recipe_macros(cooked_weight_g: Optional[float], items: list[RecipeIngredientItem]):
+    """Рассчитывает сырой вес, вес готового блюда и КБЖУ на 100 грамм."""
+    raw_w = sum(it.weight_g for it in items)
+    raw_cal = sum(it.calories for it in items)
+    raw_p = sum(it.protein for it in items)
+    raw_f = sum(it.fat for it in items)
+    raw_c = sum(it.carbs for it in items)
+
+    final_cooked_w = cooked_weight_g if (cooked_weight_g and cooked_weight_g > 0) else raw_w
+    if final_cooked_w <= 0:
+        final_cooked_w = 100.0
+
+    factor_100 = 100.0 / final_cooked_w
+    cal_100 = round(raw_cal * factor_100, 1)
+    p_100 = round(raw_p * factor_100, 1)
+    f_100 = round(raw_f * factor_100, 1)
+    c_100 = round(raw_c * factor_100, 1)
+
+    return round(raw_w, 1), round(final_cooked_w, 1), cal_100, p_100, f_100, c_100
+
+
+def create_recipe(data: CreateRecipeRequest, db_path: Path = DEFAULT_DB_PATH) -> int:
+    """Создает новый рецепт, сохраняет ингредиенты и рассчитывает КБЖУ на 100 г готового блюда."""
+    init_db(db_path)
+    raw_w, cooked_w, cal_100, p_100, f_100, c_100 = _calculate_recipe_macros(data.cooked_weight_g, data.items)
+
+    with get_connection(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO recipes (title, description, raw_weight_g, cooked_weight_g,
+                                calories_100g, protein_100g, fat_100g, carbs_100g, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'), datetime('now', 'localtime'))
+            """,
+            (data.title.strip(), (data.description or "").strip(), raw_w, cooked_w, cal_100, p_100, f_100, c_100),
+        )
+        recipe_id = cursor.lastrowid
+
+        items_data = [
+            (recipe_id, it.name.strip(), it.weight_g, it.calories, it.protein, it.fat, it.carbs)
+            for it in data.items
+        ]
+        cursor.executemany(
+            """
+            INSERT INTO recipe_items (recipe_id, name, weight_g, calories, protein, fat, carbs)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            items_data,
+        )
+        conn.commit()
+        return recipe_id
+
+
+def get_recipe(recipe_id: int, db_path: Path = DEFAULT_DB_PATH) -> Optional[RecipeRecord]:
+    """Возвращает детальную информацию о рецепте по id, включая список ингредиентов."""
+    init_db(db_path)
+    with get_connection(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM recipes WHERE id = ?", (recipe_id,))
+        row = cursor.fetchone()
+        if not row:
+            return None
+
+        cursor.execute("SELECT * FROM recipe_items WHERE recipe_id = ? ORDER BY id ASC", (recipe_id,))
+        items_rows = cursor.fetchall()
+        items = [
+            RecipeIngredientItem(
+                id=r["id"],
+                name=r["name"],
+                weight_g=r["weight_g"],
+                calories=r["calories"],
+                protein=r["protein"],
+                fat=r["fat"],
+                carbs=r["carbs"],
+            )
+            for r in items_rows
+        ]
+
+        return RecipeRecord(
+            id=row["id"],
+            title=row["title"],
+            description=row["description"] or "",
+            raw_weight_g=row["raw_weight_g"],
+            cooked_weight_g=row["cooked_weight_g"],
+            calories_100g=row["calories_100g"],
+            protein_100g=row["protein_100g"],
+            fat_100g=row["fat_100g"],
+            carbs_100g=row["carbs_100g"],
+            items=items,
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+        )
+
+
+def get_recipes(db_path: Path = DEFAULT_DB_PATH) -> list[RecipeRecord]:
+    """Возвращает список всех сохраненных рецептов пользователя."""
+    init_db(db_path)
+    with get_connection(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM recipes ORDER BY updated_at DESC, id DESC")
+        rows = cursor.fetchall()
+
+    result = []
+    for r in rows:
+        rec = get_recipe(r["id"], db_path=db_path)
+        if rec:
+            result.append(rec)
+    return result
+
+
+def update_recipe(recipe_id: int, data: CreateRecipeRequest, db_path: Path = DEFAULT_DB_PATH) -> Optional[RecipeRecord]:
+    """Обновляет рецепт, пересчитывает КБЖУ на 100 г и перезаписывает ингредиенты."""
+    init_db(db_path)
+    raw_w, cooked_w, cal_100, p_100, f_100, c_100 = _calculate_recipe_macros(data.cooked_weight_g, data.items)
+
+    with get_connection(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM recipes WHERE id = ?", (recipe_id,))
+        if not cursor.fetchone():
+            return None
+
+        cursor.execute(
+            """
+            UPDATE recipes
+            SET title = ?, description = ?, raw_weight_g = ?, cooked_weight_g = ?,
+                calories_100g = ?, protein_100g = ?, fat_100g = ?, carbs_100g = ?,
+                updated_at = datetime('now', 'localtime')
+            WHERE id = ?
+            """,
+            (data.title.strip(), (data.description or "").strip(), raw_w, cooked_w, cal_100, p_100, f_100, c_100, recipe_id),
+        )
+
+        cursor.execute("DELETE FROM recipe_items WHERE recipe_id = ?", (recipe_id,))
+        items_data = [
+            (recipe_id, it.name.strip(), it.weight_g, it.calories, it.protein, it.fat, it.carbs)
+            for it in data.items
+        ]
+        cursor.executemany(
+            """
+            INSERT INTO recipe_items (recipe_id, name, weight_g, calories, protein, fat, carbs)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            items_data,
+        )
+        conn.commit()
+
+    return get_recipe(recipe_id, db_path=db_path)
+
+
+def delete_recipe(recipe_id: int, db_path: Path = DEFAULT_DB_PATH) -> bool:
+    """Удаляет рецепт и каскадно удаляет связанные ингредиенты."""
+    init_db(db_path)
+    with get_connection(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM recipes WHERE id = ?", (recipe_id,))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def log_recipe_portion(
+    recipe_id: int,
+    meal_type: MealType,
+    portion_weight_g: float,
+    created_at: Optional[str] = None,
+    db_path: Path = DEFAULT_DB_PATH,
+) -> Optional[MealRecord]:
+    """
+    Рассчитывает КБЖУ порции на основе сохраненного рецепта (на 100г)
+    и вносит ее как полноценный прием пищи в дневник питания.
+    """
+    recipe = get_recipe(recipe_id, db_path=db_path)
+    if not recipe:
+        return None
+
+    factor = portion_weight_g / 100.0
+    cal = round(recipe.calories_100g * factor, 1)
+    p = round(recipe.protein_100g * factor, 1)
+    f = round(recipe.fat_100g * factor, 1)
+    c = round(recipe.carbs_100g * factor, 1)
+
+    item = IngredientItem(
+        name=recipe.title,
+        weight_g=round(portion_weight_g, 1),
+        calories=cal,
+        protein=p,
+        fat=f,
+        carbs=c,
+    )
+
+    analysis = FoodAnalysisResult(
+        dish_name=recipe.title,
+        comment=f"Рецепт: 100г = {recipe.calories_100g} ккал",
+        items=[item],
+        total_weight_g=round(portion_weight_g, 1),
+        total_calories=cal,
+        total_protein=p,
+        total_fat=f,
+        total_carbs=c,
+    )
+
+    meal_id = save_meal(
+        analysis=analysis,
+        meal_type=meal_type,
+        created_at=created_at,
+        db_path=db_path,
+    )
+
+    return get_meal(meal_id, db_path=db_path)
 

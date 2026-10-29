@@ -206,6 +206,55 @@ def test_api_endpoints():
         assert bc_data["carbs"] == 26.5      # 10.6 * 2.5
     print("✅ 8.3. GET /api/barcode/{code} — успешный расчет порции и КБЖУ на 100г работает корректно.")
 
+    # 9. Тестирование эндпоинтов управления рецептами (/api/recipes)
+    # 9.1 Создание рецепта сложного блюда
+    recipe_payload = {
+        "title": "Домашний борщ",
+        "description": "Классический красный борщ со свеклой и говядиной",
+        "cooked_weight_g": 2000.0,
+        "items": [
+            {"name": "Говядина мякоть", "weight_g": 500.0, "calories": 950.0, "protein": 95.0, "fat": 65.0, "carbs": 0.0},
+            {"name": "Свекла", "weight_g": 300.0, "calories": 130.0, "protein": 4.5, "fat": 0.3, "carbs": 27.0},
+            {"name": "Капуста белокочанная", "weight_g": 300.0, "calories": 80.0, "protein": 5.4, "fat": 0.3, "carbs": 14.1},
+            {"name": "Картофель", "weight_g": 400.0, "calories": 308.0, "protein": 8.0, "fat": 1.6, "carbs": 64.0},
+        ]
+    }
+    # Всего сырого: 1500г. Калории: 950 + 130 + 80 + 308 = 1468 ккал.
+    # Готовое с бульоном: 2000г. На 100г: 1468 * (100 / 2000) = 73.4 ккал.
+    resp_create_rec = client.post("/api/recipes", json=recipe_payload)
+    assert resp_create_rec.status_code == 201
+    rec_data = resp_create_rec.json()
+    recipe_id = rec_data["id"]
+    assert rec_data["title"] == "Домашний борщ"
+    assert rec_data["raw_weight_g"] == 1500.0
+    assert rec_data["cooked_weight_g"] == 2000.0
+    assert rec_data["calories_100g"] == 73.4
+    print(f"✅ 9.1. POST /api/recipes — рецепт '{rec_data['title']}' создан (ID: {recipe_id}, 100г = {rec_data['calories_100g']} ккал).")
+
+    # 9.2 Получение списка рецептов
+    resp_list_rec = client.get("/api/recipes")
+    assert resp_list_rec.status_code == 200
+    assert any(r["id"] == recipe_id for r in resp_list_rec.json())
+    print("✅ 9.2. GET /api/recipes — список рецептов успешно получен.")
+
+    # 9.3 Внесение порции 350г в дневник питания через /api/recipes/{id}/log
+    resp_log = client.post(f"/api/recipes/{recipe_id}/log", json={"meal_type": "lunch", "portion_weight_g": 350.0})
+    assert resp_log.status_code == 201
+    logged_meal = resp_log.json()
+    assert logged_meal["total_weight_g"] == 350.0
+    # 73.4 * 3.5 = 256.9 ккал
+    assert abs(logged_meal["total_calories"] - 256.9) < 0.2
+    print(f"✅ 9.3. POST /api/recipes/{{id}}/log — порция {logged_meal['total_weight_g']}г внесена в дневник ({logged_meal['total_calories']} ккал).")
+
+    # Очищаем созданный прием пищи
+    client.delete(f"/api/meals/{logged_meal['id']}")
+
+    # 9.4 Удаление рецепта
+    resp_del_rec = client.delete(f"/api/recipes/{recipe_id}")
+    assert resp_del_rec.status_code == 200
+    assert client.get(f"/api/recipes/{recipe_id}").status_code == 404
+    print("✅ 9.4. DELETE /api/recipes/{id} — рецепт успешно удален.")
+
     print("\n🎉 Все тесты FastAPI бэкенда пройдены успешно!")
 
 if __name__ == "__main__":

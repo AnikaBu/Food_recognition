@@ -296,7 +296,7 @@ def test_05_save_and_delete_workflow(page: Page):
 
     # 4. Проверяем, что карточка удалилась и вернулось пустое состояние
     expect(page.locator(".history-item")).to_have_count(0)
-    expect(page.locator(".empty-state")).to_be_visible()
+    expect(page.locator("#mealsHistoryList .empty-state")).to_be_visible()
 
     # Калории за день снова обнулились
     expect(page.locator("#sumCalories")).to_have_text("0")
@@ -473,9 +473,85 @@ def test_08_barcode_lookup_workflow(page: Page):
     expect(page.locator("#manualMealModal")).not_to_be_visible()
 
 
+def test_09_recipes_workflow(page: Page):
+    """
+    Тест 9: Проверка работы конструктора рецептов (Шаг 3).
+    - Открытие окна "Мои рецепты";
+    - Открытие конструктора и добавление ингредиентов с расчетом уварки;
+    - Сохранение рецепта в базу данных;
+    - Внесение взвешенной порции рецепта в дневник питания.
+    """
+    page.goto(BASE_URL)
+    page.wait_for_load_state("networkidle")
+
+    # 1. Открываем окно рецептов
+    page.locator("#openRecipesBtn").click()
+    expect(page.locator("#recipesListModal")).to_be_visible()
+
+    # 2. Нажимаем кнопку создания рецепта
+    page.locator("#openNewRecipeEditorBtn").click()
+    expect(page.locator("#recipeEditorModal")).to_be_visible()
+
+    # 3. Заполняем название рецепта
+    page.locator("#recipeEditorTitle").fill("Творожная запеканка с изюмом")
+    page.locator("#recipeEditorDesc").fill("Фирменный домашний рецепт")
+
+    # 4. Добавляем 2 ингредиента через evaluate в состояние конструктора
+    page.evaluate("""() => {
+        state.editingRecipeItems = [
+            { name: 'Творог 5%', weight_g: 400, calories: 480, protein: 64.0, fat: 20.0, carbs: 12.0 },
+            { name: 'Яйцо куриное С0', weight_g: 100, calories: 157, protein: 12.7, fat: 11.5, carbs: 0.7 }
+        ];
+        renderRecipeEditorItems();
+    }""")
+
+    # 5. Проверяем сырой вес (500г) и калории (637 ккал)
+    expect(page.locator("#recipeRawWeightSum")).to_have_text("500")
+    expect(page.locator("#recipeRawCaloriesSum")).to_have_text("637")
+
+    # 6. Вводим вес готового блюда с учетом уварки (450г)
+    page.locator("#recipeEditorCookedWeight").fill("450")
+    page.locator("#recipeEditorCookedWeight").dispatch_event("input")
+
+    # 637 * 100 / 450 = 141.55 => 142 ккал на 100г
+    expect(page.locator("#rec100Cal")).to_have_text("142")
+
+    # 7. Сохраняем рецепт
+    page.locator("#saveRecipeSubmitBtn").click()
+
+    # Окно конструктора закрывается, в списке рецептов появляется созданный рецепт
+    expect(page.locator("#recipeEditorModal")).not_to_be_visible()
+    expect(page.locator("#recipesListModal")).to_be_visible()
+
+    recipe_card = page.locator("#recipesListContainer .recipe-card").first
+    expect(recipe_card).to_be_visible()
+    expect(recipe_card.locator(".recipe-card-title")).to_contain_text("Творожная запеканка")
+
+    # 8. Нажимаем "➕ Внести в дневник"
+    recipe_card.locator(".btn-log-recipe").click()
+    expect(page.locator("#logRecipeModal")).to_be_visible()
+
+    # Задаем вес порции 200г (141.56 * 2 = 283 ккал)
+    page.locator("#logRecipeWeightInput").fill("200")
+    page.locator("#logRecipeWeightInput").dispatch_event("input")
+    expect(page.locator("#logPortionCal")).to_have_text("283")
+
+    # 9. Подтверждаем добавление порции в дневник
+    page.locator("#confirmLogRecipeBtn").click()
+
+    # Модальные окна закрываются
+    expect(page.locator("#logRecipeModal")).not_to_be_visible()
+    expect(page.locator("#recipesListModal")).not_to_be_visible()
+
+    # 10. Проверяем появление записи в дневнике питания
+    expect(page.locator("#mealsHistoryList")).to_contain_text("Творожная запеканка с изюмом")
+    expect(page.locator("#mealsHistoryList")).to_contain_text("200г")
+
+
 # =====================================================================
 # Возможность прямого запуска через: python test_frontend.py
 # =====================================================================
+
 if __name__ == "__main__":
     print("🚀 Запуск E2E тестов веб-интерфейса MyFoodDiary через Playwright...")
     # Передаем аргументы в pytest для красивого вывода

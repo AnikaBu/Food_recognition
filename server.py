@@ -27,6 +27,9 @@ from models import (
     EstimateNutritionRequest,
     EstimateNutritionResponse,
     BarcodeProductResponse,
+    CreateRecipeRequest,
+    RecipeRecord,
+    LogRecipePortionRequest,
 )
 from vision import analyze_food_image, estimate_food_nutrition_by_text
 from barcode_service import get_product_by_barcode, clean_barcode
@@ -387,6 +390,147 @@ def get_nutrition_goals_endpoint():
 def update_nutrition_goals_endpoint(goals: NutritionGoals):
     """Обновляет и сохраняет в базе данных суточные цели по калориям и макронутриентам."""
     return db.update_goals(goals)
+
+
+# ---------------------------------------------------------------------
+# Рецепты и сложные составные блюда
+# ---------------------------------------------------------------------
+
+@app.get(
+    "/api/recipes",
+    response_model=List[RecipeRecord],
+    tags=["Рецепты"],
+    summary="Получить список всех сохраненных рецептов",
+)
+def get_recipes_endpoint():
+    """Возвращает список всех рецептов пользователя, отсортированных по дате обновления."""
+    return db.get_recipes()
+
+
+@app.post(
+    "/api/recipes",
+    response_model=RecipeRecord,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Рецепты"],
+    summary="Создать новый рецепт сложного блюда",
+)
+def create_recipe_endpoint(payload: CreateRecipeRequest):
+    """
+    Создает новый рецепт, рассчитывает суммарный сырой вес,
+    учитывает вес готового блюда (с учетом уварки/воды) и фиксирует КБЖУ на 100 грамм.
+    """
+    if not payload.title.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Название рецепта не может быть пустым",
+        )
+    if not payload.items:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Рецепт должен содержать хотя бы один ингредиент",
+        )
+
+    recipe_id = db.create_recipe(payload)
+    recipe = db.get_recipe(recipe_id)
+    if not recipe:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Не удалось получить созданный рецепт",
+        )
+    return recipe
+
+
+@app.get(
+    "/api/recipes/{recipe_id}",
+    response_model=RecipeRecord,
+    tags=["Рецепты"],
+    summary="Получить рецепт по ID со списком ингредиентов",
+)
+def get_recipe_endpoint(recipe_id: int):
+    """Возвращает детальную информацию о рецепте по его идентификатору."""
+    recipe = db.get_recipe(recipe_id)
+    if not recipe:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Рецепт с ID {recipe_id} не найден",
+        )
+    return recipe
+
+
+@app.put(
+    "/api/recipes/{recipe_id}",
+    response_model=RecipeRecord,
+    tags=["Рецепты"],
+    summary="Обновить рецепт и пересчитать КБЖУ на 100г",
+)
+def update_recipe_endpoint(recipe_id: int, payload: CreateRecipeRequest):
+    """Обновляет название, описание, вес готового блюда и ингредиенты рецепта."""
+    if not payload.title.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Название рецепта не может быть пустым",
+        )
+    if not payload.items:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Рецепт должен содержать хотя бы один ингредиент",
+        )
+
+    updated = db.update_recipe(recipe_id, payload)
+    if not updated:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Рецепт с ID {recipe_id} не найден",
+        )
+    return updated
+
+
+@app.delete(
+    "/api/recipes/{recipe_id}",
+    tags=["Рецепты"],
+    summary="Удалить рецепт",
+)
+def delete_recipe_endpoint(recipe_id: int):
+    """Удаляет рецепт и связанные с ним ингредиенты."""
+    deleted = db.delete_recipe(recipe_id)
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Рецепт с ID {recipe_id} не найден",
+        )
+    return {"status": "ok", "deleted_id": recipe_id}
+
+
+@app.post(
+    "/api/recipes/{recipe_id}/log",
+    response_model=MealRecord,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Рецепты"],
+    summary="Внести порцию рецепта в дневник питания",
+)
+def log_recipe_portion_endpoint(recipe_id: int, payload: LogRecipePortionRequest):
+    """
+    Рассчитывает калории и нутриенты порции на основе КБЖУ 100г рецепта
+    и моментально добавляет запись в дневник питания.
+    """
+    if payload.portion_weight_g <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Вес порции должен быть больше нуля",
+        )
+
+    meal = db.log_recipe_portion(
+        recipe_id=recipe_id,
+        meal_type=payload.meal_type,
+        portion_weight_g=payload.portion_weight_g,
+        created_at=payload.created_at,
+    )
+    if not meal:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Рецепт с ID {recipe_id} не найден",
+        )
+    return meal
 
 
 # Раздача PWA-клиента (HTML, CSS, JS, манифест и иконки)

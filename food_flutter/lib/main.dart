@@ -5,6 +5,7 @@ import 'services/api_service.dart';
 import 'services/settings_service.dart';
 import 'screens/diary_screen.dart';
 import 'screens/recognize_screen.dart';
+import 'screens/recipes_screen.dart';
 import 'screens/settings_screen.dart';
 
 void main() async {
@@ -128,6 +129,7 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
   final GlobalKey<DiaryScreenState> _diaryKey = GlobalKey<DiaryScreenState>();
+  final GlobalKey<RecipesScreenState> _recipesKey = GlobalKey<RecipesScreenState>();
 
   void _onTabSelected(int index) {
     setState(() {
@@ -135,6 +137,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
     if (index == 0) {
       _diaryKey.currentState?.reloadGoalsAndData();
+    } else if (index == 2) {
+      _recipesKey.currentState?.loadRecipes();
     }
   }
 
@@ -150,6 +154,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       RecognizeScreen(
         apiService: widget.apiService,
         onSavedSuccess: () => _onTabSelected(0),
+      ),
+      RecipesScreen(
+        key: _recipesKey,
+        apiService: widget.apiService,
+        onMealLogged: () => _onTabSelected(0),
       ),
       SettingsScreen(
         settingsService: widget.settingsService,
@@ -179,6 +188,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             icon: Icon(Icons.camera_alt_outlined),
             selectedIcon: Icon(Icons.camera_alt, color: Color(0xFF059669)),
             label: 'Распознать',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.restaurant_menu_outlined),
+            selectedIcon: Icon(Icons.restaurant_menu, color: Color(0xFF059669)),
+            label: 'Рецепты',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),

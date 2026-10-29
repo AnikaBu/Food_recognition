@@ -134,3 +134,41 @@ class BarcodeProductResponse(BaseModel):
     carbs_100g: float = Field(description="Углеводы на 100 г (г)")
     image_url: Optional[str] = Field(default="", description="URL изображения товара")
 
+
+class RecipeIngredientItem(BaseModel):
+    id: Optional[int] = None
+    name: str = Field(description="Название сырого ингредиента")
+    weight_g: float = Field(gt=0, description="Вес сырого ингредиента в граммах")
+    calories: float = Field(ge=0, description="Калории ингредиента")
+    protein: float = Field(ge=0, description="Белки (г)")
+    fat: float = Field(ge=0, description="Жиры (г)")
+    carbs: float = Field(ge=0, description="Углеводы (г)")
+
+
+class CreateRecipeRequest(BaseModel):
+    title: str = Field(description="Название рецепта или сложного блюда (например: Борщ домашний)")
+    description: Optional[str] = Field(default="", description="Описание или заметка к рецепту")
+    cooked_weight_g: Optional[float] = Field(default=None, description="Вес готового блюда (с учетом уварки/воды). Если не указан, равен сумме сырых ингредиентов.")
+    items: list[RecipeIngredientItem] = Field(min_length=1, description="Список ингредиентов рецепта")
+
+
+class RecipeRecord(BaseModel):
+    id: int
+    title: str
+    description: Optional[str] = ""
+    raw_weight_g: float
+    cooked_weight_g: float
+    calories_100g: float
+    protein_100g: float
+    fat_100g: float
+    carbs_100g: float
+    items: list[RecipeIngredientItem] = []
+    created_at: str
+    updated_at: str
+
+
+class LogRecipePortionRequest(BaseModel):
+    meal_type: MealType = Field(default=MealType.LUNCH, description="Тип приема пищи")
+    portion_weight_g: float = Field(gt=0, description="Вес съеденной порции в граммах")
+    created_at: Optional[str] = Field(default=None, description="Дата и время в формате YYYY-MM-DD HH:MM:SS")
+

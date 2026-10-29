@@ -83,6 +83,9 @@
           <button class="btn-action" id="openManualMealBtn" type="button">
             ✍️ Вручную
           </button>
+          <button class="btn-action" id="openRecipesBtn" type="button">
+            📖 Рецепты
+          </button>
         </div>
       </div>
 
@@ -232,6 +235,151 @@
           💡 Введите цифры штрихкода с упаковки. Название и КБЖУ на 100г подтянутся из открытой базы Open Food Facts с автоматическим расчетом на порцию!
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно списка рецептов -->
+  <div class="modal-overlay" id="recipesListModal" style="display: none;">
+    <div class="modal-dialog recipes-dialog">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">📖 Мои рецепты</div>
+          <div class="modal-subtitle">Сложные блюда с точным расчетом КБЖУ</div>
+        </div>
+        <button class="modal-close-btn" id="closeRecipesListModalBtn" type="button" aria-label="Закрыть">&times;</button>
+      </div>
+
+      <div style="margin-bottom: 14px;">
+        <button type="button" class="btn-primary" id="openNewRecipeEditorBtn" style="width: 100%; padding: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <span>➕</span> <span>Создать новый рецепт</span>
+        </button>
+      </div>
+
+      <!-- Контейнер карточек рецептов -->
+      <div id="recipesListContainer" class="recipes-list-container">
+        <div class="empty-state">Загрузка рецептов...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно конструктора / редактора рецепта -->
+  <div class="modal-overlay" id="recipeEditorModal" style="display: none;">
+    <div class="modal-dialog recipe-editor-dialog">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="recipeEditorModalTitle">🍲 Конструктор рецепта</div>
+          <div class="modal-subtitle">Сырые ингредиенты и вес готового блюда</div>
+        </div>
+        <button class="modal-close-btn" id="closeRecipeEditorBtn" type="button" aria-label="Закрыть">&times;</button>
+      </div>
+
+      <form id="recipeEditorForm" class="modal-form">
+        <input type="hidden" id="editingRecipeId" value="" />
+
+        <!-- Название рецепта -->
+        <label class="form-label" for="recipeEditorTitle">Название рецепта или блюда <span class="required">*</span></label>
+        <input type="text" id="recipeEditorTitle" class="form-input" placeholder="например: Борщ домашний или Творожная запеканка" required />
+
+        <!-- Заметка / Описание -->
+        <label class="form-label" for="recipeEditorDesc" style="margin-top: 6px;">Заметка (необязательно)</label>
+        <input type="text" id="recipeEditorDesc" class="form-input" placeholder="например: Классический рецепт в духовке" />
+
+        <!-- Секция ингредиентов -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
+          <label class="form-label" style="margin-bottom: 0;">Сырые ингредиенты <span class="required">*</span></label>
+          <div style="display: flex; gap: 6px;">
+            <button type="button" class="btn-barcode" id="recipeAddBarcodeBtn" title="Добавить по штрихкоду">
+              📦 Штрихкод
+            </button>
+            <button type="button" class="btn-ai-calc" id="recipeAddAiBtn" title="Добавить ингредиент через ИИ">
+              ✨ ИИ-расчет
+            </button>
+            <button type="button" class="btn-outline" id="recipeAddManualBtn" style="font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; cursor: pointer;">
+              ➕ Вручную
+            </button>
+          </div>
+        </div>
+
+        <div id="recipeEditorItemsList" class="recipe-items-list">
+          <!-- Динамические строки ингредиентов -->
+        </div>
+
+        <!-- Сводка сырых ингредиентов -->
+        <div class="raw-summary-bar" id="recipeRawSummaryBar">
+          Сырой вес: <strong id="recipeRawWeightSum">0</strong> г • Калории: <strong id="recipeRawCaloriesSum">0</strong> ккал
+        </div>
+
+        <!-- Выход готового блюда -->
+        <div style="margin-top: 12px;">
+          <label class="form-label" for="recipeEditorCookedWeight">
+            ⚖️ Вес готового блюда (граммы, с учетом уварки/воды)
+          </label>
+          <input type="number" id="recipeEditorCookedWeight" class="form-input" placeholder="например: 1800" min="1" step="any" />
+          <div class="field-hint">
+            Укажите фактический вес кастрюли/формы после варки или выпечки. Если не указан, равен сумме сырых ингредиентов.
+          </div>
+        </div>
+
+        <!-- Рассчитанный КБЖУ на 100 г готового блюда -->
+        <div class="recipe-100g-box">
+          <div class="recipe-100g-title">🔥 КБЖУ готового блюда на 100 г:</div>
+          <div class="recipe-100g-grid">
+            <div class="r-macro-pill cal"><span id="rec100Cal">0</span> ккал</div>
+            <div class="r-macro-pill pro"><span id="rec100Pro">0</span> г Б</div>
+            <div class="r-macro-pill fat"><span id="rec100Fat">0</span> г Ж</div>
+            <div class="r-macro-pill carb"><span id="rec100Carb">0</span> г У</div>
+          </div>
+        </div>
+
+        <!-- Действия формы -->
+        <div class="modal-actions">
+          <button type="submit" class="btn-save" id="saveRecipeSubmitBtn">💾 Сохранить рецепт</button>
+          <button type="button" class="btn-cancel" id="cancelRecipeEditorBtn">Отмена</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Модальное окно внесения порции рецепта в дневник -->
+  <div class="modal-overlay" id="logRecipeModal" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="logRecipeModalTitle">➕ Внести в дневник</div>
+          <div class="modal-subtitle" id="logRecipeModalSubtitle">100г = 0 ккал</div>
+        </div>
+        <button class="modal-close-btn" id="closeLogRecipeModalBtn" type="button" aria-label="Закрыть">&times;</button>
+      </div>
+
+      <form id="logRecipeForm" class="modal-form">
+        <input type="hidden" id="logRecipeId" value="" />
+
+        <label class="form-label">Прием пищи</label>
+        <div class="meal-type-tabs" id="logRecipeMealTypeTabs">
+          <button type="button" class="type-tab" data-type="breakfast">🍳 Завтрак</button>
+          <button type="button" class="type-tab active" data-type="lunch">🍲 Обед</button>
+          <button type="button" class="type-tab" data-type="dinner">🥗 Ужин</button>
+          <button type="button" class="type-tab" data-type="snack">🍎 Перекус</button>
+        </div>
+
+        <label class="form-label" for="logRecipeWeightInput">Вес порции (граммы)</label>
+        <input type="number" id="logRecipeWeightInput" class="form-input" placeholder="300" value="300" min="1" step="any" required />
+
+        <div class="recipe-100g-box" style="margin-top: 10px;">
+          <div class="recipe-100g-title">КБЖУ этой порции:</div>
+          <div class="recipe-100g-grid">
+            <div class="r-macro-pill cal"><span id="logPortionCal">0</span> ккал</div>
+            <div class="r-macro-pill pro"><span id="logPortionPro">0</span> г Б</div>
+            <div class="r-macro-pill fat"><span id="logPortionFat">0</span> г Ж</div>
+            <div class="r-macro-pill carb"><span id="logPortionCarb">0</span> г У</div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="submit" class="btn-save" id="confirmLogRecipeBtn">💾 Добавить в дневник</button>
+          <button type="button" class="btn-cancel" id="cancelLogRecipeBtn">Отмена</button>
+        </div>
+      </form>
     </div>
   </div>
 
