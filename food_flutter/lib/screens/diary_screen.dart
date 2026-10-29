@@ -7,6 +7,7 @@ import '../widgets/daily_summary_card.dart';
 import '../widgets/macro_pill.dart';
 import '../services/update_service.dart';
 import '../widgets/update_dialog.dart';
+import '../widgets/manual_meal_sheet.dart';
 
 class DiaryScreen extends StatefulWidget {
   final ApiService apiService;
@@ -175,6 +176,19 @@ class DiaryScreenState extends State<DiaryScreen> {
     }
   }
 
+  void _showManualAddMealModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => ManualMealSheet(
+        date: _selectedDate,
+        apiService: widget.apiService,
+        onMealSaved: _loadSummary,
+      ),
+    );
+  }
+
   Future<void> _confirmDeleteMeal(MealRecord meal) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -259,6 +273,11 @@ class DiaryScreenState extends State<DiaryScreen> {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_note, size: 26),
+            onPressed: _showManualAddMealModal,
+            tooltip: 'Внести вручную',
+          ),
           IconButton(
             icon: const Icon(Icons.calendar_today_outlined),
             onPressed: _pickDate,
@@ -401,10 +420,35 @@ class DiaryScreenState extends State<DiaryScreen> {
                     'Приемы пищи (${_summary!.meals.length})',
                     style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
                   ),
-                  TextButton.icon(
-                    icon: const Icon(Icons.add, size: 16, color: Color(0xFF10B981)),
-                    label: const Text('Добавить', style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
-                    onPressed: widget.onNavigateToScan,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextButton.icon(
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        ),
+                        icon: const Icon(Icons.edit_note, size: 18, color: Color(0xFF10B981)),
+                        label: const Text(
+                          'Вручную',
+                          style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        onPressed: _showManualAddMealModal,
+                      ),
+                      const SizedBox(width: 4),
+                      TextButton.icon(
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        ),
+                        icon: const Icon(Icons.camera_alt, size: 16, color: Color(0xFF10B981)),
+                        label: const Text(
+                          'Фото',
+                          style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        onPressed: widget.onNavigateToScan,
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -429,7 +473,7 @@ class DiaryScreenState extends State<DiaryScreen> {
                       ),
                       const SizedBox(height: 6),
                       const Text(
-                        'Сфотографируйте ваше блюдо, чтобы Gemini распознал ингредиенты и рассчитал КБЖУ',
+                        'Сфотографируйте ваше блюдо или внесите его вручную с известным КБЖУ',
                         textAlign: TextAlign.center,
                         style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
                       ),
@@ -445,14 +489,36 @@ class DiaryScreenState extends State<DiaryScreen> {
                         label: const Text('Сфотографировать блюдо'),
                         onPressed: widget.onNavigateToScan,
                       ),
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF10B981),
+                          side: const BorderSide(color: Color(0xFF10B981)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        ),
+                        icon: const Icon(Icons.edit_note),
+                        label: const Text('Внести вручную без фото'),
+                        onPressed: _showManualAddMealModal,
+                      ),
                     ],
                   ),
                 )
               else
                 ..._summary!.meals.map((meal) => _buildMealCard(meal)),
             ],
-            const SizedBox(height: 40),
+            const SizedBox(height: 80),
           ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showManualAddMealModal,
+        backgroundColor: const Color(0xFF10B981),
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.edit_note, size: 22),
+        label: const Text(
+          'Внести вручную',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
     );

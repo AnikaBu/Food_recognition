@@ -125,10 +125,10 @@ def test_02_meal_category_tabs(page: Page):
     # Отображаем карточку результата, чтобы кнопки стали видимыми на экране
     page.evaluate("document.getElementById('resultCard').style.display = 'block'")
 
-    tab_breakfast = page.locator('.type-tab[data-type="breakfast"]')
-    tab_lunch = page.locator('.type-tab[data-type="lunch"]')
-    tab_dinner = page.locator('.type-tab[data-type="dinner"]')
-    tab_snack = page.locator('.type-tab[data-type="snack"]')
+    tab_breakfast = page.locator('#resultCard .type-tab[data-type="breakfast"]')
+    tab_lunch = page.locator('#resultCard .type-tab[data-type="lunch"]')
+    tab_dinner = page.locator('#resultCard .type-tab[data-type="dinner"]')
+    tab_snack = page.locator('#resultCard .type-tab[data-type="snack"]')
 
     # По умолчанию активен "Обед"
     expect(tab_lunch).to_have_class("type-tab active")
@@ -266,7 +266,7 @@ def test_05_save_and_delete_workflow(page: Page):
     }""", mock_meal)
 
     # Выбираем категорию "Перекус"
-    page.locator('.type-tab[data-type="snack"]').click()
+    page.locator('#resultCard .type-tab[data-type="snack"]').click()
 
     # --- Кликаем кнопку "💾 Сохранить в дневник" ---
     save_btn = page.locator("#saveMealBtn")
@@ -300,6 +300,62 @@ def test_05_save_and_delete_workflow(page: Page):
 
     # Калории за день снова обнулились
     expect(page.locator("#sumCalories")).to_have_text("0")
+
+
+def test_06_manual_meal_entry_workflow(page: Page):
+    """
+    Тест 6: Проверка сценария ручного ввода блюда без фото:
+    Клик '✍️ Вручную' -> открытие модального окна -> заполнение формы ->
+    сохранение -> проверка появления в истории и подсчета КБЖУ.
+    """
+    page.goto(BASE_URL)
+
+    # 1. Открываем модальное окно ручного ввода
+    open_btn = page.locator("#openManualMealBtn")
+    expect(open_btn).to_be_visible()
+    open_btn.click()
+
+    modal = page.locator("#manualMealModal")
+    expect(modal).to_be_visible()
+
+    # 2. Выбираем категорию "Завтрак"
+    page.locator('#manualMealTypeTabs .type-tab[data-type="breakfast"]').click()
+
+    # 3. Заполняем поля формы
+    page.locator("#manualDishName").fill("Овсянка с медом")
+    page.locator("#manualDishWeight").fill("220")
+    page.locator("#manualCalories").fill("265")
+    page.locator("#manualProtein").fill("9.5")
+    page.locator("#manualFat").fill("5.2")
+    page.locator("#manualCarbs").fill("45.0")
+    page.locator("#manualComment").fill("Домашний полезный завтрак")
+
+    # 4. Нажимаем "Сохранить в дневник"
+    page.locator("#manualSubmitBtn").click()
+
+    # Модальное окно должно закрыться
+    expect(modal).not_to_be_visible()
+
+    # Тост уведомление
+    toast = page.locator("#toast")
+    expect(toast).to_be_visible()
+    expect(toast).to_contain_text("сохранено", ignore_case=True)
+
+    # 5. Проверяем появление в истории блюд
+    history_item = page.locator(".history-item").first
+    expect(history_item).to_be_visible()
+    expect(history_item).to_contain_text("Овсянка с медом")
+    expect(history_item).to_contain_text("265 ккал")
+    expect(history_item).to_contain_text("220г")
+
+    # 6. Проверяем обновление счетчиков
+    expect(page.locator("#sumCalories")).to_have_text("265")
+    expect(page.locator("#sumProtein")).to_have_text("9.5")
+
+    # Удаляем созданную запись для чистоты
+    page.once("dialog", lambda dialog: dialog.accept())
+    history_item.locator(".hist-del-btn").click()
+    expect(page.locator(".history-item")).to_have_count(0)
 
 
 # =====================================================================
