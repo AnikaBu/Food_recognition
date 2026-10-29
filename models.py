@@ -118,3 +118,19 @@ class EstimateNutritionResponse(BaseModel):
     carbs: float = Field(description="Углеводы (г)")
     comment: Optional[str] = Field(default="", description="Краткий комментарий диетолога")
 
+
+class BarcodeProductResponse(BaseModel):
+    barcode: str = Field(description="Штрихкод продукта")
+    name: str = Field(description="Название продукта")
+    brand: Optional[str] = Field(default="", description="Бренд или производитель")
+    weight_g: float = Field(default=100.0, description="Порция в граммах")
+    calories: float = Field(description="Калорийность на указанную порцию (ккал)")
+    protein: float = Field(description="Белки на порцию (г)")
+    fat: float = Field(description="Жиры на порцию (г)")
+    carbs: float = Field(description="Углеводы на порцию (г)")
+    calories_100g: float = Field(description="Калорийность на 100 г (ккал)")
+    protein_100g: float = Field(description="Белки на 100 г (г)")
+    fat_100g: float = Field(description="Жиры на 100 г (г)")
+    carbs_100g: float = Field(description="Углеводы на 100 г (г)")
+    image_url: Optional[str] = Field(default="", description="URL изображения товара")
+

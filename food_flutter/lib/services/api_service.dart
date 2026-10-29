@@ -174,6 +174,34 @@ class ApiService {
     }
   }
 
+  Future<BarcodeProductResult> lookupBarcode(String barcode) async {
+    final baseUrl = await _getBaseUrl();
+    final clean = barcode.replaceAll(RegExp(r'[\s\-]'), '');
+    final uri = Uri.parse('$baseUrl/api/barcode/$clean');
+    final headers = await _getHeaders(isJson: true);
+
+    final res = await http.get(uri, headers: headers).timeout(const Duration(seconds: 15));
+
+    if (res.statusCode == 200) {
+      final decoded = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      return BarcodeProductResult.fromJson(decoded);
+    } else if (res.statusCode == 404) {
+      String msg = 'Товар со штрихкодом $clean не найден в базе Open Food Facts';
+      try {
+        final body = json.decode(utf8.decode(res.bodyBytes));
+        if (body['detail'] != null) msg = body['detail'].toString();
+      } catch (_) {}
+      throw Exception(msg);
+    } else {
+      String err = 'Ошибка запроса штрихкода: ${res.statusCode}';
+      try {
+        final body = json.decode(utf8.decode(res.bodyBytes));
+        if (body['detail'] != null) err = body['detail'].toString();
+      } catch (_) {}
+      throw Exception(err);
+    }
+  }
+
   Future<MealRecord> saveMeal({
     required String dishName,
     required MealType mealType,

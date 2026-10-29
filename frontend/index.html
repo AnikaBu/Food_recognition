@@ -157,12 +157,17 @@
           <button type="button" class="type-tab" data-type="snack">🍎 Перекус</button>
         </div>
 
-        <!-- Название блюда с кнопкой ИИ-расчета -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <!-- Название блюда с кнопками ИИ-расчета и штрихкода -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
           <label class="form-label" for="manualDishName" style="margin-bottom: 0;">Название продукта или блюда <span class="required">*</span></label>
-          <button type="button" class="btn-ai-calc" id="manualAiEstimateBtn" title="Рассчитать КБЖУ по названию через Gemini">
-            ✨ Рассчитать через ИИ
-          </button>
+          <div style="display: flex; gap: 6px;">
+            <button type="button" class="btn-barcode" id="manualBarcodeBtn" title="Найти продукт по штрихкоду (Open Food Facts)">
+              📦 Штрихкод
+            </button>
+            <button type="button" class="btn-ai-calc" id="manualAiEstimateBtn" title="Рассчитать КБЖУ по названию через Gemini">
+              ✨ ИИ-расчет
+            </button>
+          </div>
         </div>
         <input type="text" id="manualDishName" class="form-input" placeholder="например: хлеб зерновой 30г или яблоко" required />
 
@@ -201,6 +206,32 @@
           <button type="button" class="btn-cancel" id="cancelManualBtn">Отмена</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Модальное окно поиска по штрихкоду (Open Food Facts) -->
+  <div class="modal-overlay" id="barcodeModal" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">📦 Поиск по штрихкоду</div>
+          <div class="modal-subtitle">База продуктов Open Food Facts</div>
+        </div>
+        <button class="modal-close-btn" id="closeBarcodeModalBtn" type="button" aria-label="Закрыть">&times;</button>
+      </div>
+
+      <div class="modal-form">
+        <label class="form-label" for="barcodeInput">Штрихкод на упаковке (8–14 цифр)</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="barcodeInput" class="form-input" placeholder="например: 5449000000996" inputmode="numeric" style="flex: 1;" />
+          <button type="button" class="btn-primary" id="barcodeLookupSubmitBtn" style="white-space: nowrap; padding: 0 16px;">
+            🔍 Найти
+          </button>
+        </div>
+        <div class="barcode-hint">
+          💡 Введите цифры штрихкода с упаковки. Название и КБЖУ на 100г подтянутся из открытой базы Open Food Facts с автоматическим расчетом на порцию!
+        </div>
+      </div>
     </div>
   </div>
 

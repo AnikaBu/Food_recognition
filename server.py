@@ -26,8 +26,10 @@ from models import (
     NutritionGoals,
     EstimateNutritionRequest,
     EstimateNutritionResponse,
+    BarcodeProductResponse,
 )
 from vision import analyze_food_image, estimate_food_nutrition_by_text
+from barcode_service import get_product_by_barcode, clean_barcode
 
 # Загружаем настройки из .env
 load_dotenv()
@@ -209,6 +211,42 @@ async def estimate_nutrition_endpoint(payload: EstimateNutritionRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка оценки КБЖУ через Gemini: {str(e)}",
         )
+
+
+@app.get(
+    "/api/barcode/{barcode}",
+    response_model=BarcodeProductResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Распознавание и ИИ"],
+    summary="Получить информацию о продукте и КБЖУ по штрихкоду (Open Food Facts)",
+)
+async def get_barcode_product_endpoint(barcode: str):
+    """
+    Получает информацию о продукте по штрихкоду из международной базы Open Food Facts.
+    Возвращает наименование, бренд, фото и показатели КБЖУ (на 100г и на порцию).
+    """
+    code = clean_barcode(barcode)
+    if not code or not code.isdigit() or not (7 <= len(code) <= 14):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Некорректный формат штрихкода. Ожидается от 7 до 14 цифр.",
+        )
+
+    try:
+        product = await asyncio.to_thread(get_product_by_barcode, code)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка запроса к сервису штрихкодов: {str(e)}",
+        )
+
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Товар со штрихкодом {code} не найден в базе Open Food Facts. Вы можете ввести его вручную или рассчитать через ИИ ✨",
+        )
+
+    return product
 
 
 @app.post(

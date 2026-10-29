@@ -344,3 +344,53 @@ class EstimateNutritionResult {
   }
 }
 
+class BarcodeProductResult {
+  final String barcode;
+  final String name;
+  final String brand;
+  final double weightG;
+  final double calories;
+  final double protein;
+  final double fat;
+  final double carbs;
+  final double calories100g;
+  final double protein100g;
+  final double fat100g;
+  final double carbs100g;
+  final String imageUrl;
+
+  BarcodeProductResult({
+    required this.barcode,
+    required this.name,
+    this.brand = '',
+    this.weightG = 100.0,
+    required this.calories,
+    required this.protein,
+    required this.fat,
+    required this.carbs,
+    required this.calories100g,
+    required this.protein100g,
+    required this.fat100g,
+    required this.carbs100g,
+    this.imageUrl = '',
+  });
+
+  factory BarcodeProductResult.fromJson(Map<String, dynamic> json) {
+    return BarcodeProductResult(
+      barcode: json['barcode'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      brand: json['brand'] as String? ?? '',
+      weightG: (json['weight_g'] as num?)?.toDouble() ?? 100.0,
+      calories: (json['calories'] as num?)?.toDouble() ?? 0.0,
+      protein: (json['protein'] as num?)?.toDouble() ?? 0.0,
+      fat: (json['fat'] as num?)?.toDouble() ?? 0.0,
+      carbs: (json['carbs'] as num?)?.toDouble() ?? 0.0,
+      calories100g: (json['calories_100g'] as num?)?.toDouble() ?? 0.0,
+      protein100g: (json['protein_100g'] as num?)?.toDouble() ?? 0.0,
+      fat100g: (json['fat_100g'] as num?)?.toDouble() ?? 0.0,
+      carbs100g: (json['carbs_100g'] as num?)?.toDouble() ?? 0.0,
+      imageUrl: json['image_url'] as String? ?? '',
+    );
+  }
+}
+

@@ -4,6 +4,7 @@ let state = {
   analyzedMeal: null,
   selectedMealType: "lunch",
   manualSelectedMealType: "lunch",
+  manual100g: null,
   deferredPrompt: null,
 };
 
@@ -148,6 +149,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Кнопка ИИ-расчета КБЖУ в модальном окне ручного ввода
   document.getElementById("manualAiEstimateBtn")?.addEventListener("click", handleAiEstimateClick);
+
+  // Кнопка поиска по штрихкоду
+  document.getElementById("manualBarcodeBtn")?.addEventListener("click", openBarcodeModal);
+  document.getElementById("closeBarcodeModalBtn")?.addEventListener("click", closeBarcodeModal);
+  document.getElementById("barcodeModal")?.addEventListener("click", (e) => {
+    if (e.target.id === "barcodeModal") closeBarcodeModal();
+  });
+  document.getElementById("barcodeLookupSubmitBtn")?.addEventListener("click", handleBarcodeLookup);
+  document.getElementById("barcodeInput")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleBarcodeLookup();
+    }
+  });
+
+  // Автоматический пересчет КБЖУ при изменении веса порции
+  document.getElementById("manualDishWeight")?.addEventListener("input", onManualWeightChange);
 
   // Сохранение и отмена
   document.getElementById("saveMealBtn").addEventListener("click", saveMeal);
@@ -441,8 +459,9 @@ function closeManualMealModal() {
   modal.style.display = "none";
   document.getElementById("manualMealForm")?.reset();
   
-  // Сбрасываем выбранную категорию на Обед
+  // Сбрасываем выбранную категорию на Обед и сохраненные коэффициенты 100г
   state.manualSelectedMealType = "lunch";
+  state.manual100g = null;
   document.querySelectorAll("#manualMealTypeTabs .type-tab").forEach((t) => {
     t.classList.toggle("active", t.dataset.type === "lunch");
   });
@@ -568,4 +587,91 @@ async function handleAiEstimateClick() {
     btn.disabled = false;
     btn.innerHTML = originalText;
   }
+}
+
+// ----------------- Поиск по штрихкоду (Open Food Facts) -----------------
+function openBarcodeModal() {
+  const modal = document.getElementById("barcodeModal");
+  if (!modal) return;
+  modal.style.display = "flex";
+  const input = document.getElementById("barcodeInput");
+  if (input) {
+    input.value = "";
+    setTimeout(() => input.focus(), 50);
+  }
+}
+
+function closeBarcodeModal() {
+  const modal = document.getElementById("barcodeModal");
+  if (!modal) return;
+  modal.style.display = "none";
+}
+
+async function handleBarcodeLookup() {
+  const input = document.getElementById("barcodeInput");
+  const code = (input?.value || "").trim().replace(/[\s\-]/g, "");
+  if (!code || !/^\d{7,14}$/.test(code)) {
+    showToast("⚠️ Введите корректный штрихкод (от 7 до 14 цифр)");
+    input?.focus();
+    return;
+  }
+
+  const btn = document.getElementById("barcodeLookupSubmitBtn");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Поиск...";
+  }
+
+  try {
+    const res = await fetch(`/api/barcode/${encodeURIComponent(code)}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Товар не найден в Open Food Facts");
+    }
+
+    const data = await res.json();
+    closeBarcodeModal();
+
+    // Заполняем форму ручного ввода
+    const dishInput = document.getElementById("manualDishName");
+    const weightInput = document.getElementById("manualDishWeight");
+    const fullName = data.brand ? `${data.name} (${data.brand})` : data.name;
+    dishInput.value = fullName;
+    weightInput.value = Math.round(data.weight_g || 100);
+
+    state.manual100g = {
+      kcal: data.calories_100g,
+      prot: data.protein_100g,
+      fat: data.fat_100g,
+      carbs: data.carbs_100g,
+    };
+
+    document.getElementById("manualCalories").value = Math.round(data.calories);
+    document.getElementById("manualProtein").value = data.protein.toFixed(1);
+    document.getElementById("manualFat").value = data.fat.toFixed(1);
+    document.getElementById("manualCarbs").value = data.carbs.toFixed(1);
+    document.getElementById("manualComment").value = `Штрихкод: ${data.barcode}`;
+
+    showToast(`📦 Найден: ${data.name}`);
+  } catch (err) {
+    console.error("Ошибка поиска по штрихкоду:", err);
+    showToast(`❌ ${err.message}`);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "🔍 Найти";
+    }
+  }
+}
+
+// Пересчет КБЖУ при изменении веса в форме ручного ввода
+function onManualWeightChange() {
+  if (!state.manual100g) return;
+  const w = parseFloat(document.getElementById("manualDishWeight")?.value) || 0;
+  if (w <= 0) return;
+  const factor = w / 100.0;
+  document.getElementById("manualCalories").value = Math.round(state.manual100g.kcal * factor);
+  document.getElementById("manualProtein").value = (state.manual100g.prot * factor).toFixed(1);
+  document.getElementById("manualFat").value = (state.manual100g.fat * factor).toFixed(1);
+  document.getElementById("manualCarbs").value = (state.manual100g.carbs * factor).toFixed(1);
 }
