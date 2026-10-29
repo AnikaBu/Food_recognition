@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Скрипт быстрого запуска Food Recognition (Веб-сервер PWA + Telegram-бот)
+# Скрипт быстрого запуска MyFoodDiary (FastAPI бэкенд + PWA веб-клиент)
 set -e
 
 # Определяем абсолютный путь к каталогу проекта даже при вызове через симлинк
@@ -25,31 +25,8 @@ echo "🥗 ===================================================="
 echo "🌐 Веб-приложение PWA:   http://localhost:8000"
 echo "📱 На телефоне (Wi-Fi):  http://$(hostname -I 2>/dev/null | awk '{print $1}'):8000"
 echo "📚 Swagger API docs:     http://localhost:8000/docs"
-echo "🤖 Telegram-бот:         запускается..."
 echo "----------------------------------------------------"
-echo "Нажмите Ctrl+C в этом окне для остановки всех сервисов."
+echo "Нажмите Ctrl+C в этом окне для остановки сервера."
 echo "----------------------------------------------------"
 
-# Аккуратное завершение обоих процессов при Ctrl+C или закрытии окна
-cleanup() {
-    echo ""
-    echo "🛑 Остановка сервисов MyFoodDiary..."
-    [ -n "$BOT_PID" ] && kill "$BOT_PID" 2>/dev/null || true
-    [ -n "$SERVER_PID" ] && kill "$SERVER_PID" 2>/dev/null || true
-    wait "$BOT_PID" 2>/dev/null || true
-    wait "$SERVER_PID" 2>/dev/null || true
-    echo "✅ Все сервисы остановлены."
-    exit 0
-}
-trap cleanup SIGINT SIGTERM
-
-# 1. Запуск Telegram-бота в фоне
-"$VENV_PY" bot.py &
-BOT_PID=$!
-
-# 2. Запуск FastAPI веб-сервера в фоне
-"$VENV_PY" -m uvicorn server:app --host 0.0.0.0 --port 8000 &
-SERVER_PID=$!
-
-# Ожидание процессов
-wait "$SERVER_PID" "$BOT_PID"
+exec "$VENV_PY" -m uvicorn server:app --host 0.0.0.0 --port 8000
