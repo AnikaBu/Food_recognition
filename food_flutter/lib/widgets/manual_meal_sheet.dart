@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../models/meal_models.dart';
 import '../services/api_service.dart';
 import 'category_selector.dart';
+import 'barcode_scanner_dialog.dart';
 
 class ManualMealSheet extends StatefulWidget {
   final DateTime date;
@@ -34,16 +35,25 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
 
   bool _isSaving = false;
   bool _isEstimatingAi = false;
+  bool _isLookingUpBarcode = false;
   String? _errorMessage;
+
+  // Базовые показатели КБЖУ на 100 г для динамического масштабирования
+  double? _cal100;
+  double? _prot100;
+  double? _fat100;
+  double? _carb100;
 
   @override
   void initState() {
     super.initState();
     _selectedMealType = _guessMealType();
+    _weightController.addListener(_onWeightChanged);
   }
 
   @override
   void dispose() {
+    _weightController.removeListener(_onWeightChanged);
     _dishNameController.dispose();
     _weightController.dispose();
     _caloriesController.dispose();
@@ -52,6 +62,18 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
     _carbsController.dispose();
     _commentController.dispose();
     super.dispose();
+  }
+
+  void _onWeightChanged() {
+    if (_cal100 == null) return;
+    final text = _weightController.text.replaceAll(',', '.');
+    final w = double.tryParse(text);
+    if (w == null || w <= 0) return;
+    final factor = w / 100.0;
+    _caloriesController.text = (_cal100! * factor).toStringAsFixed(0);
+    _proteinController.text = (_prot100! * factor).toStringAsFixed(1);
+    _fatController.text = (_fat100! * factor).toStringAsFixed(1);
+    _carbsController.text = (_carb100! * factor).toStringAsFixed(1);
   }
 
   MealType _guessMealType() {
@@ -105,6 +127,16 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
           if (result.comment != null && result.comment!.isNotEmpty) {
             _commentController.text = result.comment!;
           }
+
+          // Рассчитываем базовые коэффициенты на 100 г для живого масштабирования
+          if (result.weightG > 0) {
+            final f = 100.0 / result.weightG;
+            _cal100 = result.calories * f;
+            _prot100 = result.protein * f;
+            _fat100 = result.fat * f;
+            _carb100 = result.carbs * f;
+          }
+
           _isEstimatingAi = false;
         });
 
@@ -121,6 +153,63 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
         setState(() {
           _errorMessage = e.toString().replaceAll('Exception: ', '');
           _isEstimatingAi = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _scanBarcode() async {
+    final barcode = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const BarcodeScannerDialog(),
+    );
+
+    if (barcode == null || barcode.trim().isEmpty) return;
+
+    setState(() {
+      _isLookingUpBarcode = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final result = await widget.apiService.lookupBarcode(barcode);
+
+      if (mounted) {
+        setState(() {
+          final fullName = result.brand.isNotEmpty
+              ? '${result.name} (${result.brand})'
+              : result.name;
+          _dishNameController.text = fullName;
+          _weightController.text = result.weightG.toStringAsFixed(0);
+
+          _cal100 = result.calories100g;
+          _prot100 = result.protein100g;
+          _fat100 = result.fat100g;
+          _carb100 = result.carbs100g;
+
+          _caloriesController.text = result.calories.toStringAsFixed(0);
+          _proteinController.text = result.protein.toStringAsFixed(1);
+          _fatController.text = result.fat.toStringAsFixed(1);
+          _carbsController.text = result.carbs.toStringAsFixed(1);
+          _commentController.text = 'Штрихкод: ${result.barcode}';
+          _isLookingUpBarcode = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('📦 Найден: ${result.name} (Open Food Facts)'),
+            backgroundColor: const Color(0xFF10B981),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString().replaceAll('Exception: ', '');
+          _isLookingUpBarcode = false;
         });
       }
     }
@@ -305,23 +394,41 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                     labelText: 'Название блюда или продукта *',
                     hintText: 'например: хлеб зерновой 30г или яблоко',
                     prefixIcon: const Icon(Icons.restaurant, color: Color(0xFF10B981), size: 20),
-                    suffixIcon: _isEstimatingAi
-                        ? const Padding(
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_isLookingUpBarcode)
+                          const Padding(
                             padding: EdgeInsets.all(12),
                             child: SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Color(0xFF10B981),
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)),
                             ),
                           )
-                        : IconButton(
+                        else
+                          IconButton(
+                            icon: const Icon(Icons.qr_code_scanner, color: Color(0xFF10B981)),
+                            tooltip: 'Штрихкод (Open Food Facts)',
+                            onPressed: _isEstimatingAi ? null : _scanBarcode,
+                          ),
+                        if (_isEstimatingAi)
+                          const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)),
+                            ),
+                          )
+                        else
+                          IconButton(
                             icon: const Icon(Icons.auto_awesome, color: Color(0xFF10B981)),
                             tooltip: 'Рассчитать КБЖУ через ИИ (Gemini)',
-                            onPressed: _estimateWithAi,
+                            onPressed: _isLookingUpBarcode ? null : _estimateWithAi,
                           ),
+                      ],
+                    ),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   ),
@@ -332,37 +439,49 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 6),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: _isEstimatingAi ? null : _estimateWithAi,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.auto_awesome,
-                            size: 15,
-                            color: _isEstimatingAi ? const Color(0xFF94A3B8) : const Color(0xFF059669),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _isEstimatingAi ? 'Gemini считает КБЖУ...' : 'Рассчитать КБЖУ через ИИ (Gemini)',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: _isEstimatingAi ? const Color(0xFF94A3B8) : const Color(0xFF059669),
-                            ),
-                          ),
-                        ],
+                const SizedBox(height: 8),
+
+                // Быстрые кнопки: Штрихкод и ИИ-расчет
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: (_isLookingUpBarcode || _isEstimatingAi) ? null : _scanBarcode,
+                        icon: _isLookingUpBarcode
+                            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)))
+                            : const Icon(Icons.qr_code_scanner, size: 16, color: Color(0xFF10B981)),
+                        label: Text(
+                          _isLookingUpBarcode ? 'Поиск...' : 'Штрихкод (OFF)',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF065F46)),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          side: const BorderSide(color: Color(0xFF10B981)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
                       ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: (_isLookingUpBarcode || _isEstimatingAi) ? null : _estimateWithAi,
+                        icon: _isEstimatingAi
+                            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)))
+                            : const Icon(Icons.auto_awesome, size: 16, color: Color(0xFF10B981)),
+                        label: Text(
+                          _isEstimatingAi ? 'Считаем...' : 'ИИ-расчет',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF065F46)),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          side: const BorderSide(color: Color(0xFF10B981)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
 
                 // Weight
                 TextFormField(

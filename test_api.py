@@ -164,6 +164,48 @@ def test_api_endpoints():
     else:
         print(f"⚠️ Текстовая оценка вернула {resp_estimate.status_code}: {resp_estimate.text}")
 
+    # 8. Тестирование поиска по штрихкоду через эндпоинт /api/barcode/{barcode}
+    # 8.1 Некорректный формат штрихкода (слишком короткий или буквы)
+    resp_invalid_bc = client.get("/api/barcode/invalid-code")
+    assert resp_invalid_bc.status_code == 400
+    print("✅ 8.1. GET /api/barcode/{code} — валидация формата штрихкода (400) работает.")
+
+    # 8.2 Поиск заведомо несуществующего штрихкода (должен вернуть 404)
+    # Чтобы тест работал даже в изолированном окружении, можно замокать fetch_open_food_facts
+    from unittest.mock import patch
+    with patch("barcode_service.fetch_open_food_facts", return_value=None):
+        resp_404_bc = client.get("/api/barcode/9999999999999")
+        assert resp_404_bc.status_code == 404
+        assert "не найден" in resp_404_bc.json()["detail"]
+    print("✅ 8.2. GET /api/barcode/{code} — обработка отсутствующего продукта (404) работает.")
+
+    # 8.3 Успешный поиск продукта (с моком и/или реальным запросом при наличии сети)
+    mock_off_data = {
+        "status": 1,
+        "product": {
+            "product_name_ru": "Тестовый напиток Кола",
+            "brands": "Кола Компани",
+            "serving_quantity": 250,
+            "nutriments": {
+                "energy-kcal_100g": 42.0,
+                "proteins_100g": 0.0,
+                "fat_100g": 0.0,
+                "carbohydrates_100g": 10.6,
+            }
+        }
+    }
+    with patch("barcode_service.fetch_open_food_facts", return_value=mock_off_data):
+        resp_mock_bc = client.get("/api/barcode/5449000000996")
+        assert resp_mock_bc.status_code == 200
+        bc_data = resp_mock_bc.json()
+        assert bc_data["name"] == "Тестовый напиток Кола"
+        assert bc_data["brand"] == "Кола Компани"
+        assert bc_data["weight_g"] == 250.0
+        assert bc_data["calories_100g"] == 42.0
+        assert bc_data["calories"] == 105.0  # 42 * 2.5
+        assert bc_data["carbs"] == 26.5      # 10.6 * 2.5
+    print("✅ 8.3. GET /api/barcode/{code} — успешный расчет порции и КБЖУ на 100г работает корректно.")
+
     print("\n🎉 Все тесты FastAPI бэкенда пройдены успешно!")
 
 if __name__ == "__main__":

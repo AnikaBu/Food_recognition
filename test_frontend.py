@@ -411,6 +411,68 @@ def test_07_ai_nutrition_estimate_button(page: Page):
     expect(page.locator("#manualMealModal")).not_to_be_visible()
 
 
+def test_08_barcode_lookup_workflow(page: Page):
+    """
+    Тест 8: Проверка поиска продукта по штрихкоду (Open Food Facts).
+    При вводе штрихкода форма должна заполниться наименованием и КБЖУ,
+    а при последующем изменении веса КБЖУ должно динамически пересчитываться.
+    """
+    page.goto(BASE_URL)
+
+    # Мокаем вызов /api/barcode/5449000000996 через window.fetch
+    page.evaluate("""() => {
+        const origFetch = window.fetch;
+        window.fetch = async (url, options) => {
+            if (typeof url === 'string' && url.includes('/api/barcode/5449000000996')) {
+                return new Response(JSON.stringify({
+                    barcode: '5449000000996',
+                    name: 'Coca-Cola Original',
+                    brand: 'Coca-Cola',
+                    weight_g: 250.0,
+                    calories: 105.0,
+                    protein: 0.0,
+                    fat: 0.0,
+                    carbs: 26.5,
+                    calories_100g: 42.0,
+                    protein_100g: 0.0,
+                    fat_100g: 0.0,
+                    carbs_100g: 10.6,
+                    image_url: ''
+                }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+            }
+            return origFetch(url, options);
+        };
+    }""")
+
+    # 1. Открываем окно ручного ввода
+    page.locator("#openManualMealBtn").click()
+    expect(page.locator("#manualMealModal")).to_be_visible()
+
+    # 2. Нажимаем кнопку "📦 Штрихкод"
+    page.locator("#manualBarcodeBtn").click()
+    expect(page.locator("#barcodeModal")).to_be_visible()
+
+    # 3. Вводим штрихкод и нажимаем "Найти"
+    page.locator("#barcodeInput").fill("5449000000996")
+    page.locator("#barcodeLookupSubmitBtn").click()
+
+    # 4. Проверяем, что окно штрихкода закрылось, а форма ручного ввода заполнилась
+    expect(page.locator("#barcodeModal")).not_to_be_visible()
+    expect(page.locator("#manualDishName")).to_have_value("Coca-Cola Original (Coca-Cola)")
+    expect(page.locator("#manualDishWeight")).to_have_value("250")
+    expect(page.locator("#manualCalories")).to_have_value("105")
+    expect(page.locator("#manualCarbs")).to_have_value("26.5")
+
+    # 5. Проверяем динамический пересчет КБЖУ при изменении веса (например, изменили с 250г на 500г)
+    page.locator("#manualDishWeight").fill("500")
+    expect(page.locator("#manualCalories")).to_have_value("210")
+    expect(page.locator("#manualCarbs")).to_have_value("53.0")
+
+    # 6. Закрываем окно
+    page.locator("#cancelManualBtn").click()
+    expect(page.locator("#manualMealModal")).not_to_be_visible()
+
+
 # =====================================================================
 # Возможность прямого запуска через: python test_frontend.py
 # =====================================================================
