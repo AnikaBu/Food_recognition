@@ -9,12 +9,14 @@ class ManualMealSheet extends StatefulWidget {
   final DateTime date;
   final ApiService apiService;
   final VoidCallback onMealSaved;
+  final MealType? initialMealType;
 
   const ManualMealSheet({
     super.key,
     required this.date,
     required this.apiService,
     required this.onMealSaved,
+    this.initialMealType,
   });
 
   @override
@@ -47,7 +49,7 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
   @override
   void initState() {
     super.initState();
-    _selectedMealType = _guessMealType();
+    _selectedMealType = widget.initialMealType ?? _guessMealType();
     _weightController.addListener(_onWeightChanged);
   }
 

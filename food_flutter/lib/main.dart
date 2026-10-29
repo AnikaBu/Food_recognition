@@ -7,6 +7,8 @@ import 'screens/diary_screen.dart';
 import 'screens/recognize_screen.dart';
 import 'screens/recipes_screen.dart';
 import 'screens/settings_screen.dart';
+import 'theme/app_colors.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +19,7 @@ void main() async {
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
+      statusBarIconBrightness: Brightness.light,
     ),
   );
 
@@ -30,7 +32,7 @@ void main() async {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.info_outline, size: 44, color: Color(0xFF10B981)),
+              const Icon(Icons.info_outline, size: 44, color: AppColors.primary),
               const SizedBox(height: 12),
               const Text(
                 'Не удалось отобразить данные',
@@ -71,43 +73,21 @@ class FoodRecognitionApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'MyFoodDiary',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF10B981),
-          primary: const Color(0xFF10B981),
-          secondary: const Color(0xFF059669),
-          surface: const Color(0xFFF8FAFC),
-        ),
-        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          scrolledUnderElevation: 1,
-          surfaceTintColor: Colors.transparent,
-          iconTheme: IconThemeData(color: Color(0xFF0F172A)),
-          titleTextStyle: TextStyle(
-            color: Color(0xFF0F172A),
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+    return ListenableBuilder(
+      listenable: settingsService,
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'MyFoodDiary',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: settingsService.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          home: MainNavigationScreen(
+            settingsService: settingsService,
+            apiService: apiService,
           ),
-        ),
-        cardTheme: const CardThemeData(
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(16)),
-            side: BorderSide(color: Color(0xFFE2E8F0)),
-          ),
-          color: Colors.white,
-        ),
-      ),
-      home: MainNavigationScreen(
-        settingsService: settingsService,
-        apiService: apiService,
-      ),
+        );
+      },
     );
   }
 }
@@ -144,6 +124,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final screens = [
       DiaryScreen(
         key: _diaryKey,
@@ -172,34 +154,44 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         index: _currentIndex,
         children: screens,
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: _onTabSelected,
-        backgroundColor: Colors.white,
-        elevation: 3,
-        indicatorColor: const Color(0xFF10B981).withOpacity(0.18),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.calendar_today_outlined),
-            selectedIcon: Icon(Icons.calendar_today, color: Color(0xFF059669)),
-            label: 'Дневник',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(
+              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+              width: 1,
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.camera_alt_outlined),
-            selectedIcon: Icon(Icons.camera_alt, color: Color(0xFF059669)),
-            label: 'Распознать',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.restaurant_menu_outlined),
-            selectedIcon: Icon(Icons.restaurant_menu, color: Color(0xFF059669)),
-            label: 'Рецепты',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings, color: Color(0xFF059669)),
-            label: 'Настройки',
-          ),
-        ],
+        ),
+        child: NavigationBar(
+          selectedIndex: _currentIndex,
+          onDestinationSelected: _onTabSelected,
+          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+          elevation: 0,
+          indicatorColor: AppColors.primary.withOpacity(0.18),
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.calendar_today_outlined),
+              selectedIcon: Icon(Icons.calendar_today, color: AppColors.primary),
+              label: 'Дневник',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.camera_alt_outlined),
+              selectedIcon: Icon(Icons.camera_alt, color: AppColors.primary),
+              label: 'Сканер',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.restaurant_menu_outlined),
+              selectedIcon: Icon(Icons.restaurant_menu, color: AppColors.primary),
+              label: 'Рецепты',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person, color: AppColors.primary),
+              label: 'Профиль',
+            ),
+          ],
+        ),
       ),
     );
   }
