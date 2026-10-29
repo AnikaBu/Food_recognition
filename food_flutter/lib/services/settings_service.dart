@@ -8,6 +8,7 @@ class SettingsService extends ChangeNotifier {
   static const String _keyTargetProtein = 'target_protein';
   static const String _keyTargetFat = 'target_fat';
   static const String _keyTargetCarbs = 'target_carbs';
+  static const String _keyHasCustomGoals = 'has_user_custom_goals';
 
   static const String defaultServerUrl = 'http://192.168.1.100:8000';
   static const double defaultTargetCalories = 2000.0;
@@ -19,16 +20,19 @@ class SettingsService extends ChangeNotifier {
   double _cachedProtein = defaultTargetProtein;
   double _cachedFat = defaultTargetFat;
   double _cachedCarbs = defaultTargetCarbs;
+  bool _hasCustomGoals = false;
   bool _initialized = false;
 
   double get targetCalories => _cachedCalories;
   double get targetProtein => _cachedProtein;
   double get targetFat => _cachedFat;
   double get targetCarbs => _cachedCarbs;
+  bool get hasCustomGoals => _hasCustomGoals;
 
   Future<void> init() async {
     if (_initialized) return;
     final prefs = await SharedPreferences.getInstance();
+    _hasCustomGoals = prefs.getBool(_keyHasCustomGoals) ?? false;
     _cachedCalories = prefs.getDouble(_keyTargetCalories) ?? defaultTargetCalories;
     _cachedProtein = prefs.getDouble(_keyTargetProtein) ?? defaultTargetProtein;
     _cachedFat = prefs.getDouble(_keyTargetFat) ?? defaultTargetFat;
@@ -118,7 +122,13 @@ class SettingsService extends ChangeNotifier {
     await prefs.setDouble(_keyTargetCarbs, val);
   }
 
-  Future<void> saveLocalGoals(double cal, double protein, double fat, double carbs) async {
+  Future<void> saveLocalGoals(
+    double cal,
+    double protein,
+    double fat,
+    double carbs, {
+    bool isExplicitUserAction = false,
+  }) async {
     final changed = _cachedCalories != cal ||
         _cachedProtein != protein ||
         _cachedFat != fat ||
@@ -129,6 +139,9 @@ class SettingsService extends ChangeNotifier {
     _cachedFat = fat;
     _cachedCarbs = carbs;
     _initialized = true;
+    if (isExplicitUserAction) {
+      _hasCustomGoals = true;
+    }
 
     if (changed) {
       notifyListeners();
@@ -139,6 +152,9 @@ class SettingsService extends ChangeNotifier {
     await prefs.setDouble(_keyTargetProtein, protein);
     await prefs.setDouble(_keyTargetFat, fat);
     await prefs.setDouble(_keyTargetCarbs, carbs);
+    if (isExplicitUserAction) {
+      await prefs.setBool(_keyHasCustomGoals, true);
+    }
   }
 }
 

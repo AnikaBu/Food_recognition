@@ -35,7 +35,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isTesting = false;
   bool _showApiKey = false;
   HealthCheckResult? _healthResult;
-  Timer? _goalsDebounceTimer;
 
   @override
   void initState() {
@@ -45,7 +44,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   void dispose() {
-    _goalsDebounceTimer?.cancel();
     _urlController.dispose();
     _apiKeyController.dispose();
     _calController.dispose();
@@ -74,25 +72,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
       });
     }
 
-    // Синхронизация с сервером: если на бэкенде уже сохранены цели, подтягиваем их
-    try {
-      final remoteGoals = await widget.apiService.getGoals();
-      if (mounted) {
-        setState(() {
-          _calController.text = remoteGoals.calories.toStringAsFixed(0);
-          _proteinController.text = remoteGoals.protein.toStringAsFixed(0);
-          _fatController.text = remoteGoals.fat.toStringAsFixed(0);
-          _carbsController.text = remoteGoals.carbs.toStringAsFixed(0);
-        });
-        await widget.settingsService.saveLocalGoals(
-          remoteGoals.calories,
-          remoteGoals.protein,
-          remoteGoals.fat,
-          remoteGoals.carbs,
-        );
-      }
-    } catch (_) {
-      // Сервер пока оффлайн или не настроен — используем локальные настройки
+    // Если у пользователя еще НЕТ своих сохраненных целей на устройстве,
+    // пробуем подгрузить их с сервера при первом запуске
+    if (!widget.settingsService.hasCustomGoals) {
+      try {
+        final remoteGoals = await widget.apiService.getGoals();
+        if (mounted && !widget.settingsService.hasCustomGoals && remoteGoals.calories > 0) {
+          setState(() {
+            _calController.text = remoteGoals.calories.toStringAsFixed(0);
+            _proteinController.text = remoteGoals.protein.toStringAsFixed(0);
+            _fatController.text = remoteGoals.fat.toStringAsFixed(0);
+            _carbsController.text = remoteGoals.carbs.toStringAsFixed(0);
+          });
+          await widget.settingsService.saveLocalGoals(
+            remoteGoals.calories,
+            remoteGoals.protein,
+            remoteGoals.fat,
+            remoteGoals.carbs,
+            isExplicitUserAction: false,
+          );
+        }
+      } catch (_) {}
     }
   }
 
@@ -123,42 +123,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _onGoalsFieldChanged() {
-    final cal = double.tryParse(_calController.text.replaceAll(',', '.')) ?? widget.settingsService.targetCalories;
-    final p = double.tryParse(_proteinController.text.replaceAll(',', '.')) ?? widget.settingsService.targetProtein;
-    final f = double.tryParse(_fatController.text.replaceAll(',', '.')) ?? widget.settingsService.targetFat;
-    final c = double.tryParse(_carbsController.text.replaceAll(',', '.')) ?? widget.settingsService.targetCarbs;
-
-    // Мгновенное сохранение локально и реактивное обновление главного экрана
-    widget.settingsService.saveLocalGoals(cal, p, f, c);
-    widget.onGoalsSaved?.call();
-
-    // Дебаунс синхронизации с базой данных сервера на 800 мс
-    _goalsDebounceTimer?.cancel();
-    _goalsDebounceTimer = Timer(const Duration(milliseconds: 800), () async {
-      try {
-        await widget.apiService.updateGoals(NutritionGoals(
-          calories: cal,
-          protein: p,
-          fat: f,
-          carbs: c,
-        ));
-      } catch (_) {}
-    });
-  }
-
   Future<void> _saveGoals() async {
-    _goalsDebounceTimer?.cancel();
     final cal = double.tryParse(_calController.text.replaceAll(',', '.')) ?? widget.settingsService.targetCalories;
     final p = double.tryParse(_proteinController.text.replaceAll(',', '.')) ?? widget.settingsService.targetProtein;
     final f = double.tryParse(_fatController.text.replaceAll(',', '.')) ?? widget.settingsService.targetFat;
     final c = double.tryParse(_carbsController.text.replaceAll(',', '.')) ?? widget.settingsService.targetCarbs;
 
-    // Сначала сохраняем локально
-    await widget.settingsService.saveLocalGoals(cal, p, f, c);
+    // 1. Фиксируем в локальном хранилище устройства с флагом isExplicitUserAction = true
+    await widget.settingsService.saveLocalGoals(
+      cal, p, f, c,
+      isExplicitUserAction: true,
+    );
     widget.onGoalsSaved?.call();
 
-    // Затем сохраняем в базу данных на сервере
+    // 2. Отправляем обновленные цели на сервер в SQLite базу
     bool syncedWithServer = false;
     try {
       await widget.apiService.updateGoals(NutritionGoals(
@@ -169,19 +147,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ));
       syncedWithServer = true;
     } catch (_) {
-      // Сервер оффлайн — настройки сохранены локально
+      // Сервер оффлайн — настройки сохранены локально в приложении
     }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(syncedWithServer
-              ? 'Суточные цели КБЖУ сохранены на сервере в базе! ☁️✅'
-              : 'Суточные цели КБЖУ сохранены локально! 📱✅'),
+              ? 'Ваши новые цели КБЖУ сохранены в приложении и в базе! ☁️✅'
+              : 'Ваши новые цели КБЖУ зафиксированы в приложении! 📱✅'),
           backgroundColor: const Color(0xFF10B981),
         ),
       );
-    }
   }
 
   Future<void> _checkForUpdates() async {
@@ -381,7 +358,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     suffixText: 'ккал',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  onChanged: (_) => _onGoalsFieldChanged(),
                 ),
                 const SizedBox(height: 10),
                 Row(
@@ -395,7 +371,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           suffixText: 'г',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        onChanged: (_) => _onGoalsFieldChanged(),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -408,7 +383,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           suffixText: 'г',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        onChanged: (_) => _onGoalsFieldChanged(),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -421,7 +395,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           suffixText: 'г',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        onChanged: (_) => _onGoalsFieldChanged(),
                       ),
                     ),
                   ],
