@@ -223,10 +223,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 leading: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.emerald500.withOpacity(0.15),
+                    color: AppColors.primary.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.photo_library_outlined, color: AppColors.emerald500, size: 24),
+                  child: const Icon(Icons.photo_library_outlined, color: AppColors.primary, size: 24),
                 ),
                 title: Text(
                   'Выбрать из галереи',
@@ -236,7 +236,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   'Загрузить фото из памяти телефона',
                   style: TextStyle(color: textSecondary, fontSize: 12),
                 ),
-                trailing: const Icon(Icons.chevron_right, color: AppColors.emerald500),
+                trailing: const Icon(Icons.chevron_right, color: AppColors.primary),
                 onTap: () {
                   Navigator.pop(ctx);
                   _recognizeKey.currentState?.pickImage(ImageSource.gallery);

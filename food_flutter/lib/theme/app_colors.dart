@@ -7,6 +7,8 @@ class AppColors {
   static const Color primaryDark = Color(0xFF059669);
   static const Color primaryLight = Color(0xFFECFDF5);
   static const Color emerald400 = Color(0xFF34D399);
+  static const Color emerald500 = Color(0xFF10B981);
+  static const Color amber500 = Color(0xFFF59E0B);
 
   // Macro Nutrients (Exact prototype mapping)
   static const Color macroCalorie = Color(0xFFF97316); // Coral-orange

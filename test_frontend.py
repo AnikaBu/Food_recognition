@@ -548,6 +548,38 @@ def test_09_recipes_workflow(page: Page):
     expect(page.locator("#mealsHistoryList")).to_contain_text("200г")
 
 
+def test_10_manual_recipes_shortcut_workflow(page: Page):
+    """
+    Тест 10: Проверка перехода в 'Ваши рецепты' из окна ручного ввода:
+    Клик '✍️ Вручную' -> кнопка '📖 Ваши рецепты' -> закрытие окна ввода и открытие списка рецептов.
+    """
+    page.goto(BASE_URL)
+
+    # 1. Открываем модальное окно ручного ввода
+    open_btn = page.locator("#openManualMealBtn")
+    expect(open_btn).to_be_visible()
+    open_btn.click()
+
+    manual_modal = page.locator("#manualMealModal")
+    expect(manual_modal).to_be_visible()
+
+    # 2. Проверяем наличие кнопки "Ваши рецепты"
+    shortcut_btn = page.locator("#manualRecipesShortcutBtn")
+    expect(shortcut_btn).to_be_visible()
+
+    # 3. Нажимаем кнопку "Ваши рецепты"
+    shortcut_btn.click()
+
+    # Окно ручного ввода закрывается, окно рецептов открывается
+    expect(manual_modal).not_to_be_visible()
+    recipes_modal = page.locator("#recipesListModal")
+    expect(recipes_modal).to_be_visible()
+
+    # Закрываем окно рецептов
+    page.locator("#closeRecipesListModalBtn").click()
+    expect(recipes_modal).not_to_be_visible()
+
+
 # =====================================================================
 # Возможность прямого запуска через: python test_frontend.py
 # =====================================================================
