@@ -225,11 +225,17 @@ def configure_gradle():
             elif "buildTypes {" in content:
                 content = content.replace("buildTypes {", kts_signing_block + "    buildTypes {")
 
-            content = content.replace('signingConfigs.getByName("debug")', 'signingConfigs.getByName("release")')
-            content = content.replace(
-                'signingConfig = signingConfigs.debug',
-                'signingConfig = signingConfigs.getByName("release")\n            isMinifyEnabled = false\n            isShrinkResources = false\n            proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")'
-            )
+            kts_release_block = """signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = false
+            isShrinkResources = false
+            proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")"""
+
+            if 'signingConfig = signingConfigs.getByName("debug")' in content:
+                content = content.replace('signingConfig = signingConfigs.getByName("debug")', kts_release_block)
+            elif 'signingConfig = signingConfigs.debug' in content:
+                content = content.replace('signingConfig = signingConfigs.debug', kts_release_block)
+            elif 'signingConfigs.getByName("debug")' in content:
+                content = content.replace('signingConfigs.getByName("debug")', 'signingConfigs.getByName("release")')
 
         with open(GRADLE_KTS_PATH, "w", encoding="utf-8") as f:
             f.write(content)
@@ -244,6 +250,16 @@ def configure_proguard():
 -keep class io.flutter.view.** { *; }
 -keep class io.flutter.** { *; }
 -keep class io.flutter.plugins.** { *; }
+
+# Google Play Core & Deferred Components (Missing in Flutter without split APKs)
+-dontwarn com.google.android.play.core.**
+-dontwarn com.google.android.play.core.splitcompat.**
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**
+-dontwarn io.flutter.embedding.engine.deferredcomponents.**
+-keep class com.google.android.play.core.splitcompat.SplitCompatApplication { *; }
+-keep class com.google.android.play.core.splitinstall.** { *; }
+-keep class com.google.android.play.core.tasks.** { *; }
 
 # mobile_scanner
 -keep class dev.steenbakker.mobile_scanner.** { *; }
@@ -262,6 +278,10 @@ def configure_proguard():
 # AndroidX Camera / CameraX
 -keep class androidx.camera.** { *; }
 -dontwarn androidx.camera.**
+
+# Suppress missing classes warnings globally for transitive dependencies
+-dontwarn **
+-ignorewarnings
 """
     os.makedirs(APP_DIR, exist_ok=True)
     with open(PROGUARD_PATH, "w", encoding="utf-8") as f:
@@ -331,6 +351,7 @@ def configure_gradle_properties():
     props_to_set = {
         "android.newDsl": "false",
         "android.builtInKotlin": "false",
+        "android.enableR8.fullMode": "false",
     }
 
     new_lines = []
