@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/meal_models.dart';
 import '../services/api_service.dart';
+import '../theme/app_colors.dart';
 import 'category_selector.dart';
 import 'barcode_scanner_dialog.dart';
 
@@ -294,12 +295,16 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? AppColors.darkCard : Colors.white;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + bottomInset),
       child: SafeArea(
@@ -317,7 +322,7 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE2E8F0),
+                      color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -333,12 +338,12 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withOpacity(0.12),
+                            color: AppColors.primary.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(
                             Icons.edit_note,
-                            color: Color(0xFF10B981),
+                            color: AppColors.primary,
                             size: 22,
                           ),
                         ),
@@ -346,19 +351,19 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Внести блюдо вручную',
                               style: TextStyle(
                                 fontSize: 17,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF0F172A),
+                                color: textPrimary,
                               ),
                             ),
                             Text(
                               'Запись на ${_formatDateString(widget.date)}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFF64748B),
+                                color: textSecondary,
                               ),
                             ),
                           ],
@@ -366,7 +371,7 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                       ],
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: Color(0xFF64748B)),
+                      icon: Icon(Icons.close, color: textSecondary),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
@@ -374,12 +379,12 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                 const SizedBox(height: 16),
 
                 // Category selector
-                const Text(
+                Text(
                   'Прием пищи',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF475569),
+                    color: textSecondary,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -392,10 +397,11 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                 // Dish Name
                 TextFormField(
                   controller: _dishNameController,
+                  style: TextStyle(color: textPrimary),
                   decoration: InputDecoration(
                     labelText: 'Название блюда или продукта *',
                     hintText: 'например: хлеб зерновой 30г или яблоко',
-                    prefixIcon: const Icon(Icons.restaurant, color: Color(0xFF10B981), size: 20),
+                    prefixIcon: const Icon(Icons.restaurant, color: AppColors.primary, size: 20),
                     suffixIcon: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -405,12 +411,12 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                             child: SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
                             ),
                           )
                         else
                           IconButton(
-                            icon: const Icon(Icons.qr_code_scanner, color: Color(0xFF10B981)),
+                            icon: const Icon(Icons.qr_code_scanner, color: AppColors.primary),
                             tooltip: 'Штрихкод (Open Food Facts)',
                             onPressed: _isEstimatingAi ? null : _scanBarcode,
                           ),
@@ -420,18 +426,17 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                             child: SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
                             ),
                           )
                         else
                           IconButton(
-                            icon: const Icon(Icons.auto_awesome, color: Color(0xFF10B981)),
+                            icon: const Icon(Icons.auto_awesome, color: AppColors.primary),
                             tooltip: 'Рассчитать КБЖУ через ИИ (Gemini)',
                             onPressed: _isLookingUpBarcode ? null : _estimateWithAi,
                           ),
                       ],
                     ),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   ),
                   validator: (val) {
@@ -450,15 +455,20 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                       child: OutlinedButton.icon(
                         onPressed: (_isLookingUpBarcode || _isEstimatingAi) ? null : _scanBarcode,
                         icon: _isLookingUpBarcode
-                            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)))
-                            : const Icon(Icons.qr_code_scanner, size: 16, color: Color(0xFF10B981)),
+                            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))
+                            : const Icon(Icons.qr_code_scanner, size: 16, color: AppColors.primary),
                         label: Text(
                           _isLookingUpBarcode ? 'Поиск...' : 'Штрихкод (OFF)',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF065F46)),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? AppColors.emerald400 : AppColors.primaryDark,
+                          ),
                         ),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 8),
-                          side: const BorderSide(color: Color(0xFF10B981)),
+                          backgroundColor: isDark ? AppColors.primary.withOpacity(0.12) : Colors.transparent,
+                          side: BorderSide(color: isDark ? AppColors.primary.withOpacity(0.5) : AppColors.primary),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
@@ -468,15 +478,20 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                       child: OutlinedButton.icon(
                         onPressed: (_isLookingUpBarcode || _isEstimatingAi) ? null : _estimateWithAi,
                         icon: _isEstimatingAi
-                            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)))
-                            : const Icon(Icons.auto_awesome, size: 16, color: Color(0xFF10B981)),
+                            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))
+                            : const Icon(Icons.auto_awesome, size: 16, color: AppColors.primary),
                         label: Text(
                           _isEstimatingAi ? 'Считаем...' : 'ИИ-расчет',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF065F46)),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? AppColors.emerald400 : AppColors.primaryDark,
+                          ),
                         ),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 8),
-                          side: const BorderSide(color: Color(0xFF10B981)),
+                          backgroundColor: isDark ? AppColors.primary.withOpacity(0.12) : Colors.transparent,
+                          side: BorderSide(color: isDark ? AppColors.primary.withOpacity(0.5) : AppColors.primary),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
@@ -489,24 +504,23 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                 TextFormField(
                   controller: _weightController,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
+                  style: TextStyle(color: textPrimary),
+                  decoration: const InputDecoration(
                     labelText: 'Вес порции (г)',
                     hintText: '100',
                     suffixText: 'г',
-                    prefixIcon: const Icon(Icons.scale_outlined, color: Color(0xFF10B981), size: 20),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   ),
                 ),
                 const SizedBox(height: 16),
 
                 // Macros Section
-                const Text(
+                Text(
                   'КБЖУ порции',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF475569),
+                    color: textSecondary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -518,12 +532,12 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                       child: TextFormField(
                         controller: _caloriesController,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: InputDecoration(
+                        style: TextStyle(color: textPrimary),
+                        decoration: const InputDecoration(
                           labelText: 'Калории (ккал) *',
                           hintText: '0',
-                          prefixIcon: const Icon(Icons.local_fire_department, color: Color(0xFFF97316), size: 20),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          suffixText: 'ккал',
+                          contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         ),
                         validator: (val) {
                           if (val == null || val.trim().isEmpty) {
@@ -543,13 +557,12 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                       child: TextFormField(
                         controller: _proteinController,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: InputDecoration(
+                        style: TextStyle(color: textPrimary),
+                        decoration: const InputDecoration(
                           labelText: 'Белки (г)',
                           hintText: '0',
                           suffixText: 'г',
-                          prefixIcon: const Icon(Icons.fitness_center, color: Color(0xFF3B82F6), size: 18),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         ),
                       ),
                     ),
@@ -564,13 +577,12 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                       child: TextFormField(
                         controller: _fatController,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: InputDecoration(
+                        style: TextStyle(color: textPrimary),
+                        decoration: const InputDecoration(
                           labelText: 'Жиры (г)',
                           hintText: '0',
                           suffixText: 'г',
-                          prefixIcon: const Icon(Icons.opacity, color: Color(0xFFF59E0B), size: 18),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         ),
                       ),
                     ),
@@ -580,13 +592,12 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                       child: TextFormField(
                         controller: _carbsController,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: InputDecoration(
+                        style: TextStyle(color: textPrimary),
+                        decoration: const InputDecoration(
                           labelText: 'Углеводы (г)',
                           hintText: '0',
                           suffixText: 'г',
-                          prefixIcon: const Icon(Icons.grain, color: Color(0xFF8B5CF6), size: 18),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         ),
                       ),
                     ),
@@ -597,12 +608,12 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                 // Comment
                 TextFormField(
                   controller: _commentController,
-                  decoration: InputDecoration(
+                  style: TextStyle(color: textPrimary),
+                  decoration: const InputDecoration(
                     labelText: 'Заметка (необязательно)',
                     hintText: 'например: рецепт мамы, без сахара',
-                    prefixIcon: const Icon(Icons.notes, color: Color(0xFF94A3B8), size: 20),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    prefixIcon: Icon(Icons.notes, color: Color(0xFF94A3B8), size: 20),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   ),
                 ),
 
@@ -611,18 +622,21 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFEF2F2),
+                      color: isDark ? AppColors.error.withOpacity(0.15) : const Color(0xFFFEF2F2),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFFECACA)),
+                      border: Border.all(color: isDark ? AppColors.error.withOpacity(0.4) : const Color(0xFFFECACA)),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.error_outline, size: 18, color: Color(0xFFEF4444)),
+                        const Icon(Icons.error_outline, size: 18, color: AppColors.error),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             _errorMessage!,
-                            style: const TextStyle(fontSize: 12, color: Color(0xFF991B1B)),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? const Color(0xFFFCA5A5) : const Color(0xFF991B1B),
+                            ),
                           ),
                         ),
                       ],
@@ -635,7 +649,7 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                 // Submit button
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF10B981),
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     padding: const EdgeInsets.symmetric(vertical: 14),

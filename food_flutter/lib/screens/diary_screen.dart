@@ -283,7 +283,7 @@ class DiaryScreenState extends State<DiaryScreen> {
     final weekDayNames = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightScaffold,
+      backgroundColor: isDark ? Colors.transparent : AppColors.lightScaffold,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: reloadGoalsAndData,

@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../widgets/ingredient_tile.dart';
 import '../widgets/manual_meal_sheet.dart';
 import '../theme/app_colors.dart';
+import '../widgets/app_screen_background.dart';
 
 class RecognizeScreen extends StatefulWidget {
   final ApiService apiService;
@@ -624,58 +625,60 @@ class _RecognizeScreenState extends State<RecognizeScreen> with SingleTickerProv
   // 2. AI PROCESSING OVERLAY SCREEN
   Widget _buildProcessingScreen() {
     return Scaffold(
-      backgroundColor: const Color(0xFF080C14),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 88,
-                height: 88,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [AppColors.primary, AppColors.emerald400],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withOpacity(0.5),
-                      blurRadius: 24,
+      backgroundColor: Colors.transparent,
+      body: AppScreenBackground(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [AppColors.primary, AppColors.emerald400],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                  ],
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.5),
+                        blurRadius: 24,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.psychology, color: Colors.white, size: 44),
                 ),
-                child: const Icon(Icons.psychology, color: Colors.white, size: 44),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Нейросеть распознает блюдо...',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                const SizedBox(height: 24),
+                const Text(
+                  'Нейросеть распознает блюдо...',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Сегментация ингредиентов, оценка веса порции и расчет КБЖУ',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF94A3B8),
-                  height: 1.5,
+                const SizedBox(height: 8),
+                const Text(
+                  'Сегментация ингредиентов, оценка веса порции и расчет КБЖУ',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF94A3B8),
+                    height: 1.5,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              const SizedBox(
-                width: 32,
-                height: 32,
-                child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5),
-              ),
-            ],
+                const SizedBox(height: 24),
+                const SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -698,7 +701,7 @@ class _RecognizeScreenState extends State<RecognizeScreen> with SingleTickerProv
     ];
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightScaffold,
+      backgroundColor: isDark ? Colors.transparent : AppColors.lightScaffold,
       appBar: AppBar(
         title: const Text('Результат анализа', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
         leading: IconButton(
@@ -706,7 +709,8 @@ class _RecognizeScreenState extends State<RecognizeScreen> with SingleTickerProv
           onPressed: _resetScanner,
         ),
       ),
-      body: ListView(
+      body: AppScreenBackground(
+        child: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: [
           // AI Confidence Badge
@@ -929,7 +933,8 @@ class _RecognizeScreenState extends State<RecognizeScreen> with SingleTickerProv
           const SizedBox(height: 40),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildMacroCol(String title, String val, String unit, Color color) {

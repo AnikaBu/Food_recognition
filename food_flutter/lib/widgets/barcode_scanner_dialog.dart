@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../theme/app_colors.dart';
 
 class BarcodeScannerDialog extends StatefulWidget {
   const BarcodeScannerDialog({super.key});
@@ -60,11 +61,13 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B);
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? AppColors.darkCard : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -74,14 +77,15 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
-                const Icon(Icons.qr_code_scanner, color: Color(0xFF10B981)),
+                const Icon(Icons.qr_code_scanner, color: AppColors.primary),
                 const SizedBox(width: 8),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Сканер штрихкодов',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
+                      color: textPrimary,
                     ),
                   ),
                 ),
@@ -89,7 +93,7 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog> {
                 IconButton(
                   icon: Icon(
                     _isTorchOn ? Icons.flash_on : Icons.flash_off,
-                    color: _isTorchOn ? Colors.amber : Colors.grey,
+                    color: _isTorchOn ? Colors.amber : textSecondary,
                   ),
                   tooltip: 'Фонарик',
                   onPressed: () async {
@@ -101,14 +105,14 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog> {
                 ),
                 // Закрыть
                 IconButton(
-                  icon: const Icon(Icons.close),
+                  icon: Icon(Icons.close, color: textSecondary),
                   tooltip: 'Закрыть',
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
+          Divider(height: 1, color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0)),
 
           // Область видоискателя камеры
           Expanded(
@@ -123,7 +127,7 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog> {
                 Container(
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: const Color(0xFF10B981),
+                      color: AppColors.primary,
                       width: 2.5,
                     ),
                     borderRadius: BorderRadius.circular(16),
@@ -158,10 +162,10 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog> {
           Container(
             padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomInset),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+              color: isDark ? AppColors.darkSurface : const Color(0xFFF8FAFC),
               border: Border(
                 top: BorderSide(
-                  color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                  color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
                 ),
               ),
             ),
@@ -169,9 +173,9 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Или введите цифры штрихкода вручную:',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.grey),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: textSecondary),
                 ),
                 const SizedBox(height: 6),
                 Row(
@@ -180,6 +184,7 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog> {
                       child: TextField(
                         controller: _manualCodeController,
                         keyboardType: TextInputType.number,
+                        style: TextStyle(color: textPrimary),
                         decoration: InputDecoration(
                           hintText: 'например: 5449000000996',
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -197,7 +202,7 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog> {
                       icon: const Icon(Icons.search, size: 18),
                       label: const Text('Найти'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF10B981),
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),

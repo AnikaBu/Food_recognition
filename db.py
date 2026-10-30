@@ -15,25 +15,32 @@ from models import (
     RecipeRecord,
 )
 
-_ENV_DB_PATH = os.getenv("DB_PATH")
-DEFAULT_DB_PATH = (
-    Path(_ENV_DB_PATH)
-    if _ENV_DB_PATH
-    else (Path(__file__).resolve().parent / "nutrition.db")
-)
+DEFAULT_DB_PATH = Path(__file__).resolve().parent / "nutrition.db"
 
 
-def get_connection(db_path: Path = DEFAULT_DB_PATH) -> sqlite3.Connection:
+def get_db_path(db_path: Optional[Path] = None) -> Path:
+    """Динамически возвращает путь к БД с приоритетом DB_PATH из окружения."""
+    if db_path is not None:
+        return db_path
+    env_path = os.getenv("DB_PATH")
+    if env_path:
+        return Path(env_path)
+    return DEFAULT_DB_PATH
+
+
+def get_connection(db_path: Optional[Path] = None) -> sqlite3.Connection:
     """Создает соединение с SQLite базой данных и включает внешние ключи."""
-    conn = sqlite3.connect(db_path)
+    resolved_path = get_db_path(db_path)
+    conn = sqlite3.connect(resolved_path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
     return conn
 
 
-def init_db(db_path: Path = DEFAULT_DB_PATH) -> None:
+def init_db(db_path: Optional[Path] = None) -> None:
     """Инициализирует таблицы базы данных и создает индексы."""
-    with get_connection(db_path) as conn:
+    resolved_path = get_db_path(db_path)
+    with get_connection(resolved_path) as conn:
         conn.executescript("""
             CREATE TABLE IF NOT EXISTS meals (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -102,7 +109,7 @@ def save_meal(
     analysis: FoodAnalysisResult,
     meal_type: MealType = MealType.LUNCH,
     created_at: Optional[str] = None,
-    db_path: Path = DEFAULT_DB_PATH,
+    db_path: Optional[Path] = None,
 ) -> int:
     """
     Сохраняет прием пищи и все его ингредиенты в базу данных в единой транзакции.
@@ -146,7 +153,7 @@ def save_meal(
         return meal_id
 
 
-def get_meal(meal_id: int, db_path: Path = DEFAULT_DB_PATH) -> Optional[MealRecord]:
+def get_meal(meal_id: int, db_path: Optional[Path] = None) -> Optional[MealRecord]:
     """Возвращает прием пищи со всеми ингредиентами по его id."""
     with get_connection(db_path) as conn:
         cursor = conn.cursor()
@@ -197,7 +204,7 @@ def get_meal(meal_id: int, db_path: Path = DEFAULT_DB_PATH) -> Optional[MealReco
 def update_item_weight(
     item_id: int,
     new_weight_g: float,
-    db_path: Path = DEFAULT_DB_PATH,
+    db_path: Optional[Path] = None,
 ) -> Optional[IngredientItem]:
     """
     Изменяет вес ингредиента и пропорционально пересчитывает его калории, белки, жиры и углеводы.
@@ -242,7 +249,7 @@ def update_item_weight(
         )
 
 
-def delete_meal(meal_id: int, db_path: Path = DEFAULT_DB_PATH) -> bool:
+def delete_meal(meal_id: int, db_path: Optional[Path] = None) -> bool:
     """Удаляет прием пищи и связанные с ним ингредиенты (каскадно)."""
     with get_connection(db_path) as conn:
         cursor = conn.cursor()
@@ -253,7 +260,7 @@ def delete_meal(meal_id: int, db_path: Path = DEFAULT_DB_PATH) -> bool:
 
 def get_meals_by_date(
     date_str: str,
-    db_path: Path = DEFAULT_DB_PATH,
+    db_path: Optional[Path] = None,
 ) -> List[MealRecord]:
     """
     Возвращает список всех приемов пищи за конкретную дату (формат: YYYY-MM-DD).
@@ -279,7 +286,7 @@ def get_meals_by_date(
 
 def get_daily_summary(
     date_str: Optional[str] = None,
-    db_path: Path = DEFAULT_DB_PATH,
+    db_path: Optional[Path] = None,
 ) -> DailySummary:
     """
     Подсчитывает суммарное КБЖУ за указанный день (по умолчанию за сегодня).
@@ -307,7 +314,7 @@ def get_daily_summary(
     )
 
 
-def get_goals(db_path: Path = DEFAULT_DB_PATH) -> NutritionGoals:
+def get_goals(db_path: Optional[Path] = None) -> NutritionGoals:
     """Получает текущие суточные цели по КБЖУ из базы данных."""
     init_db(db_path)
     with get_connection(db_path) as conn:
@@ -327,7 +334,7 @@ def get_goals(db_path: Path = DEFAULT_DB_PATH) -> NutritionGoals:
 
 def update_goals(
     goals: NutritionGoals,
-    db_path: Path = DEFAULT_DB_PATH,
+    db_path: Optional[Path] = None,
 ) -> NutritionGoals:
     """Обновляет суточные цели по КБЖУ в базе данных."""
     init_db(db_path)
@@ -374,7 +381,7 @@ def _calculate_recipe_macros(cooked_weight_g: Optional[float], items: list[Recip
     return round(raw_w, 1), round(final_cooked_w, 1), cal_100, p_100, f_100, c_100
 
 
-def create_recipe(data: CreateRecipeRequest, db_path: Path = DEFAULT_DB_PATH) -> int:
+def create_recipe(data: CreateRecipeRequest, db_path: Optional[Path] = None) -> int:
     """Создает новый рецепт, сохраняет ингредиенты и рассчитывает КБЖУ на 100 г готового блюда."""
     init_db(db_path)
     raw_w, cooked_w, cal_100, p_100, f_100, c_100 = _calculate_recipe_macros(data.cooked_weight_g, data.items)
@@ -406,7 +413,7 @@ def create_recipe(data: CreateRecipeRequest, db_path: Path = DEFAULT_DB_PATH) ->
         return recipe_id
 
 
-def get_recipe(recipe_id: int, db_path: Path = DEFAULT_DB_PATH) -> Optional[RecipeRecord]:
+def get_recipe(recipe_id: int, db_path: Optional[Path] = None) -> Optional[RecipeRecord]:
     """Возвращает детальную информацию о рецепте по id, включая список ингредиентов."""
     init_db(db_path)
     with get_connection(db_path) as conn:
@@ -447,7 +454,7 @@ def get_recipe(recipe_id: int, db_path: Path = DEFAULT_DB_PATH) -> Optional[Reci
         )
 
 
-def get_recipes(db_path: Path = DEFAULT_DB_PATH) -> list[RecipeRecord]:
+def get_recipes(db_path: Optional[Path] = None) -> list[RecipeRecord]:
     """Возвращает список всех сохраненных рецептов пользователя."""
     init_db(db_path)
     with get_connection(db_path) as conn:
@@ -463,7 +470,7 @@ def get_recipes(db_path: Path = DEFAULT_DB_PATH) -> list[RecipeRecord]:
     return result
 
 
-def update_recipe(recipe_id: int, data: CreateRecipeRequest, db_path: Path = DEFAULT_DB_PATH) -> Optional[RecipeRecord]:
+def update_recipe(recipe_id: int, data: CreateRecipeRequest, db_path: Optional[Path] = None) -> Optional[RecipeRecord]:
     """Обновляет рецепт, пересчитывает КБЖУ на 100 г и перезаписывает ингредиенты."""
     init_db(db_path)
     raw_w, cooked_w, cal_100, p_100, f_100, c_100 = _calculate_recipe_macros(data.cooked_weight_g, data.items)
@@ -502,7 +509,7 @@ def update_recipe(recipe_id: int, data: CreateRecipeRequest, db_path: Path = DEF
     return get_recipe(recipe_id, db_path=db_path)
 
 
-def delete_recipe(recipe_id: int, db_path: Path = DEFAULT_DB_PATH) -> bool:
+def delete_recipe(recipe_id: int, db_path: Optional[Path] = None) -> bool:
     """Удаляет рецепт и каскадно удаляет связанные ингредиенты."""
     init_db(db_path)
     with get_connection(db_path) as conn:
@@ -517,7 +524,7 @@ def log_recipe_portion(
     meal_type: MealType,
     portion_weight_g: float,
     created_at: Optional[str] = None,
-    db_path: Path = DEFAULT_DB_PATH,
+    db_path: Optional[Path] = None,
 ) -> Optional[MealRecord]:
     """
     Рассчитывает КБЖУ порции на основе сохраненного рецепта (на 100г)

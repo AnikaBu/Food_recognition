@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/meal_models.dart';
+import '../theme/app_colors.dart';
 
 class CategorySelector extends StatelessWidget {
   final MealType selected;
@@ -13,6 +14,11 @@ class CategorySelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final unselectedBg = isDark ? AppColors.darkInput : AppColors.lightInput;
+    final unselectedBorder = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final unselectedTextColor = isDark ? AppColors.darkTextSecondary : const Color(0xFF334155);
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -26,14 +32,14 @@ class CategorySelector extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: isChosen ? FontWeight.bold : FontWeight.w500,
-                  color: isChosen ? Colors.white : const Color(0xFF334155),
+                  color: isChosen ? Colors.white : unselectedTextColor,
                 ),
               ),
               selected: isChosen,
-              selectedColor: const Color(0xFF10B981),
-              backgroundColor: const Color(0xFFF1F5F9),
+              selectedColor: AppColors.primary,
+              backgroundColor: unselectedBg,
               side: BorderSide(
-                color: isChosen ? const Color(0xFF10B981) : const Color(0xFFE2E8F0),
+                color: isChosen ? AppColors.primary : unselectedBorder,
               ),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               onSelected: (_) => onSelected(type),

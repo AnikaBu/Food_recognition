@@ -31,12 +31,24 @@ class AppColors {
   static const Color lightTextSecondary = Color(0xFF64748B);
   static const Color lightInput = Color(0xFFF1F5F9);
 
-  // Dark Mode Surfaces & Text
-  static const Color darkCanvas = Color(0xFF080C14);
-  static const Color darkSurface = Color(0xFF0D131F);
-  static const Color darkCard = Color(0xFF131C2E);
-  static const Color darkBorder = Color(0xFF1E293B);
-  static const Color darkInput = Color(0xFF1A2337);
+  // Dark Mode Background Gradient (from lighter steel-navy at top to deep midnight-navy at bottom)
+  static const Color darkBgTop = Color(0xFF22354A);     // Мягкий стальной темно-синий (#22354A)
+  static const Color darkBgMiddle = Color(0xFF182232);  // Глубокий синий переходный (#182232)
+  static const Color darkBgBottom = Color(0xFF0F131D);  // Глубокая темно-синяя ночь (#0F131D)
+
+  static const LinearGradient darkBackgroundGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [darkBgTop, darkBgMiddle, darkBgBottom],
+    stops: [0.0, 0.45, 1.0],
+  );
+
+  // Dark Mode Surfaces & Text (Harmonized with the steel-navy gradient)
+  static const Color darkCanvas = Color(0xFF0F131D);
+  static const Color darkSurface = Color(0xFF141A26);
+  static const Color darkCard = Color(0xFF1E2638);
+  static const Color darkBorder = Color(0xFF2D374D);
+  static const Color darkInput = Color(0xFF182030);
   static const Color darkTextPrimary = Color(0xFFF8FAFC);
   static const Color darkTextSecondary = Color(0xFF94A3B8);
 

@@ -9,6 +9,7 @@ import 'screens/recipes_screen.dart';
 import 'screens/settings_screen.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
+import 'widgets/app_screen_background.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,30 +25,42 @@ void main() async {
   );
 
   ErrorWidget.builder = (FlutterErrorDetails details) {
-    return Material(
-      color: const Color(0xFFF8FAFC),
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.info_outline, size: 44, color: AppColors.primary),
-              const SizedBox(height: 12),
-              const Text(
-                'Не удалось отобразить данные',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0F172A)),
+    return Builder(
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Material(
+          color: isDark ? AppColors.darkSurface : AppColors.lightScaffold,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.info_outline, size: 44, color: AppColors.primary),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Не удалось отобразить данные',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    details.exception.toString(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                details.exception.toString(),
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   };
 
@@ -150,12 +163,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     ];
 
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: screens,
+      backgroundColor: isDark ? AppColors.darkBgBottom : AppColors.lightScaffold,
+      body: AppScreenBackground(
+        child: IndexedStack(
+          index: _currentIndex,
+          children: screens,
+        ),
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
+          color: isDark ? AppColors.darkBgBottom : Colors.white,
           border: Border(
             top: BorderSide(
               color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
@@ -166,7 +183,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         child: NavigationBar(
           selectedIndex: _currentIndex,
           onDestinationSelected: _onTabSelected,
-          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+          backgroundColor: isDark ? AppColors.darkBgBottom : Colors.white,
           elevation: 0,
           indicatorColor: AppColors.primary.withOpacity(0.18),
           destinations: const [
