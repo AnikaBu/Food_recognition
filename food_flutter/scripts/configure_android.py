@@ -180,14 +180,13 @@ def configure_gradle():
             elif "buildTypes {" in content:
                 content = content.replace("buildTypes {", groovy_signing_block + "    buildTypes {")
 
-            content = content.replace(
-                "signingConfig = signingConfigs.debug",
-                "signingConfig = signingConfigs.release\n            minifyEnabled false\n            shrinkResources false\n            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'"
-            )
-            content = content.replace(
-                "signingConfig signingConfigs.debug",
-                "signingConfig signingConfigs.release\n            minifyEnabled false\n            shrinkResources false\n            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'"
-            )
+            release_config_groovy = """signingConfig = signingConfigs.release
+            minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'"""
+
+            content = content.replace("signingConfig = signingConfigs.debug", release_config_groovy)
+            content = content.replace("signingConfig signingConfigs.debug", release_config_groovy)
 
         with open(GRADLE_GROOVY_PATH, "w", encoding="utf-8") as f:
             f.write(content)
@@ -228,7 +227,7 @@ def configure_gradle():
             kts_release_block = """signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             isShrinkResources = false
-            proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")"""
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")"""
 
             if 'signingConfig = signingConfigs.getByName("debug")' in content:
                 content = content.replace('signingConfig = signingConfigs.getByName("debug")', kts_release_block)
@@ -282,6 +281,7 @@ def configure_proguard():
 # Suppress missing classes warnings globally for transitive dependencies
 -dontwarn **
 -ignorewarnings
+-dontoptimize
 """
     os.makedirs(APP_DIR, exist_ok=True)
     with open(PROGUARD_PATH, "w", encoding="utf-8") as f:
