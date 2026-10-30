@@ -121,6 +121,10 @@
 - [x] Полная адаптация темной темы (Dark Mode): глобальный `textTheme`, `dialogTheme`, `bottomSheetTheme`, устранение жестко заданных цветов текста и белых фонов инпутов в Конструкторе рецептов (`RecipeEditorScreen`), Книге рецептов (`RecipesScreen`), ручном вводе (`ManualMealSheet`), сканере штрихкодов (`BarcodeScannerDialog`) и диалоге обновления (`UpdateDialog`).
 - [x] Тёмно-синий градиентный фон (Dark Mode Gradient): переход от мягкого стального синего (`#22354A`) сверху к глубокой ночи (`#0F131D`) снизу с гармонизацией карточек (`#1E2638`) и очисткой числовых полей КБЖУ от перегружающих иконок.
 - [x] Синхронизация CSS переменных веб-клиента PWA (`frontend/style.css`) с дизайн-токенами прототипа.
+- [x] Стабилизация работы сканера штрихкодов в релизных Android APK (версия 1.0.19+20):
+  - [x] Интеграция правил ProGuard/R8 (`proguard-rules.pro`) для Google ML Kit Barcode Scanning и CameraX;
+  - [x] Отключение агрессивного сжатия ресурсов и минификации (`minifyEnabled false`, `shrinkResources false`) в Release Gradle;
+  - [x] Интеграция runtime-проверки разрешений камеры (`permission_handler`) и дружелюбный UI диалога `BarcodeScannerDialog` с кнопками повтора и перехода в настройки.
 
 ### ⚪ Этап 7: Публикация на GitHub и портфолио
 - [ ] Оформление `README.md` со скриншотами и инструкцией.
