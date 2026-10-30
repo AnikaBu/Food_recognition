@@ -20,10 +20,10 @@ class RecognizeScreen extends StatefulWidget {
   });
 
   @override
-  State<RecognizeScreen> createState() => _RecognizeScreenState();
+  State<RecognizeScreen> createState() => RecognizeScreenState();
 }
 
-class _RecognizeScreenState extends State<RecognizeScreen> with SingleTickerProviderStateMixin {
+class RecognizeScreenState extends State<RecognizeScreen> {
   final ImagePicker _picker = ImagePicker();
   XFile? _selectedImage;
   bool _isAnalyzing = false;
@@ -35,31 +35,13 @@ class _RecognizeScreenState extends State<RecognizeScreen> with SingleTickerProv
   MealType _selectedMealType = MealType.lunch;
   final TextEditingController _dishNameController = TextEditingController();
 
-  // Animation controller for laser scan line
-  late AnimationController _scanController;
-  late Animation<double> _scanAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _scanController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2200),
-    )..repeat(reverse: true);
-
-    _scanAnimation = Tween<double>(begin: 0.1, end: 0.9).animate(
-      CurvedAnimation(parent: _scanController, curve: Curves.easeInOut),
-    );
-  }
-
   @override
   void dispose() {
-    _scanController.dispose();
     _dishNameController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickImage(ImageSource source) async {
+  Future<void> pickImage(ImageSource source) async {
     try {
       final image = await _picker.pickImage(
         source: source,
@@ -325,298 +307,300 @@ class _RecognizeScreenState extends State<RecognizeScreen> with SingleTickerProv
       return _buildResultSheet();
     }
 
-    return _buildViewfinderScreen();
+    return _buildIdleScreen();
   }
 
-  // 1. AI SCANNER VIEWFINDER
-  Widget _buildViewfinderScreen() {
+  // 1. PHOTO RECOGNITION IDLE SCREEN
+  Widget _buildIdleScreen() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? AppColors.darkCard : AppColors.lightCard;
+    final cardBorder = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  InkWell(
-                    onTap: widget.onSavedSuccess,
-                    borderRadius: BorderRadius.circular(999),
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white.withOpacity(0.2)),
-                      ),
-                      child: const Icon(Icons.close, color: Colors.white, size: 20),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: AppColors.primary.withOpacity(0.4)),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.auto_awesome, color: AppColors.primary, size: 14),
-                        SizedBox(width: 6),
-                        Text(
-                          'AI Vision Live',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 40), // Balance width
-                ],
-              ),
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text('Фото блюда'),
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: AppColors.primary.withOpacity(0.3)),
             ),
-
-            // Reticle & Target Frame
-            Expanded(
-              child: Center(
-                child: SizedBox(
-                  width: 260,
-                  height: 260,
-                  child: Stack(
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.auto_awesome, color: AppColors.primary, size: 14),
+                SizedBox(width: 4),
+                Text(
+                  'Gemini Vision',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_errorMessage != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                  ),
+                  child: Row(
                     children: [
-                      // 4 Reticle Corners
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: const BoxDecoration(
-                            border: Border(
-                              top: BorderSide(color: AppColors.primary, width: 4),
-                              left: BorderSide(color: AppColors.primary, width: 4),
-                            ),
-                            borderRadius: BorderRadius.only(topLeft: Radius.circular(16)),
-                          ),
+                      const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: const TextStyle(color: AppColors.error, fontSize: 13),
                         ),
                       ),
-                      Positioned(
-                        top: 0,
-                        right: 0,
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: const BoxDecoration(
-                            border: Border(
-                              top: BorderSide(color: AppColors.primary, width: 4),
-                              right: BorderSide(color: AppColors.primary, width: 4),
-                            ),
-                            borderRadius: BorderRadius.only(topRight: Radius.circular(16)),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        left: 0,
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: const BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(color: AppColors.primary, width: 4),
-                              left: BorderSide(color: AppColors.primary, width: 4),
-                            ),
-                            borderRadius: BorderRadius.only(bottomLeft: Radius.circular(16)),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: const BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(color: AppColors.primary, width: 4),
-                              right: BorderSide(color: AppColors.primary, width: 4),
-                            ),
-                            borderRadius: BorderRadius.only(bottomRight: Radius.circular(16)),
-                          ),
-                        ),
-                      ),
-
-                      // Laser Scanning Line
-                      AnimatedBuilder(
-                        animation: _scanAnimation,
-                        builder: (context, child) {
-                          return Positioned(
-                            top: 260 * _scanAnimation.value,
-                            left: 8,
-                            right: 8,
-                            child: Container(
-                              height: 3,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Colors.transparent,
-                                    AppColors.primary,
-                                    AppColors.emerald400,
-                                    AppColors.primary,
-                                    Colors.transparent,
-                                  ],
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primary.withOpacity(0.8),
-                                    blurRadius: 10,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-
-                      // Guidance Message below
-                      Positioned(
-                        bottom: -36,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.7),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: const Text(
-                              'Наведите камеру на тарелку с едой',
-                              style: TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w500),
-                            ),
-                          ),
-                        ),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 16, color: AppColors.error),
+                        onPressed: () => setState(() => _errorMessage = null),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ),
+                const SizedBox(height: 16),
+              ],
 
-            if (_errorMessage != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: Text(
-                  _errorMessage!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.error, fontSize: 12),
+              // Main Action Card
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: cardBorder),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Camera Illustration / Icon container
+                    Container(
+                      width: 88,
+                      height: 88,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.primary.withOpacity(0.2),
+                            AppColors.primaryDark.withOpacity(0.08),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        border: Border.all(color: AppColors.primary.withOpacity(0.35), width: 2),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.camera_alt_rounded,
+                          size: 44,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    Text(
+                      'Сфотографируйте блюдо',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Искусственный интеллект автоматически распознает ингредиенты, оценит их вес и рассчитает калории, белки, жиры и углеводы.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: textSecondary,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Primary Button: Open Camera
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton.icon(
+                        onPressed: () => pickImage(ImageSource.camera),
+                        icon: const Icon(Icons.camera_alt, color: Colors.white, size: 22),
+                        label: const Text(
+                          'Сделать снимок (Камера)',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 2,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Secondary Button: Pick from Gallery
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: OutlinedButton.icon(
+                        onPressed: () => pickImage(ImageSource.gallery),
+                        icon: const Icon(Icons.photo_library_outlined, color: AppColors.primary, size: 20),
+                        label: Text(
+                          'Выбрать из галереи',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: textPrimary,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: cardBorder, width: 1.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
-            // Bottom Shutter Controls
-            Padding(
-              padding: const EdgeInsets.only(bottom: 28, left: 24, right: 24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  // Gallery Button
-                  InkWell(
-                    onTap: () => _pickImage(ImageSource.gallery),
-                    borderRadius: BorderRadius.circular(16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.18),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white.withOpacity(0.3)),
-                          ),
-                          child: const Icon(Icons.photo_library_outlined, color: Colors.white, size: 22),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text('Галерея', style: TextStyle(color: Colors.white, fontSize: 10)),
-                      ],
-                    ),
-                  ),
+              const SizedBox(height: 16),
 
-                  // Shutter Button
-                  GestureDetector(
-                    onTap: () => _pickImage(ImageSource.camera),
-                    child: Container(
-                      width: 76,
-                      height: 76,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 4),
-                      ),
-                      padding: const EdgeInsets.all(5),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            colors: [AppColors.primary, AppColors.primaryDark],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withOpacity(0.5),
-                              blurRadius: 16,
-                            ),
-                          ],
-                        ),
-                        child: const Icon(Icons.camera_alt, color: Colors.white, size: 28),
-                      ),
+              // Alternative: Manual entry option
+              Container(
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: cardBorder),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.edit_note, color: AppColors.primary, size: 22),
+                  ),
+                  title: Text(
+                    'Ввести блюдо вручную',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: textPrimary,
                     ),
                   ),
-
-                  // Manual Entry Button
-                  InkWell(
-                    onTap: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.transparent,
-                        builder: (ctx) => ManualMealSheet(
-                          date: DateTime.now(),
-                          apiService: widget.apiService,
-                          onMealSaved: widget.onSavedSuccess,
-                        ),
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.18),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white.withOpacity(0.3)),
-                          ),
-                          child: const Icon(Icons.edit_note, color: Colors.white, size: 22),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text('Вручную', style: TextStyle(color: Colors.white, fontSize: 10)),
-                      ],
-                    ),
+                  subtitle: Text(
+                    'Записать калории и БЖУ без фото',
+                    style: TextStyle(fontSize: 12, color: textSecondary),
                   ),
-                ],
+                  trailing: Icon(Icons.chevron_right, color: textSecondary, size: 20),
+                  onTap: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (ctx) => ManualMealSheet(
+                        date: DateTime.now(),
+                        apiService: widget.apiService,
+                        onMealSaved: widget.onSavedSuccess,
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+
+              const SizedBox(height: 16),
+
+              // Tips Card
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: (isDark ? AppColors.darkSurface : Colors.white).withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: cardBorder.withOpacity(0.6)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppColors.amber500.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.lightbulb_outline, color: AppColors.amber500, size: 18),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Совет для точного распознавания',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Фотографируйте блюдо сверху при хорошем освещении, чтобы все компоненты тарелки были четко видны нейросети.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: textSecondary,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
@@ -741,7 +725,7 @@ class _RecognizeScreenState extends State<RecognizeScreen> with SingleTickerProv
                 ),
               ),
               TextButton.icon(
-                onPressed: () => _pickImage(ImageSource.camera),
+                onPressed: () => pickImage(ImageSource.camera),
                 icon: const Icon(Icons.refresh, size: 16, color: AppColors.primary),
                 label: const Text('Переснять', style: TextStyle(fontSize: 12, color: AppColors.primary)),
               ),
