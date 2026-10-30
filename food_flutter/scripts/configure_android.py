@@ -16,6 +16,7 @@ MANIFEST_PATH = os.path.join(APP_DIR, "src", "main", "AndroidManifest.xml")
 GRADLE_GROOVY_PATH = os.path.join(APP_DIR, "build.gradle")
 GRADLE_KTS_PATH = os.path.join(APP_DIR, "build.gradle.kts")
 GRADLE_PROPERTIES_PATH = os.path.join(ANDROID_DIR, "gradle.properties")
+PROGUARD_PATH = os.path.join(APP_DIR, "proguard-rules.pro")
 
 
 def configure_manifest():
@@ -31,6 +32,8 @@ def configure_manifest():
         '<uses-permission android:name="android.permission.INTERNET"/>',
         '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>',
         '<uses-permission android:name="android.permission.CAMERA"/>',
+        '<uses-feature android:name="android.hardware.camera" android:required="false"/>',
+        '<uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>',
         '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>',
         '<uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>',
         '<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>',
@@ -43,6 +46,16 @@ def configure_manifest():
             "<application",
             "\n    ".join(new_perms) + "\n\n    <application",
             1
+        )
+
+    # Google ML Kit vision barcode dependencies
+    mlkit_meta = '<meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="barcode" />'
+    if mlkit_meta not in content:
+        content = re.sub(
+            r"<application(\s*[^>]*)>",
+            r"<application\1>\n        " + mlkit_meta,
+            content,
+            count=1,
         )
 
     # Queries block for url_launcher on Android 11+
@@ -167,8 +180,14 @@ def configure_gradle():
             elif "buildTypes {" in content:
                 content = content.replace("buildTypes {", groovy_signing_block + "    buildTypes {")
 
-            content = content.replace("signingConfig = signingConfigs.debug", "signingConfig = signingConfigs.release")
-            content = content.replace("signingConfig signingConfigs.debug", "signingConfig signingConfigs.release")
+            content = content.replace(
+                "signingConfig = signingConfigs.debug",
+                "signingConfig = signingConfigs.release\n            minifyEnabled false\n            shrinkResources false\n            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'"
+            )
+            content = content.replace(
+                "signingConfig signingConfigs.debug",
+                "signingConfig signingConfigs.release\n            minifyEnabled false\n            shrinkResources false\n            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'"
+            )
 
         with open(GRADLE_GROOVY_PATH, "w", encoding="utf-8") as f:
             f.write(content)
@@ -207,11 +226,47 @@ def configure_gradle():
                 content = content.replace("buildTypes {", kts_signing_block + "    buildTypes {")
 
             content = content.replace('signingConfigs.getByName("debug")', 'signingConfigs.getByName("release")')
-            content = content.replace('signingConfig = signingConfigs.debug', 'signingConfig = signingConfigs.getByName("release")')
+            content = content.replace(
+                'signingConfig = signingConfigs.debug',
+                'signingConfig = signingConfigs.getByName("release")\n            isMinifyEnabled = false\n            isShrinkResources = false\n            proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")'
+            )
 
         with open(GRADLE_KTS_PATH, "w", encoding="utf-8") as f:
             f.write(content)
         print("[+] Kotlin build.gradle.kts configured successfully.")
+
+
+def configure_proguard():
+    rules = """# Flutter & Plugins
+-keep class io.flutter.app.** { *; }
+-keep class io.flutter.plugin.** { *; }
+-keep class io.flutter.util.** { *; }
+-keep class io.flutter.view.** { *; }
+-keep class io.flutter.** { *; }
+-keep class io.flutter.plugins.** { *; }
+
+# mobile_scanner
+-keep class dev.steenbakker.mobile_scanner.** { *; }
+-dontwarn dev.steenbakker.mobile_scanner.**
+
+# Google ML Kit Barcode Scanning
+-keep class com.google.mlkit.** { *; }
+-dontwarn com.google.mlkit.**
+-keep class com.google.android.gms.internal.mlkit_vision_barcode.** { *; }
+-dontwarn com.google.android.gms.internal.mlkit_vision_barcode.**
+-keep class com.google.android.gms.vision.** { *; }
+-dontwarn com.google.android.gms.vision.**
+-keep class com.google.android.libraries.barhopper.** { *; }
+-dontwarn com.google.android.libraries.barhopper.**
+
+# AndroidX Camera / CameraX
+-keep class androidx.camera.** { *; }
+-dontwarn androidx.camera.**
+"""
+    os.makedirs(APP_DIR, exist_ok=True)
+    with open(PROGUARD_PATH, "w", encoding="utf-8") as f:
+        f.write(rules)
+    print("[+] proguard-rules.pro configured successfully.")
 
 
 def configure_icons():
@@ -337,6 +392,7 @@ def main():
     print("[*] Configuring Android project for MyFoodDiary...")
     sync_version()
     configure_manifest()
+    configure_proguard()
     configure_gradle()
     configure_gradle_properties()
     configure_icons()
