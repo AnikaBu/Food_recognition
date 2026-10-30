@@ -217,6 +217,8 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
         });
       }
     }
+  }
+
   void _openRecipePicker() {
     Navigator.of(context).pop();
     showModalBottomSheet(
