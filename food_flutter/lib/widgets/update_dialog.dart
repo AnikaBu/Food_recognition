@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/update_service.dart';
+import '../theme/app_colors.dart';
 
 class UpdateDialog extends StatelessWidget {
   final AppUpdateInfo updateInfo;
@@ -50,7 +51,16 @@ class UpdateDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? AppColors.darkCard : Colors.white;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B);
+    final boxBg = isDark ? AppColors.darkInput : const Color(0xFFF8FAFC);
+    final boxBorder = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
+    final boxTextColor = isDark ? AppColors.darkTextPrimary : const Color(0xFF334155);
+
     return AlertDialog(
+      backgroundColor: cardBg,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: Row(
         children: [
@@ -67,10 +77,13 @@ class UpdateDialog extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Доступно обновление!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  'Доступно обновление!',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textPrimary),
+                ),
                 Text(
                   'Версия: v${updateInfo.latestVersion} (текущая: v${updateInfo.currentVersion})',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  style: TextStyle(fontSize: 12, color: textSecondary),
                 ),
               ],
             ),
@@ -83,26 +96,26 @@ class UpdateDialog extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (updateInfo.releaseNotes.isNotEmpty) ...[
-              const Text('Что нового:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              Text('Что нового:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary)),
               const SizedBox(height: 6),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: boxBg,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(color: boxBorder),
                 ),
                 child: Text(
                   updateInfo.releaseNotes,
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF334155), height: 1.4),
+                  style: TextStyle(fontSize: 12, color: boxTextColor, height: 1.4),
                 ),
               ),
               const SizedBox(height: 12),
             ],
-            const Text(
+            Text(
               'Нажмите «Обновить», чтобы скачать свежий APK-файл и установить обновление.',
-              style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              style: TextStyle(fontSize: 12, color: textSecondary),
             ),
           ],
         ),
@@ -110,7 +123,7 @@ class UpdateDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Позже', style: TextStyle(color: Color(0xFF64748B))),
+          child: Text('Позже', style: TextStyle(color: textSecondary)),
         ),
         OutlinedButton(
           onPressed: () {

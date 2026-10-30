@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/meal_models.dart';
 import '../services/api_service.dart';
 import '../widgets/barcode_scanner_dialog.dart';
+import '../theme/app_colors.dart';
+import '../widgets/app_screen_background.dart';
 
 class RecipeEditorScreen extends StatefulWidget {
   final ApiService apiService;
@@ -101,44 +103,57 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
       final weightController = TextEditingController(text: product.weightG.toStringAsFixed(0));
       final confirmedWeight = await showDialog<double>(
         context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(product.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (product.brand.isNotEmpty)
-                Text('Бренд: ${product.brand}', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
-              const SizedBox(height: 12),
-              const Text('Укажите вес сырого ингредиента (г):', style: TextStyle(fontSize: 14)),
-              const SizedBox(height: 6),
-              TextField(
-                controller: weightController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                autofocus: true,
-                decoration: InputDecoration(
-                  suffixText: 'г',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        builder: (ctx) {
+          final isDark = Theme.of(ctx).brightness == Brightness.dark;
+          final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+          final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
+          return AlertDialog(
+            backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+            ),
+            title: Text(product.name, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (product.brand.isNotEmpty)
+                  Text('Бренд: ${product.brand}', style: TextStyle(fontSize: 13, color: textSecondary)),
+                const SizedBox(height: 12),
+                Text('Укажите вес сырого ингредиента (г):', style: TextStyle(fontSize: 14, color: textPrimary)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: weightController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  autofocus: true,
+                  style: TextStyle(color: textPrimary),
+                  decoration: const InputDecoration(
+                    suffixText: 'г',
+                  ),
                 ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('Отмена', style: TextStyle(color: textSecondary)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  final w = double.tryParse(weightController.text.trim()) ?? product.weightG;
+                  Navigator.pop(ctx, w);
+                },
+                child: const Text('Добавить'),
               ),
             ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Отмена')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF10B981),
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () {
-                final w = double.tryParse(weightController.text.trim()) ?? product.weightG;
-                Navigator.pop(ctx, w);
-              },
-              child: const Text('Добавить'),
-            ),
-          ],
-        ),
+          );
+        },
       );
 
       if (confirmedWeight != null && confirmedWeight > 0) {
@@ -167,45 +182,61 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     final queryController = TextEditingController();
     final query = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.auto_awesome, color: Color(0xFF10B981), size: 22),
-            SizedBox(width: 8),
-            Text('ИИ-расчет ингредиента', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Введите название и вес ингредиента, нейросеть определит КБЖУ:',
-              style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: queryController,
-              autofocus: true,
-              decoration: InputDecoration(
-                hintText: 'например: Куриное филе 350г',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Отмена')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF10B981),
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Navigator.pop(ctx, queryController.text.trim()),
-            child: const Text('Рассчитать'),
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+        final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
+        return AlertDialog(
+          backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
           ),
-        ],
-      ),
+          title: Row(
+            children: [
+              const Icon(Icons.auto_awesome, color: AppColors.primary, size: 22),
+              const SizedBox(width: 8),
+              Text(
+                'ИИ-расчет ингредиента',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Введите название и вес ингредиента, нейросеть определит КБЖУ:',
+                style: TextStyle(fontSize: 13, color: textSecondary),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: queryController,
+                autofocus: true,
+                style: TextStyle(color: textPrimary),
+                decoration: const InputDecoration(
+                  hintText: 'например: Куриное филе 350г',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Отмена', style: TextStyle(color: textSecondary)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.pop(ctx, queryController.text.trim()),
+              child: const Text('Рассчитать'),
+            ),
+          ],
+        );
+      },
     );
 
     if (query == null || query.isEmpty || !mounted) return;
@@ -246,118 +277,134 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
 
     final result = await showDialog<RecipeIngredientItem>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Добавить ингредиент вручную', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameCtrl,
-                autofocus: true,
-                decoration: InputDecoration(
-                  labelText: 'Название продукта',
-                  hintText: 'например: Морковь сырая',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: weightCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  labelText: 'Вес (граммы)',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: calCtrl,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(
-                        labelText: 'Ккал',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: proCtrl,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(
-                        labelText: 'Белки',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: fatCtrl,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(
-                        labelText: 'Жиры',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: carbCtrl,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(
-                        labelText: 'Углеводы',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Отмена')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF10B981),
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () {
-              final name = nameCtrl.text.trim();
-              if (name.isEmpty) return;
-              final w = double.tryParse(weightCtrl.text.trim()) ?? 100.0;
-              final cal = double.tryParse(calCtrl.text.trim()) ?? 0.0;
-              final p = double.tryParse(proCtrl.text.trim()) ?? 0.0;
-              final f = double.tryParse(fatCtrl.text.trim()) ?? 0.0;
-              final c = double.tryParse(carbCtrl.text.trim()) ?? 0.0;
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+        final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
-              Navigator.pop(
-                ctx,
-                RecipeIngredientItem(
-                  name: name,
-                  weightG: w,
-                  calories: cal,
-                  protein: p,
-                  fat: f,
-                  carbs: c,
-                ),
-              );
-            },
-            child: const Text('Добавить'),
+        return AlertDialog(
+          backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
           ),
-        ],
-      ),
+          title: Text(
+            'Добавить ингредиент вручную',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  autofocus: true,
+                  style: TextStyle(color: textPrimary),
+                  decoration: const InputDecoration(
+                    labelText: 'Название продукта',
+                    hintText: 'например: Морковь сырая',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: weightCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: TextStyle(color: textPrimary),
+                  decoration: const InputDecoration(
+                    labelText: 'Вес (граммы)',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: calCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: TextStyle(color: textPrimary),
+                        decoration: const InputDecoration(
+                          labelText: 'Ккал',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: proCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: TextStyle(color: textPrimary),
+                        decoration: const InputDecoration(
+                          labelText: 'Белки',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: fatCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: TextStyle(color: textPrimary),
+                        decoration: const InputDecoration(
+                          labelText: 'Жиры',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: carbCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: TextStyle(color: textPrimary),
+                        decoration: const InputDecoration(
+                          labelText: 'Углеводы',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Отмена', style: TextStyle(color: textSecondary)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                final name = nameCtrl.text.trim();
+                if (name.isEmpty) return;
+                final w = double.tryParse(weightCtrl.text.trim()) ?? 100.0;
+                final cal = double.tryParse(calCtrl.text.trim()) ?? 0.0;
+                final p = double.tryParse(proCtrl.text.trim()) ?? 0.0;
+                final f = double.tryParse(fatCtrl.text.trim()) ?? 0.0;
+                final c = double.tryParse(carbCtrl.text.trim()) ?? 0.0;
+
+                Navigator.pop(
+                  ctx,
+                  RecipeIngredientItem(
+                    name: name,
+                    weightG: w,
+                    calories: cal,
+                    protein: p,
+                    fat: f,
+                    carbs: c,
+                  ),
+                );
+              },
+              child: const Text('Добавить'),
+            ),
+          ],
+        );
+      },
     );
 
     if (result != null && mounted) {
@@ -425,22 +472,29 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isEditing = widget.initialRecipe != null;
+    final cardBg = isDark ? AppColors.darkCard : AppColors.lightCard;
+    final cardBorder = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
     return Scaffold(
+      backgroundColor: isDark ? Colors.transparent : AppColors.lightScaffold,
       appBar: AppBar(
         title: Text(isEditing ? 'Редактирование рецепта' : 'Конструктор рецепта'),
         actions: [
           IconButton(
             icon: _isSaving
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.check, color: Color(0xFF10B981)),
+                : const Icon(Icons.check, color: AppColors.primary),
             onPressed: _isSaving ? null : _saveRecipe,
             tooltip: 'Сохранить рецепт',
           ),
         ],
       ),
-      body: Form(
+      body: AppScreenBackground(
+        child: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
@@ -448,19 +502,10 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
             // Название блюда
             TextFormField(
               controller: _titleController,
-              decoration: InputDecoration(
+              style: TextStyle(color: textPrimary, fontSize: 15),
+              decoration: const InputDecoration(
                 labelText: 'Название блюда / рецепта *',
                 hintText: 'например: Борщ домашний или Сырники',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                ),
               ),
               validator: (v) => (v == null || v.trim().isEmpty) ? 'Введите название' : null,
             ),
@@ -469,19 +514,10 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
             // Описание / Заметка
             TextFormField(
               controller: _descController,
-              decoration: InputDecoration(
+              style: TextStyle(color: textPrimary, fontSize: 14),
+              decoration: const InputDecoration(
                 labelText: 'Заметка (необязательно)',
                 hintText: 'например: Варить 1 час на медленном огне',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -489,18 +525,22 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
             // Заголовок секции ингредиентов и кнопки добавления
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Сырые ингредиенты *',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: textPrimary,
+                    ),
                   ),
                 ),
                 IconButton.filledTonal(
                   icon: const Icon(Icons.qr_code_scanner, size: 18),
                   tooltip: 'По штрихкоду',
                   style: IconButton.styleFrom(
-                    backgroundColor: const Color(0xFFE0E7FF),
-                    foregroundColor: const Color(0xFF4338CA),
+                    backgroundColor: isDark ? AppColors.macroProtein.withOpacity(0.2) : const Color(0xFFE0E7FF),
+                    foregroundColor: isDark ? AppColors.macroProteinLight : const Color(0xFF4338CA),
                   ),
                   onPressed: _addViaBarcode,
                 ),
@@ -509,8 +549,8 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                   icon: const Icon(Icons.auto_awesome, size: 18),
                   tooltip: 'Через ИИ',
                   style: IconButton.styleFrom(
-                    backgroundColor: const Color(0xFFD1FAE5),
-                    foregroundColor: const Color(0xFF059669),
+                    backgroundColor: isDark ? AppColors.primary.withOpacity(0.2) : const Color(0xFFD1FAE5),
+                    foregroundColor: isDark ? AppColors.emerald400 : const Color(0xFF059669),
                   ),
                   onPressed: _addViaAi,
                 ),
@@ -519,8 +559,8 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                   icon: const Icon(Icons.add, size: 18),
                   tooltip: 'Вручную',
                   style: IconButton.styleFrom(
-                    backgroundColor: const Color(0xFFF1F5F9),
-                    foregroundColor: const Color(0xFF334155),
+                    backgroundColor: isDark ? AppColors.darkInput : const Color(0xFFF1F5F9),
+                    foregroundColor: isDark ? AppColors.darkTextPrimary : const Color(0xFF334155),
                   ),
                   onPressed: _addManual,
                 ),
@@ -533,18 +573,18 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: cardBorder),
                 ),
-                child: const Column(
+                child: Column(
                   children: [
-                    Icon(Icons.inventory_2_outlined, color: Color(0xFF94A3B8), size: 36),
-                    SizedBox(height: 8),
+                    Icon(Icons.inventory_2_outlined, color: textSecondary, size: 36),
+                    const SizedBox(height: 8),
                     Text(
                       'Ингредиенты пока не добавлены.\nИспользуйте кнопки выше (штрихкод, ИИ или вручную).',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                      style: TextStyle(fontSize: 13, color: textSecondary),
                     ),
                   ],
                 ),
@@ -552,23 +592,28 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
             else
               Card(
                 margin: EdgeInsets.zero,
+                color: cardBg,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: cardBorder),
+                ),
                 child: ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: _items.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1, indent: 16, endIndent: 16),
+                  separatorBuilder: (_, __) => Divider(height: 1, indent: 16, endIndent: 16, color: cardBorder),
                   itemBuilder: (ctx, idx) {
                     final it = _items[idx];
                     return ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      title: Text(it.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      title: Text(it.name, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: textPrimary)),
                       subtitle: Text(
                         '${it.weightG.toStringAsFixed(0)} г • ${it.calories.toStringAsFixed(0)} ккал '
                         '(Б:${it.protein.toStringAsFixed(1)} Ж:${it.fat.toStringAsFixed(1)} У:${it.carbs.toStringAsFixed(1)})',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        style: TextStyle(fontSize: 12, color: textSecondary),
                       ),
                       trailing: IconButton(
-                        icon: const Icon(Icons.close, size: 18, color: Color(0xFFEF4444)),
+                        icon: const Icon(Icons.close, size: 18, color: AppColors.error),
                         onPressed: () {
                           setState(() {
                             _items.removeAt(idx);
@@ -586,19 +631,20 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(10),
+                color: isDark ? AppColors.darkCard : const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: cardBorder),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     'Сырой вес: ${_rawWeight.toStringAsFixed(0)} г',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimary),
                   ),
                   Text(
                     'Калории: ${_rawCalories.toStringAsFixed(0)} ккал',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimary),
                   ),
                 ],
               ),
@@ -610,22 +656,13 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
             TextFormField(
               controller: _cookedWeightController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
+              style: TextStyle(color: textPrimary, fontSize: 15),
+              decoration: const InputDecoration(
                 labelText: 'Вес готового блюда (граммы, с учетом уварки/воды)',
                 hintText: 'например: 1800',
                 helperText: 'Фактический вес кастрюли/формы после варки или выпечки.\nЕсли не указан, равен сумме сырых ингредиентов.',
                 helperMaxLines: 2,
                 suffixText: 'г',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                ),
               ),
             ),
 
@@ -635,23 +672,23 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF10B981).withOpacity(0.08),
+                color: AppColors.primary.withOpacity(isDark ? 0.12 : 0.08),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+                border: Border.all(color: AppColors.primary.withOpacity(0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.local_fire_department, color: Color(0xFF059669), size: 20),
+                      const Icon(Icons.local_fire_department, color: AppColors.primary, size: 20),
                       const SizedBox(width: 6),
                       Text(
                         'КБЖУ готового блюда на 100 г:',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF065F46),
+                          color: isDark ? AppColors.emerald400 : const Color(0xFF065F46),
                         ),
                       ),
                     ],
@@ -663,7 +700,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                         child: _MacroPill(
                           label: 'Ккал',
                           value: _cal100g.toStringAsFixed(0),
-                          color: const Color(0xFFEF4444),
+                          color: AppColors.macroCalorie,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -671,7 +708,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                         child: _MacroPill(
                           label: 'Белки',
                           value: '${_pro100g.toStringAsFixed(1)}г',
-                          color: const Color(0xFF3B82F6),
+                          color: AppColors.macroProtein,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -679,7 +716,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                         child: _MacroPill(
                           label: 'Жиры',
                           value: '${_fat100g.toStringAsFixed(1)}г',
-                          color: const Color(0xFFF59E0B),
+                          color: AppColors.macroFat,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -687,7 +724,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                         child: _MacroPill(
                           label: 'Углев',
                           value: '${_carb100g.toStringAsFixed(1)}г',
-                          color: const Color(0xFF10B981),
+                          color: AppColors.macroCarb,
                         ),
                       ),
                     ],
@@ -705,10 +742,10 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                   : const Icon(Icons.save),
               label: Text(_isSaving ? 'Сохранение...' : 'Сохранить рецепт'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF10B981),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               onPressed: _isSaving ? null : _saveRecipe,
@@ -717,7 +754,8 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 }
 
@@ -734,12 +772,17 @@ class _MacroPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? AppColors.darkCard : Colors.white;
+    final border = isDark ? AppColors.darkBorder : color.withOpacity(0.3);
+    final textSecondary = isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B);
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: bg,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: border),
       ),
       child: Column(
         children: [
@@ -750,7 +793,7 @@ class _MacroPill extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+            style: TextStyle(fontSize: 11, color: textSecondary),
           ),
         ],
       ),

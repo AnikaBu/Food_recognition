@@ -15,6 +15,14 @@ class AppTheme {
         onSurface: AppColors.lightTextPrimary,
         outline: AppColors.lightBorder,
       ),
+      textTheme: const TextTheme(
+        bodyLarge: TextStyle(color: AppColors.lightTextPrimary),
+        bodyMedium: TextStyle(color: AppColors.lightTextPrimary),
+        bodySmall: TextStyle(color: AppColors.lightTextSecondary),
+        titleLarge: TextStyle(color: AppColors.lightTextPrimary, fontWeight: FontWeight.bold),
+        titleMedium: TextStyle(color: AppColors.lightTextPrimary, fontWeight: FontWeight.w600),
+        titleSmall: TextStyle(color: AppColors.lightTextSecondary),
+      ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -44,9 +52,44 @@ class AppTheme {
           textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
       ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.lightCard,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.lightBorder),
+        ),
+        titleTextStyle: const TextStyle(
+          color: AppColors.lightTextPrimary,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
+        contentTextStyle: const TextStyle(
+          color: AppColors.lightTextSecondary,
+          fontSize: 14,
+        ),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.lightCard,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.lightInput,
+        selectedColor: AppColors.primary,
+        labelStyle: const TextStyle(color: AppColors.lightTextSecondary),
+        secondaryLabelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        side: const BorderSide(color: AppColors.lightBorder),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.lightInput,
+        hintStyle: const TextStyle(color: AppColors.lightTextSecondary, fontSize: 13),
+        labelStyle: const TextStyle(color: AppColors.lightTextSecondary, fontSize: 13),
+        helperStyle: const TextStyle(color: AppColors.lightTextSecondary, fontSize: 12),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: AppColors.lightBorder),
@@ -68,13 +111,21 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       primaryColor: AppColors.primary,
-      scaffoldBackgroundColor: AppColors.darkSurface,
+      scaffoldBackgroundColor: AppColors.darkBgBottom,
       colorScheme: const ColorScheme.dark(
         primary: AppColors.primary,
         secondary: AppColors.emerald400,
         surface: AppColors.darkCard,
         onSurface: AppColors.darkTextPrimary,
         outline: AppColors.darkBorder,
+      ),
+      textTheme: const TextTheme(
+        bodyLarge: TextStyle(color: AppColors.darkTextPrimary),
+        bodyMedium: TextStyle(color: AppColors.darkTextPrimary),
+        bodySmall: TextStyle(color: AppColors.darkTextSecondary),
+        titleLarge: TextStyle(color: AppColors.darkTextPrimary, fontWeight: FontWeight.bold),
+        titleMedium: TextStyle(color: AppColors.darkTextPrimary, fontWeight: FontWeight.w600),
+        titleSmall: TextStyle(color: AppColors.darkTextSecondary),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
@@ -105,9 +156,44 @@ class AppTheme {
           textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
       ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.darkCard,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.darkBorder),
+        ),
+        titleTextStyle: const TextStyle(
+          color: AppColors.darkTextPrimary,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
+        contentTextStyle: const TextStyle(
+          color: AppColors.darkTextSecondary,
+          fontSize: 14,
+        ),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.darkCard,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.darkInput,
+        selectedColor: AppColors.primary,
+        labelStyle: const TextStyle(color: AppColors.darkTextSecondary),
+        secondaryLabelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        side: const BorderSide(color: AppColors.darkBorder),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.darkInput,
+        hintStyle: const TextStyle(color: AppColors.darkTextSecondary, fontSize: 13),
+        labelStyle: const TextStyle(color: AppColors.darkTextSecondary, fontSize: 13),
+        helperStyle: const TextStyle(color: AppColors.darkTextSecondary, fontSize: 12),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: AppColors.darkBorder),

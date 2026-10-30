@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../models/meal_models.dart';
 import '../services/api_service.dart';
 import '../widgets/category_selector.dart';
+import '../theme/app_colors.dart';
 import 'recipe_editor_screen.dart';
 
 class RecipesScreen extends StatefulWidget {
@@ -78,17 +79,34 @@ class RecipesScreenState extends State<RecipesScreen> {
   }
 
   Future<void> _deleteRecipe(RecipeRecord recipe) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Удалить рецепт?'),
-        content: Text('Вы действительно хотите удалить «${recipe.title}»?'),
+        backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+        ),
+        title: Text(
+          'Удалить рецепт?',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+          ),
+        ),
+        content: Text(
+          'Вы действительно хотите удалить «${recipe.title}»?',
+          style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Отмена', style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary)),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
+              backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
             ),
             onPressed: () => Navigator.pop(ctx, true),
@@ -132,7 +150,10 @@ class RecipesScreenState extends State<RecipesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: isDark ? Colors.transparent : AppColors.lightScaffold,
       appBar: AppBar(
         title: const Text('Мои рецепты'),
         actions: [
@@ -144,7 +165,7 @@ class RecipesScreenState extends State<RecipesScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF10B981),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text('Создать рецепт'),
@@ -152,15 +173,19 @@ class RecipesScreenState extends State<RecipesScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: loadRecipes,
-        color: const Color(0xFF10B981),
+        color: AppColors.primary,
         child: _buildBody(),
       ),
     );
   }
 
   Widget _buildBody() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)));
+      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
     }
 
     if (_errorMessage != null) {
@@ -170,12 +195,12 @@ class RecipesScreenState extends State<RecipesScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.cloud_off, size: 48, color: Color(0xFF94A3B8)),
+              Icon(Icons.cloud_off, size: 48, color: textSecondary),
               const SizedBox(height: 12),
               Text(
                 _errorMessage!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Color(0xFF64748B), fontSize: 14),
+                style: TextStyle(color: textSecondary, fontSize: 14),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
@@ -201,29 +226,29 @@ class RecipesScreenState extends State<RecipesScreen> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withOpacity(0.1),
+                      color: AppColors.primary.withOpacity(isDark ? 0.15 : 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.restaurant_menu, size: 52, color: Color(0xFF10B981)),
+                    child: const Icon(Icons.restaurant_menu, size: 52, color: AppColors.primary),
                   ),
                   const SizedBox(height: 20),
-                  const Text(
+                  Text(
                     'Нет сохраненных рецептов',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textPrimary),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Создавайте сложные блюда (борщ, запеканку, рагу) с сырыми ингредиентами и точным расчетом уварки/ужарки.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+                    style: TextStyle(fontSize: 14, color: textSecondary),
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF10B981),
+                      backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                     icon: const Icon(Icons.add),
                     label: const Text('Создать первый рецепт'),
@@ -268,15 +293,22 @@ class _RecipeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? AppColors.darkCard : AppColors.lightCard;
+    final cardBorder = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
     final weightStr = recipe.cookedWeightG != null
         ? 'Готовый вес: ${recipe.cookedWeightG!.toStringAsFixed(0)}г (сырой: ${recipe.totalRawWeightG.toStringAsFixed(0)}г)'
         : 'Вес: ${recipe.totalRawWeightG.toStringAsFixed(0)}г';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 14),
+      color: cardBg,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE2E8F0)),
+        side: BorderSide(color: cardBorder),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -293,48 +325,56 @@ class _RecipeCard extends StatelessWidget {
                     children: [
                       Text(
                         recipe.title,
-                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: textPrimary),
                       ),
                       if (recipe.description != null && recipe.description!.isNotEmpty) ...[
                         const SizedBox(height: 2),
                         Text(
                           recipe.description!,
-                          style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                          style: TextStyle(fontSize: 13, color: textSecondary),
                         ),
                       ],
                       const SizedBox(height: 4),
                       Text(
                         weightStr,
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF059669)),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? AppColors.emerald400 : AppColors.primaryDark,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert, size: 20, color: Color(0xFF64748B)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  icon: Icon(Icons.more_vert, size: 20, color: textSecondary),
+                  color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: cardBorder),
+                  ),
                   onSelected: (v) {
                     if (v == 'edit') onEdit();
                     if (v == 'delete') onDelete();
                   },
                   itemBuilder: (_) => [
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'edit',
                       child: Row(
                         children: [
-                          Icon(Icons.edit_outlined, size: 18, color: Color(0xFF334155)),
-                          SizedBox(width: 8),
-                          Text('Редактировать'),
+                          Icon(Icons.edit_outlined, size: 18, color: textPrimary),
+                          const SizedBox(width: 8),
+                          Text('Редактировать', style: TextStyle(color: textPrimary)),
                         ],
                       ),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
-                          SizedBox(width: 8),
-                          Text('Удалить', style: TextStyle(color: Colors.redAccent)),
+                          const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+                          const SizedBox(width: 8),
+                          const Text('Удалить', style: TextStyle(color: AppColors.error)),
                         ],
                       ),
                     ),
@@ -348,17 +388,17 @@ class _RecipeCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
+                color: isDark ? AppColors.darkSurface : const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: cardBorder),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _MacroMini(label: 'ккал / 100г', value: recipe.calories100g.toStringAsFixed(0), color: const Color(0xFFEF4444)),
-                  _MacroMini(label: 'белки', value: '${recipe.protein100g.toStringAsFixed(1)}г', color: const Color(0xFF3B82F6)),
-                  _MacroMini(label: 'жиры', value: '${recipe.fat100g.toStringAsFixed(1)}г', color: const Color(0xFFF59E0B)),
-                  _MacroMini(label: 'углеводы', value: '${recipe.carbs100g.toStringAsFixed(1)}г', color: const Color(0xFF10B981)),
+                  _MacroMini(label: 'ккал / 100г', value: recipe.calories100g.toStringAsFixed(0), color: AppColors.macroCalorie),
+                  _MacroMini(label: 'белки', value: '${recipe.protein100g.toStringAsFixed(1)}г', color: AppColors.macroProtein),
+                  _MacroMini(label: 'жиры', value: '${recipe.fat100g.toStringAsFixed(1)}г', color: AppColors.macroFat),
+                  _MacroMini(label: 'углеводы', value: '${recipe.carbs100g.toStringAsFixed(1)}г', color: AppColors.macroCarb),
                 ],
               ),
             ),
@@ -373,12 +413,13 @@ class _RecipeCard extends StatelessWidget {
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
+                      color: isDark ? AppColors.darkInput : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: isDark ? AppColors.darkBorder : Colors.transparent),
                     ),
                     child: Text(
                       '${it.name} ${it.weightG.toInt()}г',
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF475569)),
+                      style: TextStyle(fontSize: 11, color: textSecondary),
                     ),
                   );
                 }).toList()
@@ -387,12 +428,12 @@ class _RecipeCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE2E8F0),
+                              color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               '+${recipe.items.length - 4}',
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textSecondary),
                             ),
                           )
                         ]
@@ -407,11 +448,11 @@ class _RecipeCard extends StatelessWidget {
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Внести порцию в дневник'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF10B981),
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: onLogPortion,
               ),
@@ -436,6 +477,7 @@ class _MacroMini extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [
         Text(
@@ -444,7 +486,7 @@ class _MacroMini extends StatelessWidget {
         ),
         Text(
           label,
-          style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
+          style: TextStyle(fontSize: 10, color: isDark ? AppColors.darkTextSecondary : const Color(0xFF94A3B8)),
         ),
       ],
     );
@@ -519,14 +561,14 @@ class _LogRecipePortionSheetState extends State<_LogRecipePortionSheet> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('✅ Порция «${widget.recipe.title}» добавлена в дневник!'),
-          backgroundColor: const Color(0xFF10B981),
+          backgroundColor: AppColors.primary,
         ),
       );
       widget.onSuccess();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ $e'), backgroundColor: Colors.redAccent),
+        SnackBar(content: Text('❌ $e'), backgroundColor: AppColors.error),
       );
     } finally {
       if (mounted) setState(() => _isLogging = false);
@@ -535,6 +577,11 @@ class _LogRecipePortionSheetState extends State<_LogRecipePortionSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? AppColors.darkCard : AppColors.lightCard;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
     return Container(
       padding: EdgeInsets.only(
         top: 20,
@@ -542,9 +589,9 @@ class _LogRecipePortionSheetState extends State<_LogRecipePortionSheet> {
         right: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -556,18 +603,18 @@ class _LogRecipePortionSheetState extends State<_LogRecipePortionSheet> {
               Expanded(
                 child: Text(
                   '➕ Внести: ${widget.recipe.title}',
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: textPrimary),
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.close),
+                icon: Icon(Icons.close, color: textSecondary),
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ],
           ),
           const SizedBox(height: 12),
 
-          const Text('Прием пищи', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+          Text('Прием пищи', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textSecondary)),
           const SizedBox(height: 6),
           CategorySelector(
             selected: _selectedMealType,
@@ -575,19 +622,16 @@ class _LogRecipePortionSheetState extends State<_LogRecipePortionSheet> {
           ),
           const SizedBox(height: 16),
 
-          const Text('Вес вашей порции (граммы)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+          Text('Вес вашей порции (граммы)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textSecondary)),
           const SizedBox(height: 6),
           TextField(
             controller: _weightController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             autofocus: true,
-            decoration: InputDecoration(
+            style: TextStyle(color: textPrimary),
+            decoration: const InputDecoration(
               suffixText: 'г',
               hintText: '300',
-              filled: true,
-              fillColor: const Color(0xFFF8FAFC),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
             ),
           ),
           const SizedBox(height: 16),
@@ -596,17 +640,17 @@ class _LogRecipePortionSheetState extends State<_LogRecipePortionSheet> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withOpacity(0.08),
+              color: AppColors.primary.withOpacity(isDark ? 0.12 : 0.08),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF10B981).withOpacity(0.2)),
+              border: Border.all(color: AppColors.primary.withOpacity(0.2)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _MacroMini(label: 'ккал порции', value: _portCalories.toStringAsFixed(0), color: const Color(0xFFEF4444)),
-                _MacroMini(label: 'белки', value: '${_portProtein.toStringAsFixed(1)}г', color: const Color(0xFF3B82F6)),
-                _MacroMini(label: 'жиры', value: '${_portFat.toStringAsFixed(1)}г', color: const Color(0xFFF59E0B)),
-                _MacroMini(label: 'углеводы', value: '${_portCarbs.toStringAsFixed(1)}г', color: const Color(0xFF10B981)),
+                _MacroMini(label: 'ккал порции', value: _portCalories.toStringAsFixed(0), color: AppColors.macroCalorie),
+                _MacroMini(label: 'белки', value: '${_portProtein.toStringAsFixed(1)}г', color: AppColors.macroProtein),
+                _MacroMini(label: 'жиры', value: '${_portFat.toStringAsFixed(1)}г', color: AppColors.macroFat),
+                _MacroMini(label: 'углеводы', value: '${_portCarbs.toStringAsFixed(1)}г', color: AppColors.macroCarb),
               ],
             ),
           ),
@@ -620,10 +664,10 @@ class _LogRecipePortionSheetState extends State<_LogRecipePortionSheet> {
                   : const Icon(Icons.check),
               label: Text(_isLogging ? 'Добавление...' : 'Добавить в дневник'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF10B981),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               onPressed: _isLogging ? null : _submitPortion,

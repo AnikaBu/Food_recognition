@@ -197,7 +197,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightScaffold,
+      backgroundColor: isDark ? Colors.transparent : AppColors.lightScaffold,
       appBar: AppBar(
         title: const Text(
           'Цели & Профиль',
@@ -311,7 +311,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: AppColors.macroCalorie,
                   ),
                   decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.local_fire_department, color: AppColors.macroCalorie),
                     suffixText: 'ккал/день',
                   ),
                 ),

@@ -6,15 +6,23 @@ import db
 
 client = TestClient(app)
 
+import os
+
 @pytest.fixture(autouse=True)
 def isolate_db():
+    orig_env = os.environ.get("DB_PATH")
     orig_db_path = db.DEFAULT_DB_PATH
     test_db_path = Path("test_api.db")
     if test_db_path.exists():
         test_db_path.unlink()
+    os.environ["DB_PATH"] = str(test_db_path)
     db.DEFAULT_DB_PATH = test_db_path
     db.init_db(test_db_path)
     yield
+    if orig_env is not None:
+        os.environ["DB_PATH"] = orig_env
+    else:
+        os.environ.pop("DB_PATH", None)
     db.DEFAULT_DB_PATH = orig_db_path
     if test_db_path.exists():
         test_db_path.unlink()
