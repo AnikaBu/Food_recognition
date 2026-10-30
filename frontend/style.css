@@ -677,9 +677,23 @@ h1 {
   background: #e2e8f0;
   border-color: #94a3b8;
 }
-.btn-barcode:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.btn-recipes-shortcut {
+  background: rgba(30, 144, 255, 0.08);
+  border: 1px solid rgba(30, 144, 255, 0.4);
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+.btn-recipes-shortcut:hover {
+  background: rgba(30, 144, 255, 0.15);
+  border-color: var(--primary);
 }
 
 .barcode-hint {

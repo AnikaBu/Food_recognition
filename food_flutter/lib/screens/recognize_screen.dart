@@ -565,10 +565,10 @@ class RecognizeScreenState extends State<RecognizeScreen> {
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: AppColors.amber500.withOpacity(0.15),
+                        color: AppColors.warning.withOpacity(0.15),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.lightbulb_outline, color: AppColors.amber500, size: 18),
+                      child: const Icon(Icons.lightbulb_outline, color: AppColors.warning, size: 18),
                     ),
                     const SizedBox(width: 12),
                     Expanded(

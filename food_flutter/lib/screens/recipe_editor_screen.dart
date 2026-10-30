@@ -658,9 +658,9 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               style: TextStyle(color: textPrimary, fontSize: 15),
               decoration: const InputDecoration(
-                labelText: 'Вес готового блюда (граммы, с учетом уварки/воды)',
+                labelText: 'Вес готового блюда',
                 hintText: 'например: 1800',
-                helperText: 'Фактический вес кастрюли/формы после варки или выпечки.\nЕсли не указан, равен сумме сырых ингредиентов.',
+                helperText: 'Фактический вес готового блюда (г) без учета веса посуды.\nЕсли не указан, равен сумме сырых ингредиентов.',
                 helperMaxLines: 2,
                 suffixText: 'г',
               ),

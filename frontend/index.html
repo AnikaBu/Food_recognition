@@ -163,7 +163,10 @@
         <!-- Название блюда с кнопками ИИ-расчета и штрихкода -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
           <label class="form-label" for="manualDishName" style="margin-bottom: 0;">Название продукта или блюда <span class="required">*</span></label>
-          <div style="display: flex; gap: 6px;">
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <button type="button" class="btn-recipes-shortcut" id="manualRecipesShortcutBtn" title="Выбрать блюдо из ваших сохраненных рецептов">
+              📖 Ваши рецепты
+            </button>
             <button type="button" class="btn-barcode" id="manualBarcodeBtn" title="Найти продукт по штрихкоду (Open Food Facts)">
               📦 Штрихкод
             </button>
@@ -312,11 +315,11 @@
         <!-- Выход готового блюда -->
         <div style="margin-top: 12px;">
           <label class="form-label" for="recipeEditorCookedWeight">
-            ⚖️ Вес готового блюда (граммы, с учетом уварки/воды)
+            ⚖️ Вес готового блюда
           </label>
           <input type="number" id="recipeEditorCookedWeight" class="form-input" placeholder="например: 1800" min="1" step="any" />
           <div class="field-hint">
-            Укажите фактический вес кастрюли/формы после варки или выпечки. Если не указан, равен сумме сырых ингредиентов.
+            Фактический вес готового блюда (г) без учета веса посуды. Если не указан, равен сумме сырых ингредиентов.
           </div>
         </div>
 

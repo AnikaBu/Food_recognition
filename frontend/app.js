@@ -156,6 +156,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Кнопка поиска по штрихкоду
   document.getElementById("manualBarcodeBtn")?.addEventListener("click", openBarcodeModal);
+  // Кнопка перехода к рецептам из ручного ввода
+  document.getElementById("manualRecipesShortcutBtn")?.addEventListener("click", () => {
+    closeManualMealModal();
+    openRecipesListModal();
+  });
   document.getElementById("closeBarcodeModalBtn")?.addEventListener("click", closeBarcodeModal);
   document.getElementById("barcodeModal")?.addEventListener("click", (e) => {
     if (e.target.id === "barcodeModal") closeBarcodeModal();

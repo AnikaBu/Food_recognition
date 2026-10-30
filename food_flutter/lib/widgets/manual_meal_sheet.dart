@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import '../theme/app_colors.dart';
 import 'category_selector.dart';
 import 'barcode_scanner_dialog.dart';
+import 'recipe_picker_sheet.dart';
 
 class ManualMealSheet extends StatefulWidget {
   final DateTime date;
@@ -216,6 +217,19 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
         });
       }
     }
+  void _openRecipePicker() {
+    Navigator.of(context).pop();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => RecipePickerSheet(
+        apiService: widget.apiService,
+        date: widget.date,
+        initialMealType: _selectedMealType,
+        onPortionLogged: widget.onMealSaved,
+      ),
+    );
   }
 
   Future<void> _submit() async {
@@ -392,7 +406,58 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                   selected: _selectedMealType,
                   onSelected: (type) => setState(() => _selectedMealType = type),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
+
+                // Быстрый переход: Ваши рецепты
+                InkWell(
+                  onTap: _openRecipePicker,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(isDark ? 0.12 : 0.08),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.menu_book, color: AppColors.primary, size: 18),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Выбрать из ваших рецептов',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: textPrimary,
+                                ),
+                              ),
+                              Text(
+                                'Борщ, рагу, запеканка с учетом уварки',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right, color: AppColors.primary, size: 20),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
 
                 // Dish Name
                 TextFormField(
@@ -448,48 +513,69 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                 ),
                 const SizedBox(height: 8),
 
-                // Быстрые кнопки: Штрихкод и ИИ-расчет
+                // Быстрые кнопки: Рецепты, Штрихкод и ИИ-расчет
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: (_isLookingUpBarcode || _isEstimatingAi) ? null : _scanBarcode,
-                        icon: _isLookingUpBarcode
-                            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))
-                            : const Icon(Icons.qr_code_scanner, size: 16, color: AppColors.primary),
+                        onPressed: _openRecipePicker,
+                        icon: const Icon(Icons.menu_book, size: 14, color: AppColors.primary),
                         label: Text(
-                          _isLookingUpBarcode ? 'Поиск...' : 'Штрихкод (OFF)',
+                          'Рецепты',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: isDark ? AppColors.emerald400 : AppColors.primaryDark,
                           ),
                         ),
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
                           backgroundColor: isDark ? AppColors.primary.withOpacity(0.12) : Colors.transparent,
                           side: BorderSide(color: isDark ? AppColors.primary.withOpacity(0.5) : AppColors.primary),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: (_isLookingUpBarcode || _isEstimatingAi) ? null : _estimateWithAi,
-                        icon: _isEstimatingAi
+                        onPressed: (_isLookingUpBarcode || _isEstimatingAi) ? null : _scanBarcode,
+                        icon: _isLookingUpBarcode
                             ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))
-                            : const Icon(Icons.auto_awesome, size: 16, color: AppColors.primary),
+                            : const Icon(Icons.qr_code_scanner, size: 14, color: AppColors.primary),
                         label: Text(
-                          _isEstimatingAi ? 'Считаем...' : 'ИИ-расчет',
+                          _isLookingUpBarcode ? 'Поиск...' : 'Штрихкод',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: isDark ? AppColors.emerald400 : AppColors.primaryDark,
                           ),
                         ),
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+                          backgroundColor: isDark ? AppColors.primary.withOpacity(0.12) : Colors.transparent,
+                          side: BorderSide(color: isDark ? AppColors.primary.withOpacity(0.5) : AppColors.primary),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: (_isLookingUpBarcode || _isEstimatingAi) ? null : _estimateWithAi,
+                        icon: _isEstimatingAi
+                            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))
+                            : const Icon(Icons.auto_awesome, size: 14, color: AppColors.primary),
+                        label: Text(
+                          _isEstimatingAi ? 'Считаем...' : 'ИИ-расчет',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? AppColors.emerald400 : AppColors.primaryDark,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
                           backgroundColor: isDark ? AppColors.primary.withOpacity(0.12) : Colors.transparent,
                           side: BorderSide(color: isDark ? AppColors.primary.withOpacity(0.5) : AppColors.primary),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
