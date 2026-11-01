@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import '../services/settings_service.dart';
 import '../services/update_service.dart';
 import '../widgets/update_dialog.dart';
+import '../widgets/macro_calculator_sheet.dart';
 import '../theme/app_colors.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -89,9 +90,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             remoteGoals.carbs,
             isExplicitUserAction: false,
           );
+          if (remoteGoals.gender != null && remoteGoals.age != null && remoteGoals.heightCm != null && remoteGoals.weightKg != null) {
+            await widget.settingsService.saveCalculatorProfile(
+              gender: remoteGoals.gender!,
+              age: remoteGoals.age!,
+              height: remoteGoals.heightCm!,
+              weight: remoteGoals.weightKg!,
+              activity: remoteGoals.activityLevel ?? 'moderate',
+              goal: remoteGoals.goal ?? 'lose_weight',
+            );
+          }
         }
       } catch (_) {}
     }
+
   }
 
   Future<void> _saveUrl() async {
@@ -142,6 +154,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         protein: p,
         fat: f,
         carbs: c,
+        gender: widget.settingsService.calcGender,
+        age: widget.settingsService.calcAge,
+        heightCm: widget.settingsService.calcHeight,
+        weightKg: widget.settingsService.calcWeight,
+        activityLevel: widget.settingsService.calcActivity,
+        goal: widget.settingsService.calcGoal,
       ));
       syncedWithServer = true;
     } catch (_) {
@@ -155,6 +173,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ? 'Ваши новые цели КБЖУ сохранены в приложении и в базе! ☁️✅'
               : 'Ваши новые цели КБЖУ зафиксированы в приложении! 📱✅'),
           backgroundColor: AppColors.primary,
+        ),
+      );
+    }
+  }
+
+  Future<void> _openMacroCalculator() async {
+    final result = await MacroCalculatorSheet.show(
+      context,
+      settingsService: widget.settingsService,
+    );
+
+    if (result != null && mounted) {
+      setState(() {
+        _calController.text = result.calories.toStringAsFixed(0);
+        _proteinController.text = result.protein.toStringAsFixed(0);
+        _fatController.text = result.fat.toStringAsFixed(0);
+        _carbsController.text = result.carbs.toStringAsFixed(0);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Расчёт КБЖУ применён! Вы можете скорректировать цифры и нажать «Сохранить цели». ✨',
+          ),
+          backgroundColor: AppColors.primary,
+          duration: Duration(seconds: 4),
         ),
       );
     }
@@ -291,7 +335,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         color: textSecondary,
                       ),
                     ),
-                    const Icon(Icons.fitness_center, size: 16, color: AppColors.primary),
+                    InkWell(
+                      onTap: _openMacroCalculator,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.primary.withOpacity(0.35)),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.auto_awesome, size: 13, color: AppColors.primary),
+                            SizedBox(width: 5),
+                            Text(
+                              'Калькулятор КБЖУ',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 14),

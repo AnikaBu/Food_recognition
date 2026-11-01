@@ -11,6 +11,13 @@ class SettingsService extends ChangeNotifier {
   static const String _keyHasCustomGoals = 'has_user_custom_goals';
   static const String _keyIsDarkMode = 'is_dark_mode';
 
+  static const String _keyCalcGender = 'calc_gender';
+  static const String _keyCalcAge = 'calc_age';
+  static const String _keyCalcHeight = 'calc_height';
+  static const String _keyCalcWeight = 'calc_weight';
+  static const String _keyCalcActivity = 'calc_activity';
+  static const String _keyCalcGoal = 'calc_goal';
+
   static const String defaultServerUrl = 'http://192.168.1.100:8000';
   static const double defaultTargetCalories = 2000.0;
   static const double defaultTargetProtein = 90.0;
@@ -25,12 +32,26 @@ class SettingsService extends ChangeNotifier {
   bool _isDarkMode = true; // Prototype opens in Dark Mode by default
   bool _initialized = false;
 
+  String _calcGender = 'female';
+  int _calcAge = 28;
+  double _calcHeight = 168.0;
+  double _calcWeight = 62.0;
+  String _calcActivity = 'moderate';
+  String _calcGoal = 'lose_weight';
+
   double get targetCalories => _cachedCalories;
   double get targetProtein => _cachedProtein;
   double get targetFat => _cachedFat;
   double get targetCarbs => _cachedCarbs;
   bool get hasCustomGoals => _hasCustomGoals;
   bool get isDarkMode => _isDarkMode;
+
+  String get calcGender => _calcGender;
+  int get calcAge => _calcAge;
+  double get calcHeight => _calcHeight;
+  double get calcWeight => _calcWeight;
+  String get calcActivity => _calcActivity;
+  String get calcGoal => _calcGoal;
 
   Future<void> init() async {
     if (_initialized) return;
@@ -41,6 +62,14 @@ class SettingsService extends ChangeNotifier {
     _cachedProtein = prefs.getDouble(_keyTargetProtein) ?? defaultTargetProtein;
     _cachedFat = prefs.getDouble(_keyTargetFat) ?? defaultTargetFat;
     _cachedCarbs = prefs.getDouble(_keyTargetCarbs) ?? defaultTargetCarbs;
+
+    _calcGender = prefs.getString(_keyCalcGender) ?? 'female';
+    _calcAge = prefs.getInt(_keyCalcAge) ?? 28;
+    _calcHeight = prefs.getDouble(_keyCalcHeight) ?? 168.0;
+    _calcWeight = prefs.getDouble(_keyCalcWeight) ?? 62.0;
+    _calcActivity = prefs.getString(_keyCalcActivity) ?? 'moderate';
+    _calcGoal = prefs.getString(_keyCalcGoal) ?? 'lose_weight';
+
     _initialized = true;
     notifyListeners();
   }
@@ -161,6 +190,31 @@ class SettingsService extends ChangeNotifier {
     }
   }
 
+  Future<void> saveCalculatorProfile({
+    required String gender,
+    required int age,
+    required double height,
+    required double weight,
+    required String activity,
+    required String goal,
+  }) async {
+    _calcGender = gender;
+    _calcAge = age;
+    _calcHeight = height;
+    _calcWeight = weight;
+    _calcActivity = activity;
+    _calcGoal = goal;
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyCalcGender, gender);
+    await prefs.setInt(_keyCalcAge, age);
+    await prefs.setDouble(_keyCalcHeight, height);
+    await prefs.setDouble(_keyCalcWeight, weight);
+    await prefs.setString(_keyCalcActivity, activity);
+    await prefs.setString(_keyCalcGoal, goal);
+  }
+
   Future<void> setDarkMode(bool isDark) async {
     if (_isDarkMode == isDark) return;
     _isDarkMode = isDark;
@@ -173,4 +227,5 @@ class SettingsService extends ChangeNotifier {
     await setDarkMode(!_isDarkMode);
   }
 }
+
 
