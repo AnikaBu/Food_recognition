@@ -285,6 +285,12 @@ class NutritionGoals {
   final double fat;
   final double carbs;
   final String? updatedAt;
+  final String? gender;
+  final int? age;
+  final double? heightCm;
+  final double? weightKg;
+  final String? activityLevel;
+  final String? goal;
 
   NutritionGoals({
     required this.calories,
@@ -292,6 +298,12 @@ class NutritionGoals {
     required this.fat,
     required this.carbs,
     this.updatedAt,
+    this.gender,
+    this.age,
+    this.heightCm,
+    this.weightKg,
+    this.activityLevel,
+    this.goal,
   });
 
   factory NutritionGoals.fromJson(Map<String, dynamic> json) {
@@ -301,6 +313,12 @@ class NutritionGoals {
       fat: (json['fat'] as num?)?.toDouble() ?? 65.0,
       carbs: (json['carbs'] as num?)?.toDouble() ?? 250.0,
       updatedAt: json['updated_at'] as String?,
+      gender: json['gender'] as String?,
+      age: json['age'] as int?,
+      heightCm: (json['height_cm'] as num?)?.toDouble(),
+      weightKg: (json['weight_kg'] as num?)?.toDouble(),
+      activityLevel: json['activity_level'] as String?,
+      goal: json['goal'] as String?,
     );
   }
 
@@ -309,6 +327,12 @@ class NutritionGoals {
     'protein': protein,
     'fat': fat,
     'carbs': carbs,
+    if (gender != null) 'gender': gender,
+    if (age != null) 'age': age,
+    if (heightCm != null) 'height_cm': heightCm,
+    if (weightKg != null) 'weight_kg': weightKg,
+    if (activityLevel != null) 'activity_level': activityLevel,
+    if (goal != null) 'goal': goal,
   };
 }
 

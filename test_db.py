@@ -94,15 +94,39 @@ def test_database_workflow():
     print("✅ 7. Суточные цели по умолчанию прочитаны из БД.")
 
     custom_goals = db.update_goals(
-        NutritionGoals(calories=2300.0, protein=130.0, fat=70.0, carbs=220.0),
+        NutritionGoals(
+            calories=2300.0,
+            protein=130.0,
+            fat=70.0,
+            carbs=220.0,
+            gender="male",
+            age=29,
+            height_cm=178.0,
+            weight_kg=76.5,
+            activity_level="moderate",
+            goal="lose_weight",
+        ),
         db_path=test_db_path
     )
     assert custom_goals.calories == 2300.0
     assert custom_goals.protein == 130.0
+    assert custom_goals.gender == "male"
+    assert custom_goals.age == 29
+    assert custom_goals.height_cm == 178.0
+    assert custom_goals.weight_kg == 76.5
+    assert custom_goals.activity_level == "moderate"
+    assert custom_goals.goal == "lose_weight"
+
     persisted_goals = db.get_goals(db_path=test_db_path)
     assert persisted_goals.calories == 2300.0
     assert persisted_goals.protein == 130.0
-    print("✅ 8. Обновленные цели КБЖУ успешно сохранены и прочитаны из БД.")
+    assert persisted_goals.gender == "male"
+    assert persisted_goals.age == 29
+    assert persisted_goals.height_cm == 178.0
+    assert persisted_goals.weight_kg == 76.5
+    assert persisted_goals.activity_level == "moderate"
+    assert persisted_goals.goal == "lose_weight"
+    print("✅ 8. Обновленные цели КБЖУ и профиль калькулятора успешно сохранены и прочитаны из БД.")
 
     # 10. Тестирование создания и использования рецепта со списанием уварки/ужарки
     from models import CreateRecipeRequest, RecipeIngredientItem

@@ -134,13 +134,30 @@ def test_api_endpoints():
     assert "calories" in goals and "protein" in goals
     print(f"✅ 6.1. GET /api/goals — цели получены ({goals['calories']} ккал, {goals['protein']}г белка).")
 
-    new_goals = {"calories": 2150.0, "protein": 115.0, "fat": 65.0, "carbs": 240.0}
+    new_goals = {
+        "calories": 2150.0,
+        "protein": 115.0,
+        "fat": 65.0,
+        "carbs": 240.0,
+        "gender": "female",
+        "age": 27,
+        "height_cm": 168.0,
+        "weight_kg": 59.0,
+        "activity_level": "light",
+        "goal": "lose_weight",
+    }
     resp_put_goals = client.put("/api/goals", json=new_goals)
     assert resp_put_goals.status_code == 200
     saved_goals = resp_put_goals.json()
     assert saved_goals["calories"] == 2150.0
     assert saved_goals["protein"] == 115.0
-    print("✅ 6.2. PUT /api/goals — цели успешно обновлены и сохранены в БД.")
+    assert saved_goals["gender"] == "female"
+    assert saved_goals["age"] == 27
+    assert saved_goals["height_cm"] == 168.0
+    assert saved_goals["weight_kg"] == 59.0
+    assert saved_goals["activity_level"] == "light"
+    assert saved_goals["goal"] == "lose_weight"
+    print("✅ 6.2. PUT /api/goals — цели и параметры профиля успешно обновлены и сохранены в БД.")
 
     # 7. Тестирование распознавания фото через эндпоинт /api/analyze-photo
     sample_img_path = Path("sample_dish.jpg")

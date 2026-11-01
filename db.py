@@ -67,6 +67,12 @@ def init_db(db_path: Optional[Path] = None) -> None:
                 protein REAL NOT NULL DEFAULT 90.0,
                 fat REAL NOT NULL DEFAULT 65.0,
                 carbs REAL NOT NULL DEFAULT 250.0,
+                gender TEXT,
+                age INTEGER,
+                height_cm REAL,
+                weight_kg REAL,
+                activity_level TEXT,
+                goal TEXT,
                 updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
             );
 
@@ -103,6 +109,21 @@ def init_db(db_path: Optional[Path] = None) -> None:
             CREATE INDEX IF NOT EXISTS idx_recipes_updated_at ON recipes(updated_at);
             CREATE INDEX IF NOT EXISTS idx_recipe_items_recipe_id ON recipe_items(recipe_id);
         """)
+
+        # Миграция: автоматическое добавление колонок калькулятора, если таблица была создана ранее
+        existing_goal_cols = {col[1] for col in conn.execute("PRAGMA table_info(nutrition_goals);").fetchall()}
+        for col_name, col_type in [
+            ("gender", "TEXT"),
+            ("age", "INTEGER"),
+            ("height_cm", "REAL"),
+            ("weight_kg", "REAL"),
+            ("activity_level", "TEXT"),
+            ("goal", "TEXT"),
+        ]:
+            if col_name not in existing_goal_cols:
+                conn.execute(f"ALTER TABLE nutrition_goals ADD COLUMN {col_name} {col_type};")
+        conn.commit()
+
 
 
 def save_meal(
@@ -315,19 +336,28 @@ def get_daily_summary(
 
 
 def get_goals(db_path: Optional[Path] = None) -> NutritionGoals:
-    """Получает текущие суточные цели по КБЖУ из базы данных."""
+    """Получает текущие суточные цели по КБЖУ и параметры профиля из базы данных."""
     init_db(db_path)
     with get_connection(db_path) as conn:
         row = conn.execute(
-            "SELECT calories, protein, fat, carbs, updated_at FROM nutrition_goals WHERE id = 1;"
+            """SELECT calories, protein, fat, carbs, gender, age, height_cm, weight_kg,
+                      activity_level, goal, updated_at
+               FROM nutrition_goals WHERE id = 1;"""
         ).fetchone()
         if row:
+            keys = row.keys()
             return NutritionGoals(
                 calories=float(row["calories"]),
                 protein=float(row["protein"]),
                 fat=float(row["fat"]),
                 carbs=float(row["carbs"]),
-                updated_at=str(row["updated_at"]),
+                gender=row["gender"] if "gender" in keys and row["gender"] is not None else None,
+                age=int(row["age"]) if "age" in keys and row["age"] is not None else None,
+                height_cm=float(row["height_cm"]) if "height_cm" in keys and row["height_cm"] is not None else None,
+                weight_kg=float(row["weight_kg"]) if "weight_kg" in keys and row["weight_kg"] is not None else None,
+                activity_level=row["activity_level"] if "activity_level" in keys and row["activity_level"] is not None else None,
+                goal=row["goal"] if "goal" in keys and row["goal"] is not None else None,
+                updated_at=str(row["updated_at"]) if row["updated_at"] is not None else None,
             )
         return NutritionGoals()
 
@@ -336,21 +366,42 @@ def update_goals(
     goals: NutritionGoals,
     db_path: Optional[Path] = None,
 ) -> NutritionGoals:
-    """Обновляет суточные цели по КБЖУ в базе данных."""
+    """Обновляет суточные цели по КБЖУ и параметры профиля в базе данных."""
     init_db(db_path)
     with get_connection(db_path) as conn:
         conn.execute(
             """
-            INSERT INTO nutrition_goals (id, calories, protein, fat, carbs, updated_at)
-            VALUES (1, ?, ?, ?, ?, datetime('now', 'localtime'))
+            INSERT INTO nutrition_goals (
+                id, calories, protein, fat, carbs,
+                gender, age, height_cm, weight_kg, activity_level, goal,
+                updated_at
+            )
+            VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
             ON CONFLICT(id) DO UPDATE SET
                 calories = excluded.calories,
                 protein = excluded.protein,
                 fat = excluded.fat,
                 carbs = excluded.carbs,
+                gender = coalesce(excluded.gender, nutrition_goals.gender),
+                age = coalesce(excluded.age, nutrition_goals.age),
+                height_cm = coalesce(excluded.height_cm, nutrition_goals.height_cm),
+                weight_kg = coalesce(excluded.weight_kg, nutrition_goals.weight_kg),
+                activity_level = coalesce(excluded.activity_level, nutrition_goals.activity_level),
+                goal = coalesce(excluded.goal, nutrition_goals.goal),
                 updated_at = excluded.updated_at;
             """,
-            (goals.calories, goals.protein, goals.fat, goals.carbs),
+            (
+                goals.calories,
+                goals.protein,
+                goals.fat,
+                goals.carbs,
+                goals.gender,
+                goals.age,
+                goals.height_cm,
+                goals.weight_kg,
+                goals.activity_level,
+                goals.goal,
+            ),
         )
         conn.commit()
     return get_goals(db_path=db_path)

@@ -101,7 +101,14 @@ class NutritionGoals(BaseModel):
     protein: float = Field(default=90.0, ge=0, description="Суточная норма белков (г)")
     fat: float = Field(default=65.0, ge=0, description="Суточная норма жиров (г)")
     carbs: float = Field(default=250.0, ge=0, description="Суточная норма углеводов (г)")
+    gender: Optional[str] = Field(default=None, description="Пол ('male' / 'female')")
+    age: Optional[int] = Field(default=None, description="Возраст (лет)")
+    height_cm: Optional[float] = Field(default=None, description="Рост (см)")
+    weight_kg: Optional[float] = Field(default=None, description="Вес (кг)")
+    activity_level: Optional[str] = Field(default=None, description="Уровень активности")
+    goal: Optional[str] = Field(default=None, description="Цель ('lose_weight', 'maintain', 'gain_weight')")
     updated_at: Optional[str] = Field(default=None, description="Время последнего обновления")
+
 
 
 class EstimateNutritionRequest(BaseModel):
