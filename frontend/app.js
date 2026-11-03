@@ -100,6 +100,44 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // Свайпы влево / вправо для навигации по дням (мобильный веб / PWA)
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  document.addEventListener("touchstart", (e) => {
+    // Не перехватывать свайпы внутри открытых модальных окон
+    const activeModal = document.querySelector(".modal:not([style*='display: none'])");
+    if (activeModal && activeModal.contains(e.target)) return;
+    
+    if (e.changedTouches && e.changedTouches.length > 0) {
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+    }
+  }, { passive: true });
+
+  document.addEventListener("touchend", (e) => {
+    const activeModal = document.querySelector(".modal:not([style*='display: none'])");
+    if (activeModal && activeModal.contains(e.target)) return;
+
+    if (e.changedTouches && e.changedTouches.length > 0) {
+      const touchEndX = e.changedTouches[0].screenX;
+      const touchEndY = e.changedTouches[0].screenY;
+      const diffX = touchEndX - touchStartX;
+      const diffY = touchEndY - touchStartY;
+
+      // Горизонтальный свайп: минимальная дистанция 60px и горизонтальное смещение в 1.5 раза больше вертикального
+      if (Math.abs(diffX) > 60 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
+        if (diffX < 0) {
+          // Свайп влево -> следующий день
+          changeDate(1);
+        } else {
+          // Свайп вправо -> предыдущий день
+          changeDate(-1);
+        }
+      }
+    }
+  }, { passive: true });
+
   // Загрузка фото
   const fileInput = document.getElementById("fileInput");
   const cameraInput = document.getElementById("cameraInput");

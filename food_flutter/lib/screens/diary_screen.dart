@@ -31,6 +31,8 @@ class DiaryScreenState extends State<DiaryScreen> {
   bool _isLoading = false;
   String? _errorMessage;
   DailySummary? _summary;
+  double _horizontalDragDistance = 0.0;
+  int _slideDirection = 1;
 
   double _targetCalories = 2000;
   double _targetProtein = 90;
@@ -172,12 +174,27 @@ class DiaryScreenState extends State<DiaryScreen> {
         );
       },
     );
-    if (picked != null && picked != _selectedDate) {
+    if (picked != null && !_isSameDay(picked, _selectedDate)) {
+      final delta = picked.difference(_selectedDate).inDays;
       setState(() {
+        _slideDirection = delta >= 0 ? 1 : -1;
         _selectedDate = picked;
       });
       await _loadSummary();
     }
+  }
+
+  void _changeDay(int delta) {
+    final newDate = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day + delta,
+    );
+    setState(() {
+      _slideDirection = delta > 0 ? 1 : -1;
+      _selectedDate = newDate;
+    });
+    _loadSummary();
   }
 
   void _showManualAddMealModal({MealType? mealType}) {
@@ -253,8 +270,8 @@ class DiaryScreenState extends State<DiaryScreen> {
   }
 
   List<DateTime> _getWeekDates(DateTime centerDate) {
-    final monday = centerDate.subtract(Duration(days: centerDate.weekday - 1));
-    return List.generate(7, (i) => DateTime(monday.year, monday.month, monday.day).add(Duration(days: i)));
+    final monday = DateTime(centerDate.year, centerDate.month, centerDate.day - (centerDate.weekday - 1));
+    return List.generate(7, (i) => DateTime(monday.year, monday.month, monday.day + i));
   }
 
   bool _isSameDay(DateTime a, DateTime b) {
@@ -285,10 +302,31 @@ class DiaryScreenState extends State<DiaryScreen> {
     return Scaffold(
       backgroundColor: isDark ? Colors.transparent : AppColors.lightScaffold,
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: reloadGoalsAndData,
-          color: AppColors.primary,
-          child: ListView(
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onHorizontalDragStart: (_) {
+            _horizontalDragDistance = 0.0;
+          },
+          onHorizontalDragUpdate: (details) {
+            _horizontalDragDistance += details.delta.dx;
+          },
+          onHorizontalDragEnd: (details) {
+            final velocity = details.primaryVelocity ?? 0.0;
+            if (_horizontalDragDistance < -50 || velocity < -250) {
+              if (velocity <= 150) {
+                _changeDay(1);
+              }
+            } else if (_horizontalDragDistance > 50 || velocity > 250) {
+              if (velocity >= -150) {
+                _changeDay(-1);
+              }
+            }
+            _horizontalDragDistance = 0.0;
+          },
+          child: RefreshIndicator(
+            onRefresh: reloadGoalsAndData,
+            color: AppColors.primary,
+            child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             children: [
               // 1. Top Header (Date + Refresh Button)
@@ -382,10 +420,14 @@ class DiaryScreenState extends State<DiaryScreen> {
 
                   return GestureDetector(
                     onTap: () {
-                      setState(() {
-                        _selectedDate = dayDate;
-                      });
-                      _loadSummary();
+                      if (!_isSameDay(dayDate, _selectedDate)) {
+                        final delta = dayDate.difference(_selectedDate).inDays;
+                        setState(() {
+                          _slideDirection = delta >= 0 ? 1 : -1;
+                          _selectedDate = dayDate;
+                        });
+                        _loadSummary();
+                      }
                     },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
@@ -462,117 +504,141 @@ class DiaryScreenState extends State<DiaryScreen> {
 
               const SizedBox(height: 14),
 
-              // 3. Daily Summary Card
-              if (_isLoading && _summary == null)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
-                  child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
-                )
-              else if (_errorMessage != null)
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF2D1515) : const Color(0xFFFEF2F2),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.error.withOpacity(0.4)),
-                  ),
+              // 3. Daily Content with Directional Slide Transition
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) {
+                  final offsetAnim = Tween<Offset>(
+                    begin: Offset(_slideDirection * 0.25, 0.0),
+                    end: Offset.zero,
+                  ).animate(animation);
+                  return SlideTransition(
+                    position: offsetAnim,
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
+                child: KeyedSubtree(
+                  key: ValueKey('${_selectedDate.year}-${_selectedDate.month}-${_selectedDate.day}'),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Icon(Icons.cloud_off, size: 36, color: AppColors.error),
-                      const SizedBox(height: 8),
-                      Text(
-                        _errorMessage!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: AppColors.error, fontSize: 13),
-                      ),
-                      const SizedBox(height: 10),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-                        onPressed: _loadSummary,
-                        child: const Text('Повторить', style: TextStyle(color: Colors.white)),
-                      ),
+                      if (_isLoading && _summary == null)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 40),
+                          child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                        )
+                      else if (_errorMessage != null)
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF2D1515) : const Color(0xFFFEF2F2),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppColors.error.withOpacity(0.4)),
+                          ),
+                          child: Column(
+                            children: [
+                              const Icon(Icons.cloud_off, size: 36, color: AppColors.error),
+                              const SizedBox(height: 8),
+                              Text(
+                                _errorMessage!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: AppColors.error, fontSize: 13),
+                              ),
+                              const SizedBox(height: 10),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+                                onPressed: _loadSummary,
+                                child: const Text('Повторить', style: TextStyle(color: Colors.white)),
+                              ),
+                            ],
+                          ),
+                        )
+                      else if (_summary != null) ...[
+                        DailySummaryCard(
+                          summary: _summary!,
+                          targetCalories: _targetCalories,
+                          targetProtein: _targetProtein,
+                          targetFat: _targetFat,
+                          targetCarbs: _targetCarbs,
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        // 4. Meal Sections Accordion
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'ПРИЕМЫ ПИЩИ',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.6,
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                              ),
+                            ),
+                            Text(
+                              '${_summary!.meals.length} ${_getPluralMeals(_summary!.meals.length)}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        _buildMealCategoryCard(
+                          type: MealType.breakfast,
+                          emoji: '🍳',
+                          title: 'Завтрак',
+                          badge: null,
+                          bgColor: AppColors.catBreakfastBg,
+                          textColor: AppColors.catBreakfastText,
+                        ),
+                        const SizedBox(height: 10),
+                        _buildMealCategoryCard(
+                          type: MealType.lunch,
+                          emoji: '🥗',
+                          title: 'Обед',
+                          badge: 'Основной',
+                          bgColor: AppColors.catLunchBg,
+                          textColor: AppColors.catLunchText,
+                        ),
+                        const SizedBox(height: 10),
+                        _buildMealCategoryCard(
+                          type: MealType.dinner,
+                          emoji: '🥑',
+                          title: 'Ужин',
+                          badge: null,
+                          bgColor: AppColors.catDinnerBg,
+                          textColor: AppColors.catDinnerText,
+                        ),
+                        const SizedBox(height: 10),
+                        _buildMealCategoryCard(
+                          type: MealType.snack,
+                          emoji: '🍏',
+                          title: 'Перекус',
+                          badge: null,
+                          bgColor: AppColors.catSnackBg,
+                          textColor: AppColors.catSnackText,
+                        ),
+                      ],
                     ],
                   ),
-                )
-              else if (_summary != null) ...[
-                DailySummaryCard(
-                  summary: _summary!,
-                  targetCalories: _targetCalories,
-                  targetProtein: _targetProtein,
-                  targetFat: _targetFat,
-                  targetCarbs: _targetCarbs,
                 ),
-
-                const SizedBox(height: 18),
-
-                // 4. Meal Sections Accordion
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'ПРИЕМЫ ПИЩИ',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.6,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                      ),
-                    ),
-                    Text(
-                      '${_summary!.meals.length} ${_getPluralMeals(_summary!.meals.length)}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 10),
-
-                _buildMealCategoryCard(
-                  type: MealType.breakfast,
-                  emoji: '🍳',
-                  title: 'Завтрак',
-                  badge: null,
-                  bgColor: AppColors.catBreakfastBg,
-                  textColor: AppColors.catBreakfastText,
-                ),
-                const SizedBox(height: 10),
-                _buildMealCategoryCard(
-                  type: MealType.lunch,
-                  emoji: '🥗',
-                  title: 'Обед',
-                  badge: 'Основной',
-                  bgColor: AppColors.catLunchBg,
-                  textColor: AppColors.catLunchText,
-                ),
-                const SizedBox(height: 10),
-                _buildMealCategoryCard(
-                  type: MealType.dinner,
-                  emoji: '🥑',
-                  title: 'Ужин',
-                  badge: null,
-                  bgColor: AppColors.catDinnerBg,
-                  textColor: AppColors.catDinnerText,
-                ),
-                const SizedBox(height: 10),
-                _buildMealCategoryCard(
-                  type: MealType.snack,
-                  emoji: '🍏',
-                  title: 'Перекус',
-                  badge: null,
-                  bgColor: AppColors.catSnackBg,
-                  textColor: AppColors.catSnackText,
-                ),
-              ],
+              ),
 
               const SizedBox(height: 80),
             ],
           ),
         ),
       ),
+    ),
     );
   }
 
