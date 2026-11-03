@@ -20,7 +20,8 @@
 
 ## 4. Технические особенности и опыт (Lessons Learned)
 - **Модели Gemini Vision**: актуальными являются `gemini-3.5-flash-lite` и `gemini-3.8-flash`. Старые версии (`1.5-flash`, `2.5-flash`) недоступны для новых аккаунтов. При временных пиках нагрузки (503) используется повторная попытка с задержкой 1.5 сек.
-- **GitHub токены**: для пуша в персональные репозитории используется универсальный Classic PAT (`ghp_...`) с областью `repo`.
+- **GitHub токены**: для пуша в персональные репозитории поддерживается безопасный Fine-grained PAT (`github_pat_...`) с правами `Repository Permissions: Contents (Read and write)` и `Workflows (Read and write)` для целевого репозитория `AnikaBu/Food_recognition`, либо универсальный Classic PAT (`ghp_...`) с областью `repo`.
+
 - **Валидация изображений в FastAPI**: не следует полагаться исключительно на заголовок `file.content_type`, так как мобильные клиенты (например, Flutter `http.MultipartFile.fromBytes`) по умолчанию выставляют `application/octet-stream`. Проверку формата надежнее выполнять анализом байт через Pillow (`Image.open(bytes).load()`).
 - **Брендинг MyFoodDiary**: проект стандартизирован под именем `MyFoodDiary` на всех клиентах (ярлык `android:label`, PWA манифест, заголовки API).
 - **E2E UI-тестирование (Playwright)**: для автоматической проверки кнопок и сценариев веб-интерфейса используется Playwright (`test_frontend.py`). Элементы внутри модальных окон/карточек должны быть предварительно видимы (не `display: none`), а браузерные диалоги `window.confirm()` обрабатываются через регистратор события `page.once("dialog", lambda d: d.accept())`.
