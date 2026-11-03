@@ -9,6 +9,7 @@ import '../services/update_service.dart';
 import '../widgets/update_dialog.dart';
 import '../widgets/manual_meal_sheet.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
 
 class DiaryScreen extends StatefulWidget {
   final ApiService apiService;
@@ -168,6 +169,7 @@ class DiaryScreenState extends State<DiaryScreen> {
   }
 
   Future<void> _pickDate() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -175,13 +177,7 @@ class DiaryScreenState extends State<DiaryScreen> {
       lastDate: DateTime(2030),
       builder: (context, child) {
         return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-              onSurface: AppColors.lightTextPrimary,
-            ),
-          ),
+          data: isDark ? AppTheme.darkTheme : AppTheme.lightTheme,
           child: child!,
         );
       },

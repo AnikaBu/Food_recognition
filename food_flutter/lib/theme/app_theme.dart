@@ -13,6 +13,7 @@ class AppTheme {
         secondary: AppColors.primaryDark,
         surface: AppColors.lightCard,
         onSurface: AppColors.lightTextPrimary,
+        onSurfaceVariant: AppColors.lightTextSecondary,
         outline: AppColors.lightBorder,
       ),
       textTheme: const TextTheme(
@@ -76,6 +77,19 @@ class AppTheme {
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
       ),
+      datePickerTheme: DatePickerThemeData(
+        backgroundColor: AppColors.lightCard,
+        surfaceTintColor: Colors.transparent,
+        headerBackgroundColor: AppColors.lightScaffold,
+        headerForegroundColor: AppColors.lightTextPrimary,
+        dividerColor: AppColors.lightBorder,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.lightBorder),
+        ),
+        cancelButtonStyle: TextButton.styleFrom(foregroundColor: AppColors.primaryRoyal),
+        confirmButtonStyle: TextButton.styleFrom(foregroundColor: AppColors.primaryRoyal),
+      ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.lightInput,
         selectedColor: AppColors.primaryRoyal,
@@ -114,9 +128,10 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.darkBgBottom,
       colorScheme: const ColorScheme.dark(
         primary: AppColors.primary,
-        secondary: AppColors.emerald400,
+        secondary: AppColors.sapphire400,
         surface: AppColors.darkCard,
         onSurface: AppColors.darkTextPrimary,
+        onSurfaceVariant: AppColors.darkTextSecondary,
         outline: AppColors.darkBorder,
       ),
       textTheme: const TextTheme(
@@ -179,6 +194,19 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
+      ),
+      datePickerTheme: DatePickerThemeData(
+        backgroundColor: AppColors.darkCard,
+        surfaceTintColor: Colors.transparent,
+        headerBackgroundColor: AppColors.darkBgTop,
+        headerForegroundColor: AppColors.darkTextPrimary,
+        dividerColor: AppColors.darkBorder,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.darkBorder),
+        ),
+        cancelButtonStyle: TextButton.styleFrom(foregroundColor: AppColors.sapphire400),
+        confirmButtonStyle: TextButton.styleFrom(foregroundColor: AppColors.sapphire400),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.darkInput,
