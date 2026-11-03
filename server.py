@@ -30,6 +30,7 @@ from models import (
     CreateRecipeRequest,
     RecipeRecord,
     LogRecipePortionRequest,
+    WeeklyMacroSummary,
 )
 from vision import analyze_food_image, estimate_food_nutrition_by_text
 from barcode_service import get_product_by_barcode, clean_barcode
@@ -368,6 +369,29 @@ def get_meals_by_date_endpoint(
 ):
     """Возвращает список всех приемов пищи за указанную дату."""
     return db.get_meals_by_date(date_str=date)
+
+
+@app.get(
+    "/api/stats/weekly",
+    response_model=WeeklyMacroSummary,
+    tags=["Дневник питания"],
+    summary="Получить недельный обзор и динамику макронутриентов (БЖУ)",
+)
+def get_weekly_macro_summary_endpoint(
+    date: Optional[str] = Query(
+        None,
+        description="Дата в формате YYYY-MM-DD (по умолчанию — сегодняшняя)",
+    ),
+    mode: str = Query(
+        "week",
+        description="Режим расчета: 'week' (понедельник-воскресенье) или 'trailing' (последние 7 дней)",
+    ),
+):
+    """
+    Возвращает данные по 7 дням недели (калории, белки, жиры, углеводы),
+    среднесуточные значения за 7 дней и суточные целевые нормы.
+    """
+    return db.get_weekly_macro_summary(date_str=date, mode=mode)
 
 
 @app.get(

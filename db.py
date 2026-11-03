@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, List
 from models import (
@@ -13,6 +13,8 @@ from models import (
     RecipeIngredientItem,
     CreateRecipeRequest,
     RecipeRecord,
+    WeeklyMacroDay,
+    WeeklyMacroSummary,
 )
 
 DEFAULT_DB_PATH = Path(__file__).resolve().parent / "nutrition.db"
@@ -619,4 +621,130 @@ def log_recipe_portion(
     )
 
     return get_meal(meal_id, db_path=db_path)
+
+
+def get_weekly_macro_summary(
+    date_str: Optional[str] = None,
+    mode: str = "week",
+    db_path: Optional[Path] = None,
+) -> WeeklyMacroSummary:
+    """
+    Рассчитывает агрегированные данные КБЖУ за 7 дней (понедельник-воскресенье или последние 7 дней).
+    - date_str: дата отсчета (по умолчанию сегодня).
+    - mode: 'week' (с понедельника по воскресенье недели, содержащей date_str) или 'trailing' (7 дней до date_str включительно).
+    """
+    init_db(db_path)
+    if date_str:
+        try:
+            target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            target_date = datetime.now().date()
+    else:
+        target_date = datetime.now().date()
+
+    today_date = datetime.now().date()
+
+    if mode == "trailing":
+        # 7 дней до target_date включительно
+        start_date = target_date - timedelta(days=6)
+        day_dates = [start_date + timedelta(days=i) for i in range(7)]
+    else:
+        # Режим 'week': с понедельника (weekday == 0) по воскресенье
+        start_date = target_date - timedelta(days=target_date.weekday())
+        day_dates = [start_date + timedelta(days=i) for i in range(7)]
+
+    end_date = day_dates[-1]
+
+    # Словарь дней недели: weekday(): 0 = Monday ... 6 = Sunday
+    day_names = ["ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "ВС"]
+    day_letters = ["П", "В", "С", "Ч", "П", "С", "В"]
+
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    with get_connection(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT date(m.created_at) as day_str,
+                   COUNT(DISTINCT m.id) as cnt,
+                   COALESCE(SUM(i.calories), 0.0) as sum_cal,
+                   COALESCE(SUM(i.protein), 0.0) as sum_p,
+                   COALESCE(SUM(i.fat), 0.0) as sum_f,
+                   COALESCE(SUM(i.carbs), 0.0) as sum_c
+            FROM meals m
+            LEFT JOIN meal_items i ON m.id = i.meal_id
+            WHERE date(m.created_at) >= date(?) AND date(m.created_at) <= date(?)
+            GROUP BY day_str
+            """,
+            (start_str, end_str),
+        )
+        rows = cursor.fetchall()
+
+    day_stats = {}
+    for r in rows:
+        day_stats[r["day_str"]] = {
+            "cnt": r["cnt"],
+            "cal": round(float(r["sum_cal"] or 0), 1),
+            "p": round(float(r["sum_p"] or 0), 1),
+            "f": round(float(r["sum_f"] or 0), 1),
+            "c": round(float(r["sum_c"] or 0), 1),
+        }
+
+    days_list: list[WeeklyMacroDay] = []
+    total_cal = 0.0
+    total_p = 0.0
+    total_f = 0.0
+    total_c = 0.0
+
+    for d in day_dates:
+        d_str = d.strftime("%Y-%m-%d")
+        w_idx = d.weekday()
+        stat = day_stats.get(d_str, {"cnt": 0, "cal": 0.0, "p": 0.0, "f": 0.0, "c": 0.0})
+
+        cal = stat["cal"]
+        p = stat["p"]
+        f = stat["f"]
+        c = stat["c"]
+
+        total_cal += cal
+        total_p += p
+        total_f += f
+        total_c += c
+
+        days_list.append(
+            WeeklyMacroDay(
+                date=d_str,
+                day_name=day_names[w_idx],
+                day_letter=day_letters[w_idx],
+                is_today=(d == today_date),
+                calories=cal,
+                protein=p,
+                fat=f,
+                carbs=c,
+                meals_count=stat["cnt"],
+            )
+        )
+
+    avg_cal = round(total_cal / 7.0, 1)
+    avg_p = round(total_p / 7.0, 1)
+    avg_f = round(total_f / 7.0, 1)
+    avg_c = round(total_c / 7.0, 1)
+
+    goals = get_goals(db_path=db_path)
+
+    return WeeklyMacroSummary(
+        start_date=start_str,
+        end_date=end_str,
+        days=days_list,
+        avg_calories=avg_cal,
+        avg_protein=avg_p,
+        avg_fat=avg_f,
+        avg_carbs=avg_c,
+        target_calories=goals.calories,
+        target_protein=goals.protein,
+        target_fat=goals.fat,
+        target_carbs=goals.carbs,
+    )
+
 

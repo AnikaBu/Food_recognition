@@ -525,4 +525,91 @@ class RecipeRecord {
   }
 }
 
+class WeeklyMacroDay {
+  final String date;
+  final String dayName;
+  final String dayLetter;
+  final bool isToday;
+  final double calories;
+  final double protein;
+  final double fat;
+  final double carbs;
+  final int mealsCount;
+
+  WeeklyMacroDay({
+    required this.date,
+    required this.dayName,
+    required this.dayLetter,
+    required this.isToday,
+    required this.calories,
+    required this.protein,
+    required this.fat,
+    required this.carbs,
+    required this.mealsCount,
+  });
+
+  factory WeeklyMacroDay.fromJson(Map<String, dynamic> json) {
+    return WeeklyMacroDay(
+      date: json['date'] as String? ?? '',
+      dayName: json['day_name'] as String? ?? '',
+      dayLetter: json['day_letter'] as String? ?? '',
+      isToday: json['is_today'] as bool? ?? false,
+      calories: (json['calories'] as num?)?.toDouble() ?? 0.0,
+      protein: (json['protein'] as num?)?.toDouble() ?? 0.0,
+      fat: (json['fat'] as num?)?.toDouble() ?? 0.0,
+      carbs: (json['carbs'] as num?)?.toDouble() ?? 0.0,
+      mealsCount: (json['meals_count'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
+class WeeklyMacroSummary {
+  final String startDate;
+  final String endDate;
+  final List<WeeklyMacroDay> days;
+  final double avgCalories;
+  final double avgProtein;
+  final double avgFat;
+  final double avgCarbs;
+  final double targetCalories;
+  final double targetProtein;
+  final double targetFat;
+  final double targetCarbs;
+
+  WeeklyMacroSummary({
+    required this.startDate,
+    required this.endDate,
+    required this.days,
+    required this.avgCalories,
+    required this.avgProtein,
+    required this.avgFat,
+    required this.avgCarbs,
+    required this.targetCalories,
+    required this.targetProtein,
+    required this.targetFat,
+    required this.targetCarbs,
+  });
+
+  factory WeeklyMacroSummary.fromJson(Map<String, dynamic> json) {
+    final daysList = (json['days'] as List<dynamic>?)
+            ?.map((e) => WeeklyMacroDay.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        [];
+    return WeeklyMacroSummary(
+      startDate: json['start_date'] as String? ?? '',
+      endDate: json['end_date'] as String? ?? '',
+      days: daysList,
+      avgCalories: (json['avg_calories'] as num?)?.toDouble() ?? 0.0,
+      avgProtein: (json['avg_protein'] as num?)?.toDouble() ?? 0.0,
+      avgFat: (json['avg_fat'] as num?)?.toDouble() ?? 0.0,
+      avgCarbs: (json['avg_carbs'] as num?)?.toDouble() ?? 0.0,
+      targetCalories: (json['target_calories'] as num?)?.toDouble() ?? 2000.0,
+      targetProtein: (json['target_protein'] as num?)?.toDouble() ?? 90.0,
+      targetFat: (json['target_fat'] as num?)?.toDouble() ?? 65.0,
+      targetCarbs: (json['target_carbs'] as num?)?.toDouble() ?? 250.0,
+    );
+  }
+}
+
+
 

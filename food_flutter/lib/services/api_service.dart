@@ -261,6 +261,27 @@ class ApiService {
     }
   }
 
+  Future<WeeklyMacroSummary> getWeeklyMacroSummary({DateTime? date, String mode = 'week'}) async {
+    final baseUrl = await _getBaseUrl();
+    final dateParam = date != null ? 'date=${DateFormat('yyyy-MM-dd').format(date)}&' : '';
+    final uri = Uri.parse('$baseUrl/api/stats/weekly?${dateParam}mode=$mode');
+    final headers = await _getHeaders(isJson: false);
+
+    final res = await http.get(uri, headers: headers).timeout(const Duration(seconds: 10));
+
+    if (res.statusCode == 200) {
+      final decoded = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      return WeeklyMacroSummary.fromJson(decoded);
+    } else {
+      String err = 'Не удалось загрузить недельный обзор: ${res.statusCode}';
+      try {
+        final body = json.decode(utf8.decode(res.bodyBytes));
+        if (body['detail'] != null) err = body['detail'].toString();
+      } catch (_) {}
+      throw Exception(err);
+    }
+  }
+
   Future<void> deleteMeal(int mealId) async {
     final baseUrl = await _getBaseUrl();
     final uri = Uri.parse('$baseUrl/api/meals/$mealId');

@@ -8,6 +8,7 @@ import '../widgets/macro_pill.dart';
 import '../services/update_service.dart';
 import '../widgets/update_dialog.dart';
 import '../widgets/manual_meal_sheet.dart';
+import '../widgets/weekly_macro_sheet.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
@@ -303,6 +304,18 @@ class DiaryScreenState extends State<DiaryScreen> {
     return '${days[date.weekday]}, ${date.day} ${months[date.month]}';
   }
 
+  void _openWeeklyMacroReview() {
+    WeeklyMacroSheet.show(
+      context,
+      selectedDate: _selectedDate,
+      apiService: widget.apiService,
+      settingsService: widget.settingsService,
+      onGoalsChanged: () {
+        reloadGoalsAndData();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -381,42 +394,77 @@ class DiaryScreenState extends State<DiaryScreen> {
                       ],
                     ),
                   ),
-                  InkWell(
-                    onTap: reloadGoalsAndData,
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                  Row(
+                    children: [
+                      InkWell(
+                        onTap: _openWeeklyMacroReview,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          const Icon(Icons.refresh, size: 20, color: AppColors.primary),
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: Container(
-                              width: 7,
-                              height: 7,
-                              decoration: const BoxDecoration(
-                                color: AppColors.primary,
-                                shape: BoxShape.circle,
-                              ),
+                        child: Tooltip(
+                          message: 'Недельный обзор КБЖУ',
+                          child: Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+                                  blurRadius: 8,
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.insights_rounded,
+                              size: 20,
+                              color: AppColors.primary,
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: reloadGoalsAndData,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Tooltip(
+                          message: 'Обновить дневник',
+                          child: Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+                                  blurRadius: 8,
+                                ),
+                              ],
+                            ),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                const Icon(Icons.refresh, size: 20, color: AppColors.primary),
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: Container(
+                                    width: 7,
+                                    height: 7,
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.primary,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

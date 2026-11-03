@@ -179,3 +179,30 @@ class LogRecipePortionRequest(BaseModel):
     portion_weight_g: float = Field(gt=0, description="Вес съеденной порции в граммах")
     created_at: Optional[str] = Field(default=None, description="Дата и время в формате YYYY-MM-DD HH:MM:SS")
 
+
+class WeeklyMacroDay(BaseModel):
+    date: str = Field(description="Дата в формате YYYY-MM-DD")
+    day_name: str = Field(description="Краткое название дня недели, например 'ПН'")
+    day_letter: str = Field(description="Буква дня недели, например 'П'")
+    is_today: bool = Field(default=False, description="Является ли день сегодняшним")
+    calories: float = Field(default=0.0, ge=0, description="Калории за день (ккал)")
+    protein: float = Field(default=0.0, ge=0, description="Белки за день (г)")
+    fat: float = Field(default=0.0, ge=0, description="Жиры за день (г)")
+    carbs: float = Field(default=0.0, ge=0, description="Углеводы за день (г)")
+    meals_count: int = Field(default=0, ge=0, description="Количество приемов пищи")
+
+
+class WeeklyMacroSummary(BaseModel):
+    start_date: str = Field(description="Начальная дата недели (YYYY-MM-DD)")
+    end_date: str = Field(description="Конечная дата недели (YYYY-MM-DD)")
+    days: list[WeeklyMacroDay] = Field(default=[], description="Список данных по 7 дням")
+    avg_calories: float = Field(default=0.0, description="Среднее количество калорий за день")
+    avg_protein: float = Field(default=0.0, description="Среднее количество белков за день (г)")
+    avg_fat: float = Field(default=0.0, description="Среднее количество жиров за день (г)")
+    avg_carbs: float = Field(default=0.0, description="Среднее количество углеводов за день (г)")
+    target_calories: float = Field(default=2000.0, description="Суточная цель по калориям")
+    target_protein: float = Field(default=90.0, description="Суточная цель по белкам")
+    target_fat: float = Field(default=65.0, description="Суточная цель по жирам")
+    target_carbs: float = Field(default=250.0, description="Суточная цель по углеводам")
+
+

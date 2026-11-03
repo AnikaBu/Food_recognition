@@ -159,6 +159,18 @@ def test_api_endpoints():
     assert saved_goals["goal"] == "lose_weight"
     print("✅ 6.2. PUT /api/goals — цели и параметры профиля успешно обновлены и сохранены в БД.")
 
+    # 6.3 Тестирование недельного обзора КБЖУ через эндпоинт /api/stats/weekly
+    resp_weekly = client.get("/api/stats/weekly")
+    assert resp_weekly.status_code == 200
+    weekly_data = resp_weekly.json()
+    assert "days" in weekly_data
+    assert len(weekly_data["days"]) == 7
+    assert "avg_calories" in weekly_data
+    assert "target_calories" in weekly_data
+    assert weekly_data["target_calories"] == 2150.0
+    print(f"✅ 6.3. GET /api/stats/weekly — недельный обзор успешно получен (7 дней, цель: {weekly_data['target_calories']} ккал).")
+
+
     # 7. Тестирование распознавания фото через эндпоинт /api/analyze-photo
     sample_img_path = Path("sample_dish.jpg")
     if sample_img_path.exists():
