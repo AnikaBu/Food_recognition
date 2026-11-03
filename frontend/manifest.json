@@ -4,7 +4,7 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f8fafc",
-  "theme_color": "#10b981",
+  "theme_color": "#2563eb",
   "orientation": "portrait",
   "description": "Распознавание еды по фото и умный дневник КБЖУ",
   "icons": [

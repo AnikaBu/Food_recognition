@@ -146,6 +146,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
     final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
+    final accentColor = isDark ? AppColors.primary : AppColors.primaryRoyal;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -194,10 +196,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 leading: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.15),
+                    color: accentColor.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.camera_alt, color: AppColors.primary, size: 24),
+                  child: Icon(Icons.camera_alt, color: accentColor, size: 24),
                 ),
                 title: Text(
                   'Сделать снимок (Камера)',
@@ -207,7 +209,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   'Открыть камеру устройства',
                   style: TextStyle(color: textSecondary, fontSize: 12),
                 ),
-                trailing: const Icon(Icons.chevron_right, color: AppColors.primary),
+                trailing: Icon(Icons.chevron_right, color: accentColor),
                 onTap: () {
                   Navigator.pop(ctx);
                   _recognizeKey.currentState?.pickImage(ImageSource.camera);
@@ -223,10 +225,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 leading: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.15),
+                    color: accentColor.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.photo_library_outlined, color: AppColors.primary, size: 24),
+                  child: Icon(Icons.photo_library_outlined, color: accentColor, size: 24),
                 ),
                 title: Text(
                   'Выбрать из галереи',
@@ -236,7 +238,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   'Загрузить фото из памяти телефона',
                   style: TextStyle(color: textSecondary, fontSize: 12),
                 ),
-                trailing: const Icon(Icons.chevron_right, color: AppColors.primary),
+                trailing: Icon(Icons.chevron_right, color: accentColor),
                 onTap: () {
                   Navigator.pop(ctx);
                   _recognizeKey.currentState?.pickImage(ImageSource.gallery);
@@ -300,26 +302,26 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           onDestinationSelected: _onTabSelected,
           backgroundColor: isDark ? AppColors.darkBgBottom : Colors.white,
           elevation: 0,
-          indicatorColor: AppColors.primary.withOpacity(0.18),
-          destinations: const [
+          indicatorColor: (isDark ? AppColors.primary : AppColors.primaryRoyal).withOpacity(0.18),
+          destinations: [
             NavigationDestination(
-              icon: Icon(Icons.calendar_today_outlined),
-              selectedIcon: Icon(Icons.calendar_today, color: AppColors.primary),
+              icon: const Icon(Icons.calendar_today_outlined),
+              selectedIcon: Icon(Icons.calendar_today, color: isDark ? AppColors.primary : AppColors.primaryRoyal),
               label: 'Дневник',
             ),
             NavigationDestination(
-              icon: Icon(Icons.camera_alt_outlined),
-              selectedIcon: Icon(Icons.camera_alt, color: AppColors.primary),
+              icon: const Icon(Icons.camera_alt_outlined),
+              selectedIcon: Icon(Icons.camera_alt, color: isDark ? AppColors.primary : AppColors.primaryRoyal),
               label: 'Фото',
             ),
             NavigationDestination(
-              icon: Icon(Icons.restaurant_menu_outlined),
-              selectedIcon: Icon(Icons.restaurant_menu, color: AppColors.primary),
+              icon: const Icon(Icons.restaurant_menu_outlined),
+              selectedIcon: Icon(Icons.restaurant_menu, color: isDark ? AppColors.primary : AppColors.primaryRoyal),
               label: 'Рецепты',
             ),
             NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person, color: AppColors.primary),
+              icon: const Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person, color: isDark ? AppColors.primary : AppColors.primaryRoyal),
               label: 'Профиль',
             ),
           ],

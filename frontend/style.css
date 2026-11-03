@@ -1,8 +1,8 @@
 :root {
-  --primary: #10b981;
-  --primary-hover: #059669;
-  --primary-light: #ecfdf5;
-  --primary-border: #a7f3d0;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-light: #eff6ff;
+  --primary-border: #bfdbfe;
   
   --bg: #f8fafc;
   --card-bg: #ffffff;
@@ -835,8 +835,8 @@ h1 {
 }
 
 .recipe-100g-box {
-  background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
-  border: 1px solid #a7f3d0;
+  background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+  border: 1px solid #bfdbfe;
   border-radius: var(--radius-sm);
   padding: 10px 12px;
   margin-top: 12px;
@@ -844,7 +844,7 @@ h1 {
 .recipe-100g-title {
   font-size: 0.8rem;
   font-weight: 700;
-  color: #065f46;
+  color: #1e40af;
   margin-bottom: 6px;
 }
 .recipe-100g-grid {

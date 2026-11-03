@@ -549,8 +549,8 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                   icon: const Icon(Icons.auto_awesome, size: 18),
                   tooltip: 'Через ИИ',
                   style: IconButton.styleFrom(
-                    backgroundColor: isDark ? AppColors.primary.withOpacity(0.2) : const Color(0xFFD1FAE5),
-                    foregroundColor: isDark ? AppColors.emerald400 : const Color(0xFF059669),
+                    backgroundColor: isDark ? AppColors.primary.withOpacity(0.2) : AppColors.primaryLight,
+                    foregroundColor: isDark ? AppColors.sapphire400 : AppColors.primaryDark,
                   ),
                   onPressed: _addViaAi,
                 ),
@@ -688,7 +688,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? AppColors.emerald400 : const Color(0xFF065F46),
+                          color: isDark ? AppColors.sapphire400 : AppColors.primaryDark,
                         ),
                       ),
                     ],

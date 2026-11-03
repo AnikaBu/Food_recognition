@@ -6,10 +6,10 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      primaryColor: AppColors.primary,
+      primaryColor: AppColors.primaryRoyal,
       scaffoldBackgroundColor: AppColors.lightScaffold,
       colorScheme: const ColorScheme.light(
-        primary: AppColors.primary,
+        primary: AppColors.primaryRoyal,
         secondary: AppColors.primaryDark,
         surface: AppColors.lightCard,
         onSurface: AppColors.lightTextPrimary,
@@ -45,7 +45,7 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
+          backgroundColor: AppColors.primaryRoyal,
           foregroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -78,7 +78,7 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.lightInput,
-        selectedColor: AppColors.primary,
+        selectedColor: AppColors.primaryRoyal,
         labelStyle: const TextStyle(color: AppColors.lightTextSecondary),
         secondaryLabelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         side: const BorderSide(color: AppColors.lightBorder),
@@ -100,7 +100,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.primaryRoyal, width: 1.5),
         ),
       ),
     );

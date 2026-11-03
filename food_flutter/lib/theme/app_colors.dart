@@ -2,13 +2,23 @@ import 'package:flutter/material.dart';
 
 /// Design tokens extracted directly from myfooddiary_prototype.html (Single Source of Truth)
 class AppColors {
-  // Brand Emerald
-  static const Color primary = Color(0xFF10B981);
-  static const Color primaryDark = Color(0xFF059669);
-  static const Color primaryLight = Color(0xFFECFDF5);
-  static const Color emerald400 = Color(0xFF34D399);
-  static const Color emerald500 = Color(0xFF10B981);
+  // Brand Sapphire (Option 1: Royal Sapphire / Electric Blue)
+  static const Color primary = Color(0xFF3B82F6);       // Vibrant Sapphire (#3B82F6) for Dark Mode & general accents
+  static const Color primaryDark = Color(0xFF1D4ED8);   // Deep Blue (#1D4ED8)
+  static const Color primaryLight = Color(0xFFEFF6FF);  // Soft Sky Light (#EFF6FF)
+  static const Color primaryRoyal = Color(0xFF2563EB);  // Rich Royal Blue (#2563EB) for high contrast Light Mode buttons
+  static const Color sapphire300 = Color(0xFF93C5FD);
+  static const Color sapphire400 = Color(0xFF60A5FA);
+  static const Color sapphire500 = Color(0xFF3B82F6);
+  static const Color sapphire600 = Color(0xFF2563EB);
+
+  // Backward-compatible aliases for legacy token references
+  static const Color emerald400 = Color(0xFF60A5FA); // soft sapphire highlight
+  static const Color emerald500 = Color(0xFF3B82F6); // primary sapphire
   static const Color amber500 = Color(0xFFF59E0B);
+
+  /// Returns the optimal primary blue variant based on active theme
+  static Color primaryColor(bool isDark) => isDark ? primary : primaryRoyal;
 
   // Macro Nutrients (Exact prototype mapping)
   static const Color macroCalorie = Color(0xFFF97316); // Coral-orange

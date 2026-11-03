@@ -393,8 +393,10 @@ class DiaryScreenState extends State<DiaryScreen> {
                       height: 58,
                       decoration: BoxDecoration(
                         gradient: isSelected
-                            ? const LinearGradient(
-                                colors: [AppColors.primary, AppColors.primaryDark],
+                            ? LinearGradient(
+                                colors: isDark
+                                    ? const [AppColors.primary, AppColors.primaryDark]
+                                    : const [AppColors.primaryRoyal, AppColors.primaryDark],
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                               )
@@ -409,7 +411,7 @@ class DiaryScreenState extends State<DiaryScreen> {
                         boxShadow: isSelected
                             ? [
                                 BoxShadow(
-                                  color: AppColors.primary.withOpacity(0.4),
+                                  color: (isDark ? AppColors.primary : AppColors.primaryRoyal).withOpacity(0.4),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),

@@ -67,10 +67,10 @@ class UpdateDialog extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withOpacity(0.15),
+              color: (isDark ? AppColors.primary : AppColors.primaryRoyal).withOpacity(0.15),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.rocket_launch_rounded, color: Color(0xFF10B981), size: 28),
+            child: Icon(Icons.rocket_launch_rounded, color: isDark ? AppColors.primary : AppColors.primaryRoyal, size: 28),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -134,7 +134,7 @@ class UpdateDialog extends StatelessWidget {
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF10B981),
+            backgroundColor: isDark ? AppColors.primary : AppColors.primaryRoyal,
             foregroundColor: Colors.white,
           ),
           onPressed: () => _onDownload(context),
