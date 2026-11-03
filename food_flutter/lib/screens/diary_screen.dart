@@ -33,6 +33,10 @@ class DiaryScreenState extends State<DiaryScreen> {
   DailySummary? _summary;
   double _horizontalDragDistance = 0.0;
   int _slideDirection = 1;
+  final Map<String, DailySummary> _summaryCache = {};
+
+  String _formatDateKey(DateTime date) =>
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   double _targetCalories = 2000;
   double _targetProtein = 90;
@@ -78,6 +82,7 @@ class DiaryScreenState extends State<DiaryScreen> {
 
   /// Публичный метод для полного обновления целей и сводки
   Future<void> reloadGoalsAndData() async {
+    _summaryCache.clear();
     await _loadSettingsAndData();
   }
 
@@ -132,21 +137,28 @@ class DiaryScreenState extends State<DiaryScreen> {
   }
 
   Future<void> _loadSummary() async {
+    final key = _formatDateKey(_selectedDate);
+    final cached = _summaryCache[key];
+
     setState(() {
-      _isLoading = true;
+      _summary = cached;
+      _isLoading = (cached == null);
       _errorMessage = null;
     });
 
     try {
       final summary = await widget.apiService.getDailySummary(_selectedDate);
       if (mounted) {
-        setState(() {
-          _summary = summary;
-          _isLoading = false;
-        });
+        _summaryCache[key] = summary;
+        if (_formatDateKey(_selectedDate) == key) {
+          setState(() {
+            _summary = summary;
+            _isLoading = false;
+          });
+        }
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && _formatDateKey(_selectedDate) == key) {
         setState(() {
           _errorMessage = e.toString();
           _isLoading = false;
@@ -206,7 +218,10 @@ class DiaryScreenState extends State<DiaryScreen> {
         date: _selectedDate,
         apiService: widget.apiService,
         initialMealType: mealType,
-        onMealSaved: _loadSummary,
+        onMealSaved: () {
+          _summaryCache.remove(_formatDateKey(_selectedDate));
+          _loadSummary();
+        },
       ),
     );
   }
@@ -258,6 +273,7 @@ class DiaryScreenState extends State<DiaryScreen> {
             ),
           );
         }
+        _summaryCache.remove(_formatDateKey(_selectedDate));
         await _loadSummary();
       } catch (e) {
         if (mounted) {
@@ -504,23 +520,49 @@ class DiaryScreenState extends State<DiaryScreen> {
 
               const SizedBox(height: 14),
 
-              // 3. Daily Content with Directional Slide Transition
+              // 3. Daily Content with Soft Directional Slide Transition
               AnimatedSwitcher(
-                duration: const Duration(milliseconds: 220),
+                duration: const Duration(milliseconds: 320),
                 switchInCurve: Curves.easeOutCubic,
                 switchOutCurve: Curves.easeInCubic,
+                layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+                  return Stack(
+                    alignment: Alignment.topCenter,
+                    children: <Widget>[
+                      ...previousChildren,
+                      if (currentChild != null) currentChild,
+                    ],
+                  );
+                },
                 transitionBuilder: (child, animation) {
-                  final offsetAnim = Tween<Offset>(
-                    begin: Offset(_slideDirection * 0.25, 0.0),
+                  final isIncoming = (child.key as ValueKey?)?.value == _formatDateKey(_selectedDate);
+                  final beginOffset = isIncoming
+                      ? Offset(_slideDirection * 0.28, 0.0)
+                      : Offset(-_slideDirection * 0.28, 0.0);
+
+                  final slideAnim = Tween<Offset>(
+                    begin: beginOffset,
                     end: Offset.zero,
-                  ).animate(animation);
+                  ).animate(CurvedAnimation(
+                    parent: animation,
+                    curve: isIncoming ? Curves.easeOutCubic : Curves.easeInCubic,
+                  ));
+
+                  final fadeAnim = CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeInOut,
+                  );
+
                   return SlideTransition(
-                    position: offsetAnim,
-                    child: FadeTransition(opacity: animation, child: child),
+                    position: slideAnim,
+                    child: FadeTransition(
+                      opacity: fadeAnim,
+                      child: child,
+                    ),
                   );
                 },
                 child: KeyedSubtree(
-                  key: ValueKey('${_selectedDate.year}-${_selectedDate.month}-${_selectedDate.day}'),
+                  key: ValueKey(_formatDateKey(_selectedDate)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
