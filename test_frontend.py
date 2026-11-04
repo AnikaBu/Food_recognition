@@ -580,6 +580,62 @@ def test_10_manual_recipes_shortcut_workflow(page: Page):
     expect(recipes_modal).not_to_be_visible()
 
 
+def test_11_product_autocomplete_workflow(page: Page):
+    """
+    Тест 11: Проверка живых подсказок (автокомплита) в форме ручного ввода:
+    1. Создаем тестовый продукт в БД.
+    2. Открываем модальное окно ручного ввода.
+    3. Вводим 'маасдам' -> появляется выпадающий список подсказок.
+    4. Кликаем по подсказке -> название и КБЖУ заполняются автоматически.
+    """
+    import db
+    db.upsert_saved_product(
+        name="Сыр Маасдам",
+        brand="President",
+        calories_100g=360.0,
+        protein_100g=26.0,
+        fat_100g=28.0,
+        carbs_100g=0.1,
+    )
+
+    page.goto(BASE_URL)
+
+    # 1. Открываем форму ручного ввода
+    open_btn = page.locator("#openManualMealBtn")
+    expect(open_btn).to_be_visible()
+    open_btn.click()
+
+    manual_modal = page.locator("#manualMealModal")
+    expect(manual_modal).to_be_visible()
+
+    # 2. Вводим 'маасдам' в поле названия
+    dish_input = page.locator("#manualDishName")
+    dish_input.fill("маасдам")
+    dish_input.dispatch_event("input")
+
+    # 3. Проверяем появление выпадающего списка подсказок
+    suggestions = page.locator("#manualDishSuggestions")
+    expect(suggestions).to_be_visible(timeout=3000)
+
+    # 4. Проверяем наличие элемента подсказки
+    item = page.locator(".suggestion-item").first
+    expect(item).to_contain_text("Сыр Маасдам")
+    expect(item).to_contain_text("360 ккал")
+
+    # 5. Кликаем по подсказке
+    item.click()
+
+    # Подсказки должны скрыться, а поля заполниться
+    expect(suggestions).not_to_be_visible()
+    expect(dish_input).to_have_value("Сыр Маасдам (President)")
+    expect(page.locator("#manualCalories")).to_have_value("360")
+    expect(page.locator("#manualProtein")).to_have_value("26.0")
+
+    # Закрываем модальное окно
+    page.locator("#closeManualModalBtn").click()
+    expect(manual_modal).not_to_be_visible()
+
+
 # =====================================================================
 # Возможность прямого запуска через: python test_frontend.py
 # =====================================================================

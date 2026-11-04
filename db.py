@@ -37,6 +37,7 @@ def get_connection(db_path: Optional[Path] = None) -> sqlite3.Connection:
     conn = sqlite3.connect(resolved_path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
+    conn.create_function("lower", 1, lambda s: s.lower() if isinstance(s, str) else s)
     return conn
 
 
@@ -876,12 +877,12 @@ def search_saved_products(
     q = (query or "").strip()
     with get_connection(resolved_path) as conn:
         if q:
-            pattern = f"%{q}%"
+            pattern = f"%{q.lower()}%"
             rows = conn.execute(
                 """
                 SELECT id, barcode, name, brand, calories_100g, protein_100g, fat_100g, carbs_100g, use_count, updated_at
                 FROM saved_products
-                WHERE name LIKE ? OR brand LIKE ?
+                WHERE lower(name) LIKE ? OR lower(brand) LIKE ?
                 ORDER BY use_count DESC, updated_at DESC
                 LIMIT ?;
                 """,

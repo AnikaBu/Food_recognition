@@ -324,6 +324,48 @@ def test_api_endpoints():
     assert client.get(f"/api/recipes/{recipe_id}").status_code == 404
     print("✅ 9.4. DELETE /api/recipes/{id} — рецепт успешно удален.")
 
+    # 10. Тестирование персонального каталога продуктов (/api/products)
+    # Сохраняем продукт в каталог через upsert
+    db.upsert_saved_product(
+        name="Творог 5% мягкий",
+        brand="Савушкин",
+        calories_100g=85.0,
+        protein_100g=11.0,
+        fat_100g=5.0,
+        carbs_100g=2.5,
+        barcode="4810268034567",
+    )
+
+    # 10.1 Поиск для автокомплита
+    resp_search = client.get("/api/products/search?q=творог")
+    assert resp_search.status_code == 200
+    products = resp_search.json()
+    assert len(products) >= 1
+    found = next((p for p in products if "Творог" in p["name"]), None)
+    assert found is not None
+    assert found["brand"] == "Савушкин"
+    assert found["calories_100g"] == 85.0
+    print("✅ 10.1. GET /api/products/search — автодополнение по названию работает корректно.")
+
+    # 10.2 Мгновенное чтение штрихкода из локального каталога SQLite без сети
+    from barcode_service import _BARCODE_CACHE
+    _BARCODE_CACHE.pop("4810268034567", None)
+
+    with patch("barcode_service.fetch_open_food_facts", side_effect=Exception("Should not call external API")):
+        resp_local_bc = client.get("/api/barcode/4810268034567")
+        assert resp_local_bc.status_code == 200
+        lbc = resp_local_bc.json()
+        assert lbc["name"] == "Творог 5% мягкий"
+        assert lbc["brand"] == "Савушкин"
+        assert lbc["calories_100g"] == 85.0
+    print("✅ 10.2. GET /api/barcode/{code} — мгновенный ответ из локальной базы без сетевых запросов.")
+
+    # 10.3 Удаление продукта из каталога
+    resp_del_prod = client.delete(f"/api/products/{found['id']}")
+    assert resp_del_prod.status_code == 200
+    assert client.delete(f"/api/products/{found['id']}").status_code == 404
+    print("✅ 10.3. DELETE /api/products/{id} — удаление продукта из каталога работает корректно.")
+
     print("\n🎉 Все тесты FastAPI бэкенда пройдены успешно!")
 
 if __name__ == "__main__":

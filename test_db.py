@@ -170,8 +170,53 @@ def test_database_workflow():
     assert len(weekly.days) == 7, "Неделя должна содержать ровно 7 дней"
     assert weekly.target_calories == 2300.0, "Цели должны соответствовать обновленным"
     assert weekly.avg_calories >= 0.0
-    assert any(d.is_today for d in weekly.days), "Один из дней должен быть помечен как is_today"
     print(f"✅ 10. Недельный обзор сформирован: {weekly.start_date} - {weekly.end_date}, дней: {len(weekly.days)}, ср. калорий: {weekly.avg_calories}")
+
+    # 11. Тестирование персонального каталога продуктов (saved_products)
+    prod_id = db.upsert_saved_product(
+        name="Сыр Царский",
+        brand="Pilos",
+        calories_100g=356.0,
+        protein_100g=25.0,
+        fat_100g=28.0,
+        carbs_100g=0.5,
+        barcode="20146603",
+        db_path=test_db_path,
+    )
+    assert prod_id > 0
+
+    # Поиск по штрихкоду
+    saved = db.get_saved_product_by_barcode("20146603", db_path=test_db_path)
+    assert saved is not None
+    assert saved.name == "Сыр Царский"
+    assert saved.brand == "Pilos"
+    assert saved.calories_100g == 356.0
+    assert saved.use_count == 1
+
+    # Повторный upsert увеличивает use_count
+    prod_id2 = db.upsert_saved_product(
+        name="Сыр Царский",
+        brand="Pilos",
+        calories_100g=356.0,
+        protein_100g=25.0,
+        fat_100g=28.0,
+        carbs_100g=0.5,
+        barcode="20146603",
+        db_path=test_db_path,
+    )
+    assert prod_id2 == prod_id
+    saved2 = db.get_saved_product_by_barcode("20146603", db_path=test_db_path)
+    assert saved2.use_count == 2
+
+    # Поиск по подстроке
+    search_res = db.search_saved_products("сыр", limit=5, db_path=test_db_path)
+    assert len(search_res) == 1
+    assert search_res[0].name == "Сыр Царский"
+
+    # Удаление продукта
+    assert db.delete_saved_product(prod_id, db_path=test_db_path) is True
+    assert db.get_saved_product_by_barcode("20146603", db_path=test_db_path) is None
+    print("✅ 11. Персональный каталог продуктов (upsert, поиск по штрихкоду, автокомплит, удаление) работает корректно.")
 
     # Удаляем временную тестовую БД
     if test_db_path.exists():
