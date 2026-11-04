@@ -298,6 +298,52 @@ class ApiService {
     }
   }
 
+  Future<MealRecord> updateMeal(
+    int mealId, {
+    String? dishName,
+    MealType? mealType,
+    String? comment,
+    List<IngredientItem>? items,
+  }) async {
+    final baseUrl = await _getBaseUrl();
+    final uri = Uri.parse('$baseUrl/api/meals/$mealId');
+    final headers = await _getHeaders(isJson: true);
+
+    final payload = <String, dynamic>{};
+    if (dishName != null) payload['dish_name'] = dishName;
+    if (mealType != null) payload['meal_type'] = mealType.value;
+    if (comment != null) payload['comment'] = comment;
+    if (items != null) {
+      payload['items'] = items.map((it) => {
+        if (it.id != null) 'id': it.id,
+        'name': it.name,
+        'weight_g': it.weightG,
+        'calories': it.calories,
+        'protein': it.protein,
+        'fat': it.fat,
+        'carbs': it.carbs,
+      }).toList();
+    }
+
+    final res = await http.put(
+      uri,
+      headers: headers,
+      body: json.encode(payload),
+    ).timeout(const Duration(seconds: 10));
+
+    if (res.statusCode == 200) {
+      final decoded = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      return MealRecord.fromJson(decoded);
+    } else {
+      String err = 'Ошибка обновления блюда: ${res.statusCode}';
+      try {
+        final body = json.decode(utf8.decode(res.bodyBytes));
+        if (body['detail'] != null) err = body['detail'].toString();
+      } catch (_) {}
+      throw Exception(err);
+    }
+  }
+
   Future<IngredientItem> updateItemWeight(int itemId, double newWeightG) async {
     final baseUrl = await _getBaseUrl();
     final uri = Uri.parse('$baseUrl/api/items/$itemId/weight');

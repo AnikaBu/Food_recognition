@@ -110,6 +110,33 @@ def test_api_endpoints():
     assert updated_item["protein"] == 48.0   # 24 * 2
     print(f"✅ 4. PUT /api/items/{item_id}/weight — вес обновлен (100г -> 200г), калории и макросы удвоены.")
 
+    # 4.1 Тестирование обновления приема пищи (название, категория, ингредиенты)
+    resp_update_meal = client.put(
+        f"/api/meals/{meal_id}",
+        json={
+            "dish_name": "Индейка запеченная с травами",
+            "meal_type": "dinner",
+            "comment": "Вкусный ужин",
+            "items": [
+                {
+                    "id": item_id,
+                    "name": "Индейка запеченная",
+                    "weight_g": 250.0,
+                    "calories": 325.0,
+                    "protein": 60.0,
+                    "fat": 5.0,
+                    "carbs": 0.0,
+                }
+            ],
+        },
+    )
+    assert resp_update_meal.status_code == 200
+    updated_meal_data = resp_update_meal.json()
+    assert updated_meal_data["dish_name"] == "Индейка запеченная с травами"
+    assert updated_meal_data["meal_type"] == "dinner"
+    assert updated_meal_data["total_calories"] == 325.0
+    print("✅ 4.1. PUT /api/meals/{id} — прием пищи успешно обновлен (название, категория, КБЖУ).")
+
     # 5. Проверка дневника за сегодня
     resp_diary = client.get("/api/diary")
     assert resp_diary.status_code == 200

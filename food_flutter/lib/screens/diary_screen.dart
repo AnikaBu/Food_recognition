@@ -9,6 +9,8 @@ import '../services/update_service.dart';
 import '../widgets/update_dialog.dart';
 import '../widgets/manual_meal_sheet.dart';
 import '../widgets/weekly_macro_sheet.dart';
+import '../widgets/meal_edit_sheet.dart';
+import '../widgets/meal_category_detail_sheet.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
@@ -863,7 +865,35 @@ class DiaryScreenState extends State<DiaryScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(width: 6),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        icon: Icon(
+                          Icons.open_in_new_rounded,
+                          size: 18,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        ),
+                        tooltip: 'Подробнее о приеме пищи',
+                        onPressed: () {
+                          MealCategoryDetailSheet.show(
+                            context,
+                            mealType: type,
+                            title: title,
+                            emoji: emoji,
+                            meals: meals,
+                            selectedDate: _selectedDate,
+                            dailyTargetCalories: _targetCalories,
+                            dailyTargetProtein: _targetProtein,
+                            dailyTargetFat: _targetFat,
+                            dailyTargetCarbs: _targetCarbs,
+                            apiService: widget.apiService,
+                            onDataChanged: reloadGoalsAndData,
+                            onAddMeal: () => _showManualAddMealModal(mealType: type),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 4),
                       Icon(
                         isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
                         size: 20,
@@ -935,55 +965,85 @@ class DiaryScreenState extends State<DiaryScreen> {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: rowBg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: rowBorder),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => MealEditSheet.show(
+            context,
+            meal: meal,
+            apiService: widget.apiService,
+            onMealUpdated: reloadGoalsAndData,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
               children: [
-                Text(
-                  meal.dishName,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        meal.dishName,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${meal.totalWeightG.toStringAsFixed(0)}г • Б: ${meal.totalProtein.toStringAsFixed(0)}г • Ж: ${meal.totalFat.toStringAsFixed(0)}г • У: ${meal.totalCarbs.toStringAsFixed(0)}г',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 2),
                 Text(
-                  '${meal.totalWeightG.toStringAsFixed(0)}г • Б: ${meal.totalProtein.toStringAsFixed(0)}г • Ж: ${meal.totalFat.toStringAsFixed(0)}г • У: ${meal.totalCarbs.toStringAsFixed(0)}г',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  '${meal.totalCalories.toStringAsFixed(0)} ккал',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.macroCalorie,
                   ),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: const Icon(Icons.edit_outlined, size: 16),
+                  color: AppColors.primary,
+                  tooltip: 'Редактировать',
+                  onPressed: () => MealEditSheet.show(
+                    context,
+                    meal: meal,
+                    apiService: widget.apiService,
+                    onMealUpdated: reloadGoalsAndData,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: const Icon(Icons.delete_outline, size: 16),
+                  color: const Color(0xFF94A3B8),
+                  tooltip: 'Удалить',
+                  onPressed: () => _confirmDeleteMeal(meal),
                 ),
               ],
             ),
           ),
-          Text(
-            '${meal.totalCalories.toStringAsFixed(0)} ккал',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: AppColors.macroCalorie,
-            ),
-          ),
-          const SizedBox(width: 4),
-          InkWell(
-            onTap: () => _confirmDeleteMeal(meal),
-            borderRadius: BorderRadius.circular(8),
-            child: const Padding(
-              padding: EdgeInsets.all(4),
-              child: Icon(Icons.delete_outline, size: 16, color: Color(0xFF94A3B8)),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

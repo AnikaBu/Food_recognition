@@ -23,6 +23,7 @@ from models import (
     IngredientItem,
     SaveMealRequest,
     UpdateWeightRequest,
+    UpdateMealRequest,
     NutritionGoals,
     EstimateNutritionRequest,
     EstimateNutritionResponse,
@@ -338,6 +339,32 @@ def update_item_weight_endpoint(item_id: int, payload: UpdateWeightRequest):
             detail=f"Ингредиент с id={item_id} не найден",
         )
     return updated_item
+
+
+@app.put(
+    "/api/meals/{meal_id}",
+    response_model=MealRecord,
+    tags=["Дневник питания"],
+    summary="Обновить прием пищи (название, категорию, ингредиенты и КБЖУ)",
+)
+def update_meal_endpoint(meal_id: int, payload: UpdateMealRequest):
+    """
+    Обновляет данные приема пищи: название блюда, категорию (завтрак/обед/ужин/перекус),
+    заметку и/или список ингредиентов с их калориями и макросами.
+    """
+    meal = db.update_meal(
+        meal_id=meal_id,
+        dish_name=payload.dish_name,
+        meal_type=payload.meal_type,
+        comment=payload.comment,
+        items=payload.items,
+    )
+    if not meal:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Прием пищи с id={meal_id} не найден",
+        )
+    return meal
 
 
 @app.delete(

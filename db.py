@@ -300,6 +300,68 @@ def delete_meal(meal_id: int, db_path: Optional[Path] = None) -> bool:
         return cursor.rowcount > 0
 
 
+def update_meal(
+    meal_id: int,
+    dish_name: Optional[str] = None,
+    meal_type: Optional[MealType] = None,
+    comment: Optional[str] = None,
+    items: Optional[List[IngredientItem]] = None,
+    db_path: Optional[Path] = None,
+) -> Optional[MealRecord]:
+    """
+    Обновляет данные приема пищи: название, категорию (завтрак, обед и т.д.),
+    комментарий и/или список ингредиентов с их КБЖУ.
+    Возвращает обновленную запись MealRecord.
+    """
+    with get_connection(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM meals WHERE id = ?", (meal_id,))
+        if not cursor.fetchone():
+            return None
+
+        updates = []
+        params = []
+        if dish_name is not None and dish_name.strip():
+            updates.append("dish_name = ?")
+            params.append(dish_name.strip())
+        if meal_type is not None:
+            updates.append("meal_type = ?")
+            params.append(meal_type.value)
+        if comment is not None:
+            updates.append("comment = ?")
+            params.append(comment.strip())
+
+        if updates:
+            params.append(meal_id)
+            cursor.execute(f"UPDATE meals SET {', '.join(updates)} WHERE id = ?", params)
+
+        if items is not None:
+            cursor.execute("DELETE FROM meal_items WHERE meal_id = ?", (meal_id,))
+            items_data = [
+                (
+                    meal_id,
+                    it.name.strip(),
+                    round(float(it.weight_g), 1),
+                    round(float(it.calories), 1),
+                    round(float(it.protein), 1),
+                    round(float(it.fat), 1),
+                    round(float(it.carbs), 1),
+                )
+                for it in items
+            ]
+            cursor.executemany(
+                """
+                INSERT INTO meal_items (meal_id, name, weight_g, calories, protein, fat, carbs)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                items_data,
+            )
+        conn.commit()
+
+    return get_meal(meal_id, db_path=db_path)
+
+
+
 def get_meals_by_date(
     date_str: str,
     db_path: Optional[Path] = None,

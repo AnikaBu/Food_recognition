@@ -71,6 +71,13 @@ class UpdateWeightRequest(BaseModel):
     weight_g: float = Field(gt=0, description="Новый вес в граммах (положительное число)")
 
 
+class UpdateMealRequest(BaseModel):
+    dish_name: Optional[str] = Field(default=None, description="Название блюда")
+    meal_type: Optional[MealType] = Field(default=None, description="Категория приема пищи")
+    comment: Optional[str] = Field(default=None, description="Комментарий или заметка")
+    items: Optional[list[IngredientItem]] = Field(default=None, description="Список обновленных ингредиентов блюда")
+
+
 class MealRecord(BaseModel):
     id: int
     meal_type: MealType
