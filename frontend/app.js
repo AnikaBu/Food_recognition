@@ -217,6 +217,12 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("manualProtein")?.addEventListener("input", onManualMacroChange);
   document.getElementById("manualFat")?.addEventListener("input", onManualMacroChange);
   document.getElementById("manualCarbs")?.addEventListener("input", onManualMacroChange);
+  document.getElementById("manualDishName")?.addEventListener("input", onManualDishNameInput);
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("#manualDishName") && !e.target.closest("#manualDishSuggestions")) {
+      hideDishSuggestions();
+    }
+  });
 
   // ----------------- Слушатели событий модуля Рецептов -----------------
   document.getElementById("openRecipesBtn")?.addEventListener("click", openRecipesListModal);
@@ -800,6 +806,84 @@ function onManualMacroChange() {
   if (!isNaN(p)) state.manual100g.prot = p / factor;
   if (!isNaN(f)) state.manual100g.fat = f / factor;
   if (!isNaN(cb)) state.manual100g.carbs = cb / factor;
+}
+
+// ----------------- Живые подсказки (автокомплит) продуктов -----------------
+let dishNameSearchTimer = null;
+
+function hideDishSuggestions() {
+  const container = document.getElementById("manualDishSuggestions");
+  if (container) {
+    container.style.display = "none";
+    container.innerHTML = "";
+  }
+}
+
+async function onManualDishNameInput(e) {
+  const text = e.target.value.trim();
+  clearTimeout(dishNameSearchTimer);
+  if (text.length < 2) {
+    hideDishSuggestions();
+    return;
+  }
+
+  dishNameSearchTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`/api/products/search?q=${encodeURIComponent(text)}&limit=5`);
+      if (!res.ok) return;
+      const products = await res.json();
+      renderDishSuggestions(products);
+    } catch (_) {}
+  }, 250);
+}
+
+function renderDishSuggestions(products) {
+  const container = document.getElementById("manualDishSuggestions");
+  if (!container) return;
+
+  if (!products || products.length === 0) {
+    hideDishSuggestions();
+    return;
+  }
+
+  container.innerHTML = "";
+  products.forEach((p) => {
+    const item = document.createElement("div");
+    item.className = "suggestion-item";
+    const fullName = p.brand ? `${p.name} (${p.brand})` : p.name;
+    item.innerHTML = `
+      <span class="suggestion-name">${escapeHtml(fullName)}</span>
+      <span class="suggestion-macros">${Math.round(p.calories_100g)} ккал • Б:${p.protein_100g.toFixed(1)} Ж:${p.fat_100g.toFixed(1)} У:${p.carbs_100g.toFixed(1)}</span>
+    `;
+    item.addEventListener("click", () => selectDishSuggestion(p));
+    container.appendChild(item);
+  });
+  container.style.display = "block";
+}
+
+function selectDishSuggestion(p) {
+  const fullName = p.brand ? `${p.name} (${p.brand})` : p.name;
+  document.getElementById("manualDishName").value = fullName;
+
+  state.manual100g = {
+    kcal: p.calories_100g,
+    prot: p.protein_100g,
+    fat: p.fat_100g,
+    carbs: p.carbs_100g,
+  };
+
+  const w = parseFloat(document.getElementById("manualDishWeight")?.value) || 100;
+  const factor = (w > 0 ? w : 100) / 100.0;
+  document.getElementById("manualCalories").value = Math.round(p.calories_100g * factor);
+  document.getElementById("manualProtein").value = (p.protein_100g * factor).toFixed(1);
+  document.getElementById("manualFat").value = (p.fat_100g * factor).toFixed(1);
+  document.getElementById("manualCarbs").value = (p.carbs_100g * factor).toFixed(1);
+
+  if (p.barcode) {
+    document.getElementById("manualComment").value = `Штрихкод: ${p.barcode}`;
+  }
+
+  hideDishSuggestions();
 }
 
 // =====================================================================

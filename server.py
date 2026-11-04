@@ -31,6 +31,7 @@ from models import (
     RecipeRecord,
     LogRecipePortionRequest,
     WeeklyMacroSummary,
+    SavedProductRecord,
 )
 from vision import analyze_food_image, estimate_food_nutrition_by_text
 from barcode_service import get_product_by_barcode, clean_barcode
@@ -278,6 +279,22 @@ def save_meal_endpoint(payload: SaveMealRequest):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Не удалось получить созданную запись приема пищи",
             )
+
+        # Автоматически регистрируем ингредиенты в персональном каталоге продуктов
+        for item in payload.items:
+            if item.weight_g > 0 and item.calories > 0 and item.name.strip():
+                f100 = 100.0 / item.weight_g
+                try:
+                    db.upsert_saved_product(
+                        name=item.name.strip(),
+                        calories_100g=round(item.calories * f100, 1),
+                        protein_100g=round(item.protein * f100, 2),
+                        fat_100g=round(item.fat * f100, 2),
+                        carbs_100g=round(item.carbs * f100, 2),
+                    )
+                except Exception as ex:
+                    print(f"⚠️ Не удалось сохранить продукт '{item.name}' в каталог: {ex}")
+
         return meal_record
     except Exception as e:
         raise HTTPException(
@@ -555,6 +572,41 @@ def log_recipe_portion_endpoint(recipe_id: int, payload: LogRecipePortionRequest
             detail=f"Рецепт с ID {recipe_id} не найден",
         )
     return meal
+
+
+# =====================================================================
+# ------------------ Персональный каталог продуктов -------------------
+# =====================================================================
+
+@app.get(
+    "/api/products/search",
+    response_model=list[SavedProductRecord],
+    tags=["Каталог продуктов"],
+    summary="Поиск сохраненных продуктов для автодополнения",
+)
+def search_products_endpoint(
+    q: str = Query(default="", description="Строка поиска по названию или бренду"),
+    limit: int = Query(default=10, ge=1, le=50, description="Максимальное количество результатов"),
+):
+    """Возвращает список сохраненных продуктов, отсортированных по частоте использования."""
+    return db.search_saved_products(query=q, limit=limit)
+
+
+@app.delete(
+    "/api/products/{product_id}",
+    status_code=status.HTTP_200_OK,
+    tags=["Каталог продуктов"],
+    summary="Удалить продукт из каталога",
+)
+def delete_product_endpoint(product_id: int):
+    """Удаляет сохраненный продукт из персонального каталога."""
+    deleted = db.delete_saved_product(product_id)
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Продукт с id={product_id} не найден в каталоге",
+        )
+    return {"status": "ok", "deleted_id": product_id}
 
 
 # Раздача PWA-клиента (HTML, CSS, JS, манифест и иконки)

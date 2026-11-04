@@ -64,6 +64,43 @@ def get_product_by_barcode(barcode: str, timeout: float = 6.0) -> Optional[Barco
         logger.info("Штрихкод %s возвращен из локального кэша", code)
         return _BARCODE_CACHE[code]
 
+    # 1. Проверяем персональный каталог SQLite (локальная база пользователя)
+    try:
+        from db import get_saved_product_by_barcode, upsert_saved_product
+
+        saved = get_saved_product_by_barcode(code)
+        if saved:
+            logger.info("Штрихкод %s найден в персональном каталоге SQLite: %s", code, saved.name)
+            # Обновляем счетчик использования
+            upsert_saved_product(
+                name=saved.name,
+                calories_100g=saved.calories_100g,
+                protein_100g=saved.protein_100g,
+                fat_100g=saved.fat_100g,
+                carbs_100g=saved.carbs_100g,
+                barcode=saved.barcode,
+                brand=saved.brand,
+            )
+            res = BarcodeProductResponse(
+                barcode=code,
+                name=saved.name,
+                brand=saved.brand or "",
+                weight_g=100.0,
+                calories=saved.calories_100g,
+                protein=saved.protein_100g,
+                fat=saved.fat_100g,
+                carbs=saved.carbs_100g,
+                calories_100g=saved.calories_100g,
+                protein_100g=saved.protein_100g,
+                fat_100g=saved.fat_100g,
+                carbs_100g=saved.carbs_100g,
+                image_url="",
+            )
+            _BARCODE_CACHE[code] = res
+            return res
+    except Exception as e:
+        logger.warning("Ошибка проверки SQLite кэша штрихкодов: %s", e)
+
     raw_data = fetch_open_food_facts(code, timeout=timeout)
     if not raw_data or raw_data.get("status") != 1 or "product" not in raw_data:
         return None
@@ -184,4 +221,21 @@ def get_product_by_barcode(barcode: str, timeout: float = 6.0) -> Optional[Barco
     )
 
     _BARCODE_CACHE[code] = result
+
+    # Сохраняем в персональный каталог SQLite для мгновенного доступа в будущем
+    try:
+        from db import upsert_saved_product
+
+        upsert_saved_product(
+            name=name,
+            calories_100g=round(kcal_100, 1),
+            protein_100g=prot_100,
+            fat_100g=fat_100,
+            carbs_100g=carbs_100,
+            barcode=code,
+            brand=brand,
+        )
+    except Exception as e:
+        logger.warning("Не удалось сохранить продукт в SQLite каталог: %s", e)
+
     return result

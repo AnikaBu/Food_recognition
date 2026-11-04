@@ -509,6 +509,23 @@ class ApiService {
       throw Exception(err);
     }
   }
+
+  Future<List<SavedProduct>> searchProducts(String query, {int limit = 10}) async {
+    try {
+      final baseUrl = await _getBaseUrl();
+      final uri = Uri.parse('$baseUrl/api/products/search?q=${Uri.encodeComponent(query)}&limit=$limit');
+      final headers = await _getHeaders(isJson: false);
+      final res = await http.get(uri, headers: headers).timeout(const Duration(seconds: 5));
+
+      if (res.statusCode == 200) {
+        final decoded = json.decode(utf8.decode(res.bodyBytes)) as List<dynamic>;
+        return decoded.map((e) => SavedProduct.fromJson(e as Map<String, dynamic>)).toList();
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
 }
 
 

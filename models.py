@@ -206,3 +206,16 @@ class WeeklyMacroSummary(BaseModel):
     target_carbs: float = Field(default=250.0, description="Суточная цель по углеводам")
 
 
+class SavedProductRecord(BaseModel):
+    id: int
+    barcode: Optional[str] = Field(default=None, description="Штрихкод продукта (если есть)")
+    name: str = Field(description="Название продукта")
+    brand: Optional[str] = Field(default="", description="Бренд или производитель")
+    calories_100g: float = Field(description="Калорийность на 100 г (ккал)")
+    protein_100g: float = Field(description="Белки на 100 г (г)")
+    fat_100g: float = Field(description="Жиры на 100 г (г)")
+    carbs_100g: float = Field(description="Углеводы на 100 г (г)")
+    use_count: int = Field(default=1, description="Количество использований в дневнике")
+    updated_at: str = Field(description="Время последнего использования")
+
+

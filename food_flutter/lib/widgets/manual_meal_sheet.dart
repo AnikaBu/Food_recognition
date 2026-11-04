@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/meal_models.dart';
@@ -49,10 +50,14 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
   double? _fat100;
   double? _carb100;
 
+  Timer? _searchDebounceTimer;
+  List<SavedProduct> _suggestions = [];
+
   @override
   void initState() {
     super.initState();
     _selectedMealType = widget.initialMealType ?? _guessMealType();
+    _dishNameController.addListener(_onDishNameChanged);
     _weightController.addListener(_onWeightChanged);
     _caloriesController.addListener(_onMacroChanged);
     _proteinController.addListener(_onMacroChanged);
@@ -62,6 +67,8 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
 
   @override
   void dispose() {
+    _searchDebounceTimer?.cancel();
+    _dishNameController.removeListener(_onDishNameChanged);
     _weightController.removeListener(_onWeightChanged);
     _caloriesController.removeListener(_onMacroChanged);
     _proteinController.removeListener(_onMacroChanged);
@@ -75,6 +82,54 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
     _carbsController.dispose();
     _commentController.dispose();
     super.dispose();
+  }
+
+  void _onDishNameChanged() {
+    if (_isAutoUpdating) return;
+    final text = _dishNameController.text.trim();
+    _searchDebounceTimer?.cancel();
+    if (text.length < 2) {
+      if (_suggestions.isNotEmpty) {
+        setState(() => _suggestions = []);
+      }
+      return;
+    }
+    _searchDebounceTimer = Timer(const Duration(milliseconds: 250), () async {
+      if (!mounted) return;
+      final results = await widget.apiService.searchProducts(text, limit: 5);
+      if (mounted) {
+        if (_dishNameController.text.trim() == text) {
+          setState(() {
+            _suggestions = results;
+          });
+        }
+      }
+    });
+  }
+
+  void _selectSuggestion(SavedProduct item) {
+    setState(() {
+      _isAutoUpdating = true;
+      _dishNameController.text = item.fullName;
+      _cal100 = item.calories100g;
+      _prot100 = item.protein100g;
+      _fat100 = item.fat100g;
+      _carb100 = item.carbs100g;
+
+      final w = double.tryParse(_weightController.text.replaceAll(',', '.')) ?? 100.0;
+      final factor = (w > 0 ? w : 100.0) / 100.0;
+      _caloriesController.text = (item.calories100g * factor).toStringAsFixed(0);
+      _proteinController.text = (item.protein100g * factor).toStringAsFixed(1);
+      _fatController.text = (item.fat100g * factor).toStringAsFixed(1);
+      _carbsController.text = (item.carbs100g * factor).toStringAsFixed(1);
+
+      if (item.barcode != null && item.barcode!.isNotEmpty) {
+        _commentController.text = 'Штрихкод: ${item.barcode}';
+      }
+
+      _suggestions = [];
+      _isAutoUpdating = false;
+    });
   }
 
   void _onWeightChanged() {
@@ -572,6 +627,77 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                     return null;
                   },
                 ),
+                if (_suggestions.isNotEmpty)
+                  Container(
+                    margin: const EdgeInsets.only(top: 6),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkSurface : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.primary.withOpacity(0.35),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(isDark ? 0.35 : 0.08),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: _suggestions.map((item) {
+                          return InkWell(
+                            onTap: () => _selectSuggestion(item),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: isDark ? AppColors.darkBorder.withOpacity(0.5) : const Color(0xFFE2E8F0),
+                                    width: 0.8,
+                                  ),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.history, color: AppColors.primary, size: 16),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          item.fullName,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 13,
+                                            color: textPrimary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '${item.calories100g.toStringAsFixed(0)} ккал/100г • Б: ${item.protein100g.toStringAsFixed(1)} • Ж: ${item.fat100g.toStringAsFixed(1)} • У: ${item.carbs100g.toStringAsFixed(1)}',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: textSecondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.north_west, color: AppColors.primary, size: 14),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 8),
 
                 // Быстрые кнопки: Рецепты, Штрихкод и ИИ-расчет

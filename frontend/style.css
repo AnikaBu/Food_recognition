@@ -707,6 +707,41 @@ h1 {
   border-left: 3px solid var(--primary);
 }
 
+.suggestions-dropdown {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  margin-top: -6px;
+  margin-bottom: 12px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.suggestion-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  transition: background 0.15s ease;
+}
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+.suggestion-item:hover {
+  background: #f8fafc;
+}
+.suggestion-name {
+  font-weight: 600;
+  color: #1e293b;
+}
+.suggestion-macros {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
 /* ----------------- Рецепты и конструктор блюд ----------------- */
 .recipes-dialog {
   max-width: 520px;

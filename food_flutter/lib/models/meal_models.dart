@@ -611,5 +611,48 @@ class WeeklyMacroSummary {
   }
 }
 
+class SavedProduct {
+  final int id;
+  final String? barcode;
+  final String name;
+  final String brand;
+  final double calories100g;
+  final double protein100g;
+  final double fat100g;
+  final double carbs100g;
+  final int useCount;
+  final String updatedAt;
+
+  SavedProduct({
+    required this.id,
+    this.barcode,
+    required this.name,
+    this.brand = '',
+    required this.calories100g,
+    required this.protein100g,
+    required this.fat100g,
+    required this.carbs100g,
+    this.useCount = 1,
+    required this.updatedAt,
+  });
+
+  String get fullName => brand.isNotEmpty ? '$name ($brand)' : name;
+
+  factory SavedProduct.fromJson(Map<String, dynamic> json) {
+    return SavedProduct(
+      id: json['id'] as int? ?? 0,
+      barcode: json['barcode'] as String?,
+      name: json['name'] as String? ?? 'Продукт',
+      brand: json['brand'] as String? ?? '',
+      calories100g: (json['calories_100g'] as num?)?.toDouble() ?? 0.0,
+      protein100g: (json['protein_100g'] as num?)?.toDouble() ?? 0.0,
+      fat100g: (json['fat_100g'] as num?)?.toDouble() ?? 0.0,
+      carbs100g: (json['carbs_100g'] as num?)?.toDouble() ?? 0.0,
+      useCount: json['use_count'] as int? ?? 1,
+      updatedAt: json['updated_at'] as String? ?? '',
+    );
+  }
+}
+
 
 

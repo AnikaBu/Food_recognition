@@ -15,6 +15,7 @@ from models import (
     RecipeRecord,
     WeeklyMacroDay,
     WeeklyMacroSummary,
+    SavedProductRecord,
 )
 
 DEFAULT_DB_PATH = Path(__file__).resolve().parent / "nutrition.db"
@@ -106,10 +107,27 @@ def init_db(db_path: Optional[Path] = None) -> None:
                 carbs REAL NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS saved_products (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                barcode TEXT UNIQUE,
+                name TEXT NOT NULL,
+                brand TEXT DEFAULT '',
+                calories_100g REAL NOT NULL,
+                protein_100g REAL NOT NULL,
+                fat_100g REAL NOT NULL,
+                carbs_100g REAL NOT NULL,
+                use_count INTEGER DEFAULT 1,
+                created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+            );
+
             CREATE INDEX IF NOT EXISTS idx_meals_created_at ON meals(created_at);
             CREATE INDEX IF NOT EXISTS idx_meal_items_meal_id ON meal_items(meal_id);
             CREATE INDEX IF NOT EXISTS idx_recipes_updated_at ON recipes(updated_at);
             CREATE INDEX IF NOT EXISTS idx_recipe_items_recipe_id ON recipe_items(recipe_id);
+            CREATE INDEX IF NOT EXISTS idx_saved_products_barcode ON saved_products(barcode);
+            CREATE INDEX IF NOT EXISTS idx_saved_products_name ON saved_products(name);
+            CREATE INDEX IF NOT EXISTS idx_saved_products_usage ON saved_products(use_count DESC, updated_at DESC);
         """)
 
         # Миграция: автоматическое добавление колонок калькулятора, если таблица была создана ранее
@@ -746,5 +764,166 @@ def get_weekly_macro_summary(
         target_fat=goals.fat,
         target_carbs=goals.carbs,
     )
+
+
+# =====================================================================
+# ------------------ Персональный каталог продуктов -------------------
+# =====================================================================
+
+def get_saved_product_by_barcode(
+    barcode: str,
+    db_path: Optional[Path] = None,
+) -> Optional[SavedProductRecord]:
+    """Возвращает сохраненный продукт по штрихкоду или None, если он не найден."""
+    clean_code = (barcode or "").strip()
+    if not clean_code:
+        return None
+    resolved_path = get_db_path(db_path)
+    with get_connection(resolved_path) as conn:
+        row = conn.execute(
+            """
+            SELECT id, barcode, name, brand, calories_100g, protein_100g, fat_100g, carbs_100g, use_count, updated_at
+            FROM saved_products
+            WHERE barcode = ?;
+            """,
+            (clean_code,),
+        ).fetchone()
+        if not row:
+            return None
+        return SavedProductRecord(
+            id=row["id"],
+            barcode=row["barcode"],
+            name=row["name"],
+            brand=row["brand"] or "",
+            calories_100g=float(row["calories_100g"]),
+            protein_100g=float(row["protein_100g"]),
+            fat_100g=float(row["fat_100g"]),
+            carbs_100g=float(row["carbs_100g"]),
+            use_count=int(row["use_count"]),
+            updated_at=str(row["updated_at"]),
+        )
+
+
+def upsert_saved_product(
+    name: str,
+    calories_100g: float,
+    protein_100g: float,
+    fat_100g: float,
+    carbs_100g: float,
+    barcode: Optional[str] = None,
+    brand: Optional[str] = None,
+    db_path: Optional[Path] = None,
+) -> int:
+    """
+    Добавляет продукт в каталог или обновляет его данные/счетчик использования.
+    Возвращает id сохраненного продукта.
+    """
+    clean_name = (name or "").strip()
+    clean_barcode = (barcode or "").strip() or None
+    clean_brand = (brand or "").strip()
+
+    resolved_path = get_db_path(db_path)
+    with get_connection(resolved_path) as conn:
+        if clean_barcode:
+            existing = conn.execute(
+                "SELECT id, use_count FROM saved_products WHERE barcode = ?;",
+                (clean_barcode,),
+            ).fetchone()
+        else:
+            existing = conn.execute(
+                "SELECT id, use_count FROM saved_products WHERE lower(name) = lower(?) AND (barcode IS NULL OR barcode = '');",
+                (clean_name,),
+            ).fetchone()
+
+        if existing:
+            prod_id = existing["id"]
+            conn.execute(
+                """
+                UPDATE saved_products
+                SET name = ?,
+                    brand = coalesce(nullif(?, ''), brand),
+                    calories_100g = ?,
+                    protein_100g = ?,
+                    fat_100g = ?,
+                    carbs_100g = ?,
+                    use_count = use_count + 1,
+                    updated_at = datetime('now', 'localtime')
+                WHERE id = ?;
+                """,
+                (clean_name, clean_brand, calories_100g, protein_100g, fat_100g, carbs_100g, prod_id),
+            )
+            conn.commit()
+            return prod_id
+        else:
+            cur = conn.execute(
+                """
+                INSERT INTO saved_products (barcode, name, brand, calories_100g, protein_100g, fat_100g, carbs_100g, use_count, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 1, datetime('now', 'localtime'), datetime('now', 'localtime'));
+                """,
+                (clean_barcode, clean_name, clean_brand, calories_100g, protein_100g, fat_100g, carbs_100g),
+            )
+            conn.commit()
+            return cur.lastrowid
+
+
+def search_saved_products(
+    query: str = "",
+    limit: int = 10,
+    db_path: Optional[Path] = None,
+) -> list[SavedProductRecord]:
+    """Ищет продукты по названию/бренду с сортировкой по популярности использования."""
+    resolved_path = get_db_path(db_path)
+    q = (query or "").strip()
+    with get_connection(resolved_path) as conn:
+        if q:
+            pattern = f"%{q}%"
+            rows = conn.execute(
+                """
+                SELECT id, barcode, name, brand, calories_100g, protein_100g, fat_100g, carbs_100g, use_count, updated_at
+                FROM saved_products
+                WHERE name LIKE ? OR brand LIKE ?
+                ORDER BY use_count DESC, updated_at DESC
+                LIMIT ?;
+                """,
+                (pattern, pattern, limit),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """
+                SELECT id, barcode, name, brand, calories_100g, protein_100g, fat_100g, carbs_100g, use_count, updated_at
+                FROM saved_products
+                ORDER BY use_count DESC, updated_at DESC
+                LIMIT ?;
+                """,
+                (limit,),
+            ).fetchall()
+
+        return [
+            SavedProductRecord(
+                id=r["id"],
+                barcode=r["barcode"],
+                name=r["name"],
+                brand=r["brand"] or "",
+                calories_100g=float(r["calories_100g"]),
+                protein_100g=float(r["protein_100g"]),
+                fat_100g=float(r["fat_100g"]),
+                carbs_100g=float(r["carbs_100g"]),
+                use_count=int(r["use_count"]),
+                updated_at=str(r["updated_at"]),
+            )
+            for r in rows
+        ]
+
+
+def delete_saved_product(
+    product_id: int,
+    db_path: Optional[Path] = None,
+) -> bool:
+    """Удаляет продукт из каталога по id."""
+    resolved_path = get_db_path(db_path)
+    with get_connection(resolved_path) as conn:
+        cur = conn.execute("DELETE FROM saved_products WHERE id = ?;", (product_id,))
+        conn.commit()
+        return cur.rowcount > 0
 
 
