@@ -122,6 +122,44 @@ def get_product_by_barcode(barcode: str, timeout: float = 6.0) -> Optional[Barco
         except (ValueError, TypeError):
             pass
 
+    # Проверяем, есть ли заполненная пищевая ценность в Open Food Facts
+    has_nutriments_data = any(
+        k in nutriments
+        for k in (
+            "energy-kcal_100g",
+            "energy-kcal",
+            "energy_100g",
+            "energy",
+            "proteins_100g",
+            "fat_100g",
+            "carbohydrates_100g",
+        )
+    )
+
+    # Если данных о КБЖУ в Open Food Facts нет вовсе или все нули — обогащаем через Gemini AI
+    if not has_nutriments_data or (kcal_100 == 0.0 and prot_100 == 0.0 and fat_100 == 0.0 and carbs_100 == 0.0):
+        query_text = f"{name} ({brand})" if (brand and brand.lower() not in name.lower()) else name
+        try:
+            from vision import estimate_food_nutrition_by_text
+
+            ai_est = estimate_food_nutrition_by_text(query_text, weight_g=serving_g)
+            if ai_est:
+                if ai_est.name and len(ai_est.name) > 2 and name == "Продукт без названия":
+                    name = ai_est.name
+                f100 = 100.0 / ai_est.weight_g if ai_est.weight_g > 0 else 1.0
+                kcal_100 = round(ai_est.calories * f100, 1)
+                prot_100 = round(ai_est.protein * f100, 2)
+                fat_100 = round(ai_est.fat * f100, 2)
+                carbs_100 = round(ai_est.carbs * f100, 2)
+                logger.info(
+                    "КБЖУ для штрихкода %s (%s) успешно дополнено через Gemini AI: %.1f ккал / 100г",
+                    code,
+                    query_text,
+                    kcal_100,
+                )
+        except Exception as e:
+            logger.warning("Не удалось дополнить КБЖУ для штрихкода %s через Gemini AI: %s", code, e)
+
     # Расчет КБЖУ на порцию serving_g
     factor = serving_g / 100.0
     calories = round(kcal_100 * factor, 1)

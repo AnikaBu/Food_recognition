@@ -40,6 +40,7 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
   bool _isSaving = false;
   bool _isEstimatingAi = false;
   bool _isLookingUpBarcode = false;
+  bool _isAutoUpdating = false;
   String? _errorMessage;
 
   // Базовые показатели КБЖУ на 100 г для динамического масштабирования
@@ -53,11 +54,19 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
     super.initState();
     _selectedMealType = widget.initialMealType ?? _guessMealType();
     _weightController.addListener(_onWeightChanged);
+    _caloriesController.addListener(_onMacroChanged);
+    _proteinController.addListener(_onMacroChanged);
+    _fatController.addListener(_onMacroChanged);
+    _carbsController.addListener(_onMacroChanged);
   }
 
   @override
   void dispose() {
     _weightController.removeListener(_onWeightChanged);
+    _caloriesController.removeListener(_onMacroChanged);
+    _proteinController.removeListener(_onMacroChanged);
+    _fatController.removeListener(_onMacroChanged);
+    _carbsController.removeListener(_onMacroChanged);
     _dishNameController.dispose();
     _weightController.dispose();
     _caloriesController.dispose();
@@ -69,15 +78,41 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
   }
 
   void _onWeightChanged() {
-    if (_cal100 == null) return;
+    if (_isAutoUpdating || _cal100 == null) return;
     final text = _weightController.text.replaceAll(',', '.');
     final w = double.tryParse(text);
     if (w == null || w <= 0) return;
     final factor = w / 100.0;
+    _isAutoUpdating = true;
     _caloriesController.text = (_cal100! * factor).toStringAsFixed(0);
     _proteinController.text = (_prot100! * factor).toStringAsFixed(1);
     _fatController.text = (_fat100! * factor).toStringAsFixed(1);
     _carbsController.text = (_carb100! * factor).toStringAsFixed(1);
+    _isAutoUpdating = false;
+  }
+
+  void _onMacroChanged() {
+    if (_isAutoUpdating) return;
+    final text = _weightController.text.replaceAll(',', '.');
+    final w = double.tryParse(text) ?? 100.0;
+    if (w <= 0) return;
+    final factor = w / 100.0;
+
+    final calText = _caloriesController.text.replaceAll(',', '.');
+    final c = double.tryParse(calText);
+    if (c != null) _cal100 = c / factor;
+
+    final protText = _proteinController.text.replaceAll(',', '.');
+    final p = double.tryParse(protText);
+    if (p != null) _prot100 = p / factor;
+
+    final fatText = _fatController.text.replaceAll(',', '.');
+    final f = double.tryParse(fatText);
+    if (f != null) _fat100 = f / factor;
+
+    final carbText = _carbsController.text.replaceAll(',', '.');
+    final cb = double.tryParse(carbText);
+    if (cb != null) _carb100 = cb / factor;
   }
 
   MealType _guessMealType() {
@@ -122,6 +157,7 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
 
       if (mounted) {
         setState(() {
+          _isAutoUpdating = true;
           _dishNameController.text = result.name;
           _weightController.text = result.weightG.toStringAsFixed(0);
           _caloriesController.text = result.calories.toStringAsFixed(0);
@@ -142,6 +178,7 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
           }
 
           _isEstimatingAi = false;
+          _isAutoUpdating = false;
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -181,17 +218,25 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
       final result = await widget.apiService.lookupBarcode(barcode);
 
       if (mounted) {
-        setState(() {
-          final fullName = result.brand.isNotEmpty
-              ? '${result.name} (${result.brand})'
-              : result.name;
-          _dishNameController.text = fullName;
-          _weightController.text = result.weightG.toStringAsFixed(0);
+        final fullName = result.brand.isNotEmpty
+            ? '${result.name} (${result.brand})'
+            : result.name;
 
+        final hasZeroNutrition = result.calories100g == 0 &&
+            result.protein100g == 0 &&
+            result.fat100g == 0 &&
+            result.carbs100g == 0;
+
+        setState(() {
+          _isAutoUpdating = true;
+          _dishNameController.text = fullName;
           _cal100 = result.calories100g;
           _prot100 = result.protein100g;
           _fat100 = result.fat100g;
           _carb100 = result.carbs100g;
+
+          final servingWeight = result.weightG > 0 ? result.weightG : 100.0;
+          _weightController.text = servingWeight.toStringAsFixed(0);
 
           _caloriesController.text = result.calories.toStringAsFixed(0);
           _proteinController.text = result.protein.toStringAsFixed(1);
@@ -199,15 +244,29 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
           _carbsController.text = result.carbs.toStringAsFixed(1);
           _commentController.text = 'Штрихкод: ${result.barcode}';
           _isLookingUpBarcode = false;
+          _isAutoUpdating = false;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('📦 Найден: ${result.name} (Open Food Facts)'),
-            backgroundColor: const Color(0xFF10B981),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        if (hasZeroNutrition) {
+          // Если КБЖУ в Open Food Facts отсутствовало и бэкенд вернул нули,
+          // запускаем автоматическую оценку через Gemini AI
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('📦 Найден: $fullName. Рассчитываем КБЖУ...'),
+              backgroundColor: const Color(0xFF6366F1),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+          await _estimateWithAi();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('📦 Найден: $fullName (Open Food Facts)'),
+              backgroundColor: const Color(0xFF10B981),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

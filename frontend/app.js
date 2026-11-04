@@ -211,8 +211,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Автоматический пересчет КБЖУ при изменении веса порции
+  // Автоматический пересчет КБЖУ при изменении веса порции или ручном вводе макросов
   document.getElementById("manualDishWeight")?.addEventListener("input", onManualWeightChange);
+  document.getElementById("manualCalories")?.addEventListener("input", onManualMacroChange);
+  document.getElementById("manualProtein")?.addEventListener("input", onManualMacroChange);
+  document.getElementById("manualFat")?.addEventListener("input", onManualMacroChange);
+  document.getElementById("manualCarbs")?.addEventListener("input", onManualMacroChange);
 
   // ----------------- Слушатели событий модуля Рецептов -----------------
   document.getElementById("openRecipesBtn")?.addEventListener("click", openRecipesListModal);
@@ -660,6 +664,16 @@ async function handleAiEstimateClick() {
       document.getElementById("manualComment").value = data.comment;
     }
 
+    if (data.weight_g > 0) {
+      const f100 = 100.0 / data.weight_g;
+      state.manual100g = {
+        kcal: data.calories * f100,
+        prot: data.protein * f100,
+        fat: data.fat * f100,
+        carbs: data.carbs * f100,
+      };
+    }
+
     showToast(`✨ Gemini: ${Math.round(data.calories)} ккал (${Math.round(data.weight_g)}г)`);
   } catch (err) {
     console.error("Ошибка ИИ-оценки:", err);
@@ -733,7 +747,17 @@ async function handleBarcodeLookup() {
     document.getElementById("manualCarbs").value = data.carbs.toFixed(1);
     document.getElementById("manualComment").value = `Штрихкод: ${data.barcode}`;
 
-    showToast(`📦 Найден: ${data.name}`);
+    const hasZeroNutrition = data.calories_100g === 0 &&
+      data.protein_100g === 0 &&
+      data.fat_100g === 0 &&
+      data.carbs_100g === 0;
+
+    if (hasZeroNutrition) {
+      showToast(`📦 Найден: ${fullName}. Рассчитываем КБЖУ...`);
+      await handleAiEstimateClick();
+    } else {
+      showToast(`📦 Найден: ${data.name}`);
+    }
   } catch (err) {
     console.error("Ошибка поиска по штрихкоду:", err);
     showToast(`❌ ${err.message}`);
@@ -751,10 +775,31 @@ function onManualWeightChange() {
   const w = parseFloat(document.getElementById("manualDishWeight")?.value) || 0;
   if (w <= 0) return;
   const factor = w / 100.0;
+  state.isAutoUpdatingWeight = true;
   document.getElementById("manualCalories").value = Math.round(state.manual100g.kcal * factor);
   document.getElementById("manualProtein").value = (state.manual100g.prot * factor).toFixed(1);
   document.getElementById("manualFat").value = (state.manual100g.fat * factor).toFixed(1);
   document.getElementById("manualCarbs").value = (state.manual100g.carbs * factor).toFixed(1);
+  state.isAutoUpdatingWeight = false;
+}
+
+// Обновление базовых КБЖУ на 100 г при ручном изменении калорий или макросов пользователем
+function onManualMacroChange() {
+  if (state.isAutoUpdatingWeight) return;
+  const w = parseFloat(document.getElementById("manualDishWeight")?.value) || 100;
+  if (w <= 0) return;
+  const factor = w / 100.0;
+  if (!state.manual100g) {
+    state.manual100g = { kcal: 0, prot: 0, fat: 0, carbs: 0 };
+  }
+  const c = parseFloat(document.getElementById("manualCalories")?.value);
+  const p = parseFloat(document.getElementById("manualProtein")?.value);
+  const f = parseFloat(document.getElementById("manualFat")?.value);
+  const cb = parseFloat(document.getElementById("manualCarbs")?.value);
+  if (!isNaN(c)) state.manual100g.kcal = c / factor;
+  if (!isNaN(p)) state.manual100g.prot = p / factor;
+  if (!isNaN(f)) state.manual100g.fat = f / factor;
+  if (!isNaN(cb)) state.manual100g.carbs = cb / factor;
 }
 
 // =====================================================================

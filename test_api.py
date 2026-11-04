@@ -243,6 +243,38 @@ def test_api_endpoints():
         assert bc_data["carbs"] == 26.5      # 10.6 * 2.5
     print("✅ 8.3. GET /api/barcode/{code} — успешный расчет порции и КБЖУ на 100г работает корректно.")
 
+    # 8.4 Поиск продукта с отсутствующим КБЖУ в Open Food Facts -> обогащение через Gemini AI
+    from models import EstimateNutritionResponse
+    mock_off_empty_nutriments = {
+        "status": 1,
+        "product": {
+            "product_name": "Carski sir",
+            "brands": "Pilos",
+            "serving_quantity": 100,
+            "nutriments": {}
+        }
+    }
+    mock_ai_response = EstimateNutritionResponse(
+        name="Сыр Царский (Pilos)",
+        weight_g=100.0,
+        calories=356.0,
+        protein=25.0,
+        fat=28.0,
+        carbs=0.5,
+        comment="Полутвердый сыр, отличный источник белка"
+    )
+    with patch("barcode_service.fetch_open_food_facts", return_value=mock_off_empty_nutriments), \
+         patch("vision.estimate_food_nutrition_by_text", return_value=mock_ai_response):
+        resp_enriched_bc = client.get("/api/barcode/20146603")
+        assert resp_enriched_bc.status_code == 200
+        enr_data = resp_enriched_bc.json()
+        assert enr_data["calories_100g"] == 356.0
+        assert enr_data["protein_100g"] == 25.0
+        assert enr_data["fat_100g"] == 28.0
+        assert enr_data["carbs_100g"] == 0.5
+        assert enr_data["calories"] == 356.0
+    print("✅ 8.4. GET /api/barcode/{code} — автоматическое обогащение КБЖУ через Gemini AI работает корректно.")
+
     # 9. Тестирование эндпоинтов управления рецептами (/api/recipes)
     # 9.1 Создание рецепта сложного блюда
     recipe_payload = {
