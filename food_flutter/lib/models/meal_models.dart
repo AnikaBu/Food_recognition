@@ -17,6 +17,32 @@ enum MealType {
     }
   }
 
+  String get emoji {
+    switch (this) {
+      case MealType.breakfast:
+        return '🍳';
+      case MealType.lunch:
+        return '🍲';
+      case MealType.dinner:
+        return '🥗';
+      case MealType.snack:
+        return '🍎';
+    }
+  }
+
+  String get titleRu {
+    switch (this) {
+      case MealType.breakfast:
+        return 'Завтрак';
+      case MealType.lunch:
+        return 'Обед';
+      case MealType.dinner:
+        return 'Ужин';
+      case MealType.snack:
+        return 'Перекус';
+    }
+  }
+
   String get labelRu {
     switch (this) {
       case MealType.breakfast:

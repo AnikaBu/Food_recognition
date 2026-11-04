@@ -776,7 +776,7 @@ class _MealEditSheetState extends State<MealEditSheet> {
                   Text(type.emoji, style: const TextStyle(fontSize: 16)),
                   const SizedBox(height: 2),
                   Text(
-                    type.labelRu,
+                    type.titleRu,
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
