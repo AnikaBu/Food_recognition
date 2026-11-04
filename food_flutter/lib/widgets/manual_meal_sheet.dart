@@ -37,12 +37,15 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
   final _fatController = TextEditingController(text: '0');
   final _carbsController = TextEditingController(text: '0');
   final _commentController = TextEditingController();
+  final _dishNameFocusNode = FocusNode();
 
   bool _isSaving = false;
   bool _isEstimatingAi = false;
   bool _isLookingUpBarcode = false;
   bool _isAutoUpdating = false;
   String? _errorMessage;
+  String? _noticeMessage;
+  bool _isNoticeSuccess = false;
 
   // Базовые показатели КБЖУ на 100 г для динамического масштабирования
   double? _cal100;
@@ -75,6 +78,7 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
     _fatController.removeListener(_onMacroChanged);
     _carbsController.removeListener(_onMacroChanged);
     _dishNameController.dispose();
+    _dishNameFocusNode.dispose();
     _weightController.dispose();
     _caloriesController.dispose();
     _proteinController.dispose();
@@ -86,6 +90,9 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
 
   void _onDishNameChanged() {
     if (_isAutoUpdating) return;
+    if (_noticeMessage != null && !_isNoticeSuccess) {
+      setState(() => _noticeMessage = null);
+    }
     final text = _dishNameController.text.trim();
     _searchDebounceTimer?.cancel();
     if (text.length < 2) {
@@ -189,18 +196,18 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
   Future<void> _estimateWithAi() async {
     final query = _dishNameController.text.trim();
     if (query.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Введите название продукта (например: «хлеб зерновой 30г»)'),
-          backgroundColor: Color(0xFFF59E0B),
-        ),
-      );
+      setState(() {
+        _noticeMessage = 'Введите название блюда или продукта для расчета (например: «хлеб зерновой 30г» или «яблоко»)';
+        _isNoticeSuccess = false;
+      });
+      _dishNameFocusNode.requestFocus();
       return;
     }
 
     setState(() {
       _isEstimatingAi = true;
       _errorMessage = null;
+      _noticeMessage = null;
     });
 
     try {
@@ -234,15 +241,15 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
 
           _isEstimatingAi = false;
           _isAutoUpdating = false;
+          _noticeMessage = '✨ Рассчитано через Gemini: ${result.calories.toStringAsFixed(0)} ккал (${result.weightG.toStringAsFixed(0)} г)';
+          _isNoticeSuccess = true;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✨ Рассчитано через Gemini: ${result.calories.toStringAsFixed(0)} ккал'),
-            backgroundColor: const Color(0xFF10B981),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        Future.delayed(const Duration(seconds: 4), () {
+          if (mounted && _isNoticeSuccess) {
+            setState(() => _noticeMessage = null);
+          }
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -305,22 +312,21 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
         if (hasZeroNutrition) {
           // Если КБЖУ в Open Food Facts отсутствовало и бэкенд вернул нули,
           // запускаем автоматическую оценку через Gemini AI
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('📦 Найден: $fullName. Рассчитываем КБЖУ...'),
-              backgroundColor: const Color(0xFF6366F1),
-              duration: const Duration(seconds: 2),
-            ),
-          );
+          setState(() {
+            _noticeMessage = '📦 Найден: $fullName. Рассчитываем КБЖУ через ИИ...';
+            _isNoticeSuccess = true;
+          });
           await _estimateWithAi();
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('📦 Найден: $fullName (Open Food Facts)'),
-              backgroundColor: const Color(0xFF10B981),
-              duration: const Duration(seconds: 2),
-            ),
-          );
+          setState(() {
+            _noticeMessage = '📦 Найден: $fullName (Open Food Facts)';
+            _isNoticeSuccess = true;
+          });
+          Future.delayed(const Duration(seconds: 4), () {
+            if (mounted && _isNoticeSuccess) {
+              setState(() => _noticeMessage = null);
+            }
+          });
         }
       }
     } catch (e) {
@@ -522,103 +528,18 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                   selected: _selectedMealType,
                   onSelected: (type) => setState(() => _selectedMealType = type),
                 ),
-                const SizedBox(height: 12),
-
-                // Быстрый переход: Ваши рецепты
-                InkWell(
-                  onTap: _openRecipePicker,
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(isDark ? 0.12 : 0.08),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(Icons.menu_book, color: AppColors.primary, size: 18),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Выбрать из ваших рецептов',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                  color: textPrimary,
-                                ),
-                              ),
-                              Text(
-                                'Борщ, рагу, запеканка с учетом уварки',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(Icons.chevron_right, color: AppColors.primary, size: 20),
-                      ],
-                    ),
-                  ),
-                ),
                 const SizedBox(height: 14),
 
                 // Dish Name
                 TextFormField(
                   controller: _dishNameController,
+                  focusNode: _dishNameFocusNode,
                   style: TextStyle(color: textPrimary),
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Название блюда или продукта *',
                     hintText: 'например: хлеб зерновой 30г или яблоко',
-                    prefixIcon: const Icon(Icons.restaurant, color: AppColors.primary, size: 20),
-                    suffixIcon: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (_isLookingUpBarcode)
-                          const Padding(
-                            padding: EdgeInsets.all(12),
-                            child: SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
-                            ),
-                          )
-                        else
-                          IconButton(
-                            icon: const Icon(Icons.qr_code_scanner, color: AppColors.primary),
-                            tooltip: 'Штрихкод (Open Food Facts)',
-                            onPressed: _isEstimatingAi ? null : _scanBarcode,
-                          ),
-                        if (_isEstimatingAi)
-                          const Padding(
-                            padding: EdgeInsets.all(12),
-                            child: SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
-                            ),
-                          )
-                        else
-                          IconButton(
-                            icon: const Icon(Icons.auto_awesome, color: AppColors.primary),
-                            tooltip: 'Рассчитать КБЖУ через ИИ (Gemini)',
-                            onPressed: _isLookingUpBarcode ? null : _estimateWithAi,
-                          ),
-                      ],
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    prefixIcon: Icon(Icons.restaurant, color: AppColors.primary, size: 20),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {
@@ -771,6 +692,65 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                     ),
                   ],
                 ),
+                if (_noticeMessage != null) ...[
+                  const SizedBox(height: 10),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: _isNoticeSuccess
+                          ? (isDark ? AppColors.success.withOpacity(0.18) : const Color(0xFFECFDF5))
+                          : (isDark ? const Color(0xFFF59E0B).withOpacity(0.18) : const Color(0xFFFEF3C7)),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: _isNoticeSuccess
+                            ? (isDark ? AppColors.success.withOpacity(0.5) : const Color(0xFFA7F3D0))
+                            : (isDark ? const Color(0xFFF59E0B).withOpacity(0.5) : const Color(0xFFFDE68A)),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          _isNoticeSuccess ? Icons.check_circle_outline : Icons.info_outline,
+                          size: 18,
+                          color: _isNoticeSuccess
+                              ? (isDark ? AppColors.emerald400 : const Color(0xFF059669))
+                              : (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706)),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _noticeMessage!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              height: 1.35,
+                              fontWeight: FontWeight.w500,
+                              color: _isNoticeSuccess
+                                  ? (isDark ? const Color(0xFFA7F3D0) : const Color(0xFF065F46))
+                                  : (isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        GestureDetector(
+                          onTap: () => setState(() => _noticeMessage = null),
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 1),
+                            child: Icon(
+                              Icons.close,
+                              size: 16,
+                              color: _isNoticeSuccess
+                                  ? (isDark ? const Color(0xFFA7F3D0) : const Color(0xFF065F46))
+                                  : (isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
 
                 // Weight
