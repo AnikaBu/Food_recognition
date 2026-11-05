@@ -149,6 +149,18 @@ class BarcodeProductResponse(BaseModel):
     image_url: Optional[str] = Field(default="", description="URL изображения товара")
 
 
+class GeminiBarcodeResult(BaseModel):
+    found: bool = Field(description="Удалось ли достоверно определить продукт по штрихкоду")
+    name: str = Field(default="", description="Название продукта")
+    brand: Optional[str] = Field(default="", description="Бренд или производитель")
+    weight_g: float = Field(default=100.0, description="Вес упаковки или порции в граммах")
+    calories_100g: float = Field(default=0.0, description="Калорийность на 100 г (ккал)")
+    protein_100g: float = Field(default=0.0, description="Белки на 100 г (г)")
+    fat_100g: float = Field(default=0.0, description="Жиры на 100 г (г)")
+    carbs_100g: float = Field(default=0.0, description="Углеводы на 100 г (г)")
+
+
+
 class RecipeIngredientItem(BaseModel):
     id: Optional[int] = None
     name: str = Field(description="Название сырого ингредиента")

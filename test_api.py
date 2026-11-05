@@ -393,6 +393,109 @@ def test_api_endpoints():
     assert client.delete(f"/api/products/{found['id']}").status_code == 404
     print("✅ 10.3. DELETE /api/products/{id} — удаление продукта из каталога работает корректно.")
 
+    # 11. Тестирование расширенного модуля штрихкодов: GS1 префиксы, локализация (Сербия/Балканы), санитизация и ИИ-фоллбэк
+    from barcode_service import (
+        get_region_by_barcode_prefix,
+        is_nutrition_data_corrupt,
+        extract_localized_product_name,
+        estimate_product_by_barcode_with_gemini,
+        _BARCODE_CACHE,
+    )
+    from models import BarcodeProductResponse
+
+    # 11.1 Проверка GS1 префиксов регионов
+    assert "Сербия" in get_region_by_barcode_prefix("8600043000016")
+    assert "Россия" in get_region_by_barcode_prefix("4601234567890")
+    assert "Хорватия" in get_region_by_barcode_prefix("3851234567890")
+    assert "Германия" in get_region_by_barcode_prefix("4001234567890")
+    print("✅ 11.1. get_region_by_barcode_prefix — корректное определение GS1 префиксов (Сербия 860, РФ 460, Хорватия 385).")
+
+    # 11.2 Проверка санитизации краудсорсинговых данных
+    # Корректные данные: Plazma keks (424 ккал, 11.9г Б, 12г Ж, 67г У)
+    assert not is_nutrition_data_corrupt(424.0, 11.9, 12.0, 67.0)
+    # Опечатка 1: 1232 г углеводов (как в Knjaz Miloš в OFF)
+    assert is_nutrition_data_corrupt(0.0, 0.0, 0.0, 1232.0)
+    # Опечатка 2: Сумма макросов > 105 г
+    assert is_nutrition_data_corrupt(500.0, 50.0, 40.0, 30.0)
+    # Опечатка 3: Калорийность > 950 ккал
+    assert is_nutrition_data_corrupt(1200.0, 10.0, 10.0, 10.0)
+    # Опечатка 4: Отрицательные значения
+    assert is_nutrition_data_corrupt(-10.0, 0.0, 0.0, 0.0)
+    print("✅ 11.2. is_nutrition_data_corrupt — фильтрация аномалий краудсорсинга работает надежно.")
+
+    # 11.3 Проверка извлечения локализованных названий (Сербия, Балканы)
+    raw_serbian_prod = {
+        "product_name_sr": "Plazma Keks Mleveni",
+        "generic_name_sr": "Keks obogaćen vitaminima",
+        "product_name": "",
+    }
+    assert extract_localized_product_name(raw_serbian_prod) == "Plazma Keks Mleveni"
+
+    raw_latin_sr_prod = {
+        "product_name_sr-latn": "Moja Kravica Sveže Mleko",
+        "product_name": None,
+    }
+    assert extract_localized_product_name(raw_latin_sr_prod) == "Moja Kravica Sveže Mleko"
+    print("✅ 11.3. extract_localized_product_name — сербские и балканские локализованные теги успешно извлекаются.")
+
+    # 11.4 Проверка ИИ-фоллбэка через Gemini при 404 от Open Food Facts
+    _BARCODE_CACHE.pop("8609999999999", None)
+    mock_gemini_prod = BarcodeProductResponse(
+        barcode="8609999999999",
+        name="Serbian Homemade Ajvar",
+        brand="Bakina Tajna",
+        weight_g=100.0,
+        calories=142.0,
+        protein=1.8,
+        fat=11.2,
+        carbs=8.5,
+        calories_100g=142.0,
+        protein_100g=1.8,
+        fat_100g=11.2,
+        carbs_100g=8.5,
+        image_url="",
+    )
+    with patch("barcode_service.fetch_open_food_facts", return_value=None), \
+         patch("barcode_service.estimate_product_by_barcode_with_gemini", return_value=mock_gemini_prod):
+        resp_ai_bc = client.get("/api/barcode/8609999999999")
+        assert resp_ai_bc.status_code == 200
+        ai_bc_data = resp_ai_bc.json()
+        assert ai_bc_data["name"] == "Serbian Homemade Ajvar"
+        assert ai_bc_data["brand"] == "Bakina Tajna"
+        assert ai_bc_data["calories_100g"] == 142.0
+    print("✅ 11.4. GET /api/barcode/{code} — ИИ-фоллбэк через Gemini при 404 Open Food Facts успешно возвращает продукт.")
+
+    # 11.5 Проверка авто-привязки штрихкода при сохранении блюда из комментария
+    save_barcode_meal_payload = {
+        "meal_type": "snack",
+        "dish_name": "Печенье Plazma Bambi",
+        "comment": "Перекус на ходу (Штрихкод: 8600043000016)",
+        "items": [
+            {
+                "name": "Печенье Plazma Bambi",
+                "weight_g": 50.0,
+                "calories": 212.0,
+                "protein": 5.95,
+                "fat": 6.0,
+                "carbs": 33.5,
+            }
+        ],
+    }
+    resp_meal_bc = client.post("/api/meals", json=save_barcode_meal_payload)
+    assert resp_meal_bc.status_code == 201
+    meal_bc_id = resp_meal_bc.json()["id"]
+
+    # Проверяем, что в персональном каталоге SQLite штрихкод автоматически привязался к продукту
+    from db import get_saved_product_by_barcode
+    saved_from_meal = get_saved_product_by_barcode("8600043000016")
+    assert saved_from_meal is not None
+    assert "Печенье Plazma" in saved_from_meal.name
+    assert abs(saved_from_meal.calories_100g - 424.0) < 0.5
+    print("✅ 11.5. POST /api/meals — штрихкод из комментария автоматически привязан к персональному каталогу SQLite.")
+
+    # Очищаем созданный прием пищи
+    client.delete(f"/api/meals/{meal_bc_id}")
+
     print("\n🎉 Все тесты FastAPI бэкенда пройдены успешно!")
 
 if __name__ == "__main__":

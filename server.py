@@ -1,5 +1,6 @@
 import io
 import os
+import re
 import time
 import signal
 import asyncio
@@ -282,9 +283,16 @@ def save_meal_endpoint(payload: SaveMealRequest):
             )
 
         # Автоматически регистрируем ингредиенты в персональном каталоге продуктов
+        extracted_barcode = None
+        if payload.comment:
+            m = re.search(r"\b(\d{7,14})\b", payload.comment)
+            if m:
+                extracted_barcode = m.group(1)
+
         for item in payload.items:
             if item.weight_g > 0 and item.calories > 0 and item.name.strip():
                 f100 = 100.0 / item.weight_g
+                item_barcode = extracted_barcode if len(payload.items) == 1 else None
                 try:
                     db.upsert_saved_product(
                         name=item.name.strip(),
@@ -292,6 +300,7 @@ def save_meal_endpoint(payload: SaveMealRequest):
                         protein_100g=round(item.protein * f100, 2),
                         fat_100g=round(item.fat * f100, 2),
                         carbs_100g=round(item.carbs * f100, 2),
+                        barcode=item_barcode,
                     )
                 except Exception as ex:
                     print(f"⚠️ Не удалось сохранить продукт '{item.name}' в каталог: {ex}")
