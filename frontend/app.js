@@ -244,6 +244,24 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("recipeEditorCookedWeight")?.addEventListener("input", renderRecipeEditorItems);
   document.getElementById("recipeEditorForm")?.addEventListener("submit", handleSaveRecipeSubmit);
 
+  // Окно редактирования ингредиента рецепта
+  document.getElementById("closeRecipeIngModalBtn")?.addEventListener("click", closeRecipeIngredientModal);
+  document.getElementById("cancelRecipeIngBtn")?.addEventListener("click", closeRecipeIngredientModal);
+  document.getElementById("recipeIngredientModal")?.addEventListener("click", (e) => {
+    if (e.target.id === "recipeIngredientModal") closeRecipeIngredientModal();
+  });
+  document.getElementById("recipeIngModeGramsBtn")?.addEventListener("click", () => setRecipeIngMode("grams"));
+  document.getElementById("recipeIngModePiecesBtn")?.addEventListener("click", () => setRecipeIngMode("pieces"));
+  document.getElementById("recipeIngWeight")?.addEventListener("input", (e) => recalcRecipeIngMacros(parseFloat(e.target.value) || 0));
+  document.getElementById("recipeIngPieces")?.addEventListener("input", updateRecipeIngFromPieces);
+  document.getElementById("recipeIngUnitWeight")?.addEventListener("input", updateRecipeIngFromPieces);
+  document.getElementById("recipeIngForm")?.addEventListener("submit", handleSaveRecipeIngSubmit);
+  document.getElementById("deleteRecipeIngBtn")?.addEventListener("click", handleDeleteRecipeIngSubmit);
+  document.getElementById("toggleRecipeIngManualMacrosBtn")?.addEventListener("click", toggleRecipeIngManualMacros);
+  ["recipeIngManualCal", "recipeIngManualPro", "recipeIngManualFat", "recipeIngManualCarb"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("input", onRecipeIngManualMacroInput);
+  });
+
   // Окно логирования порции рецепта
   document.getElementById("closeLogRecipeModalBtn")?.addEventListener("click", closeLogRecipeModal);
   document.getElementById("cancelLogRecipeBtn")?.addEventListener("click", closeLogRecipeModal);
@@ -952,9 +970,10 @@ function renderRecipesList() {
       .map((it) => `${it.name} (${Math.round(it.weight_g)}г)`)
       .join(", ");
 
+    const rawWeightVal = r.raw_weight_g != null ? r.raw_weight_g : (r.total_raw_weight_g || 0);
     const weightBadge = r.cooked_weight_g
-      ? `Готовый вес: <strong>${Math.round(r.cooked_weight_g)}г</strong> (сырой: ${Math.round(r.total_raw_weight_g)}г)`
-      : `Вес: <strong>${Math.round(r.total_raw_weight_g)}г</strong>`;
+      ? `Готовый вес: <strong>${Math.round(r.cooked_weight_g)}г</strong> (сырой: ${Math.round(rawWeightVal)}г)`
+      : `Вес: <strong>${Math.round(rawWeightVal)}г</strong>`;
 
     return `
       <div class="recipe-card" data-id="${r.id}">
@@ -1040,14 +1059,17 @@ function renderRecipeEditorItems() {
     `;
   } else {
     container.innerHTML = state.editingRecipeItems.map((item, idx) => `
-      <div class="recipe-item-row" data-index="${idx}">
+      <div class="recipe-item-row" data-index="${idx}" style="cursor: pointer;" onclick="openRecipeIngredientModal(${idx})">
         <div style="flex: 1;">
           <div style="font-weight: 500;">${escapeHtml(item.name)}</div>
           <div style="font-size: 0.78rem; color: var(--text-muted);">
             ${Math.round(item.weight_g)}г • ${Math.round(item.calories)} ккал (Б:${item.protein.toFixed(1)} Ж:${item.fat.toFixed(1)} У:${item.carbs.toFixed(1)})
           </div>
         </div>
-        <button type="button" class="btn-delete-item" onclick="removeRecipeItem(${idx})" title="Удалить ингредиент">✕</button>
+        <div style="display: flex; gap: 4px; align-items: center;" onclick="event.stopPropagation();">
+          <button type="button" class="btn-delete-item" onclick="openRecipeIngredientModal(${idx})" title="Редактировать вес и штуки" style="color: var(--primary);">✏️</button>
+          <button type="button" class="btn-delete-item" onclick="removeRecipeItem(${idx})" title="Удалить ингредиент">✕</button>
+        </div>
       </div>
     `).join("");
   }
@@ -1095,6 +1117,273 @@ function removeRecipeItem(index) {
 }
 window.removeRecipeItem = removeRecipeItem;
 
+// --- Состояние и логика модального окна редактирования ингредиента ---
+let currentRecipeIngIndex = -1;
+let currentRecipeIngBase = null; // { cal100, pro100, fat100, carb100 }
+let currentRecipeIngMode = "grams"; // "grams" | "pieces"
+let currentRecipeIngManualOverride = false;
+
+function openRecipeIngredientModal(index, item = null) {
+  const modal = document.getElementById("recipeIngredientModal");
+  if (!modal) return;
+
+  currentRecipeIngIndex = index;
+  currentRecipeIngManualOverride = false;
+
+  let it = item;
+  if (index >= 0 && index < state.editingRecipeItems.length) {
+    it = state.editingRecipeItems[index];
+  }
+  if (!it) {
+    it = {
+      name: "Ингредиент",
+      weight_g: 100,
+      calories: 100,
+      protein: 5.0,
+      fat: 2.0,
+      carbs: 15.0,
+    };
+  }
+
+  const w = Math.max(1, parseFloat(it.weight_g) || 100);
+  const factor100 = 100.0 / w;
+  currentRecipeIngBase = {
+    cal100: (parseFloat(it.calories) || 0) * factor100,
+    pro100: (parseFloat(it.protein) || 0) * factor100,
+    fat100: (parseFloat(it.fat) || 0) * factor100,
+    carb100: (parseFloat(it.carbs) || 0) * factor100,
+  };
+
+  const titleEl = document.getElementById("recipeIngModalTitle");
+  if (titleEl) {
+    titleEl.textContent = index >= 0 ? "✏️ Настройка ингредиента" : "➕ Новый ингредиент";
+  }
+
+  const nameInput = document.getElementById("recipeIngName");
+  if (nameInput) nameInput.value = it.name || "";
+
+  const weightInput = document.getElementById("recipeIngWeight");
+  if (weightInput) weightInput.value = Math.round(w);
+
+  // Определение штук по названию
+  const pieceMatch = (it.name || "").match(/(\d+)\s*шт/i);
+  let isPiece = false;
+  let pieces = 1;
+  let unitWeight = 55;
+
+  if (pieceMatch) {
+    isPiece = true;
+    pieces = parseInt(pieceMatch[1], 10) || 1;
+    unitWeight = Math.round(w / pieces) || 55;
+  } else if (/яйц|яйцо|банан|яблок/i.test(it.name || "")) {
+    isPiece = true;
+    pieces = 1;
+    unitWeight = Math.round(w) || 55;
+  }
+
+  const piecesInput = document.getElementById("recipeIngPieces");
+  if (piecesInput) piecesInput.value = pieces;
+
+  const unitWeightInput = document.getElementById("recipeIngUnitWeight");
+  if (unitWeightInput) unitWeightInput.value = unitWeight;
+
+  const deleteBtn = document.getElementById("deleteRecipeIngBtn");
+  if (deleteBtn) {
+    deleteBtn.style.display = index >= 0 ? "inline-block" : "none";
+  }
+
+  // Сброс ручного блока КБЖУ
+  const manualSec = document.getElementById("recipeIngManualMacrosSection");
+  if (manualSec) manualSec.style.display = "none";
+
+  setRecipeIngMode(isPiece ? "pieces" : "grams");
+  if (isPiece) {
+    updateRecipeIngFromPieces();
+  } else {
+    recalcRecipeIngMacros(w);
+  }
+
+  modal.style.display = "flex";
+}
+window.openRecipeIngredientModal = openRecipeIngredientModal;
+
+function closeRecipeIngredientModal() {
+  const modal = document.getElementById("recipeIngredientModal");
+  if (!modal) return;
+  modal.style.display = "none";
+}
+window.closeRecipeIngredientModal = closeRecipeIngredientModal;
+
+function setRecipeIngMode(mode) {
+  currentRecipeIngMode = mode;
+  const gramsBtn = document.getElementById("recipeIngModeGramsBtn");
+  const piecesBtn = document.getElementById("recipeIngModePiecesBtn");
+  const gramsSec = document.getElementById("recipeIngGramsSection");
+  const piecesSec = document.getElementById("recipeIngPiecesSection");
+
+  if (mode === "pieces") {
+    gramsBtn?.classList.remove("active");
+    piecesBtn?.classList.add("active");
+    if (gramsSec) gramsSec.style.display = "none";
+    if (piecesSec) piecesSec.style.display = "block";
+    updateRecipeIngFromPieces();
+  } else {
+    piecesBtn?.classList.remove("active");
+    gramsBtn?.classList.add("active");
+    if (piecesSec) piecesSec.style.display = "none";
+    if (gramsSec) gramsSec.style.display = "block";
+    const w = parseFloat(document.getElementById("recipeIngWeight")?.value) || 100;
+    recalcRecipeIngMacros(w);
+  }
+}
+window.setRecipeIngMode = setRecipeIngMode;
+
+function adjustRecipeIngWeight(delta) {
+  const input = document.getElementById("recipeIngWeight");
+  if (!input) return;
+  const current = parseFloat(input.value) || 0;
+  const next = Math.max(1, Math.round(current + delta));
+  input.value = next;
+  recalcRecipeIngMacros(next);
+}
+window.adjustRecipeIngWeight = adjustRecipeIngWeight;
+
+function updateRecipeIngFromPieces() {
+  const pInput = document.getElementById("recipeIngPieces");
+  const uInput = document.getElementById("recipeIngUnitWeight");
+  const pieces = Math.max(1, parseInt(pInput?.value, 10) || 1);
+  const unitW = Math.max(1, parseFloat(uInput?.value) || 55);
+  const totalW = Math.round(pieces * unitW);
+
+  const wInput = document.getElementById("recipeIngWeight");
+  if (wInput) wInput.value = totalW;
+
+  const hint = document.getElementById("recipeIngPiecesTotalHint");
+  if (hint) {
+    hint.textContent = `Итоговый вес: ${totalW} г (${pieces} шт × ${unitW} г)`;
+  }
+
+  recalcRecipeIngMacros(totalW);
+}
+window.updateRecipeIngFromPieces = updateRecipeIngFromPieces;
+
+function recalcRecipeIngMacros(weightG) {
+  if (currentRecipeIngManualOverride) return;
+
+  const w = Math.max(1, weightG);
+  const factor = w / 100.0;
+  const cal = Math.round((currentRecipeIngBase?.cal100 || 0) * factor);
+  const pro = ((currentRecipeIngBase?.pro100 || 0) * factor).toFixed(1);
+  const fat = ((currentRecipeIngBase?.fat100 || 0) * factor).toFixed(1);
+  const carb = ((currentRecipeIngBase?.carb100 || 0) * factor).toFixed(1);
+
+  const calEl = document.getElementById("recipeIngCal");
+  const proEl = document.getElementById("recipeIngPro");
+  const fatEl = document.getElementById("recipeIngFat");
+  const carbEl = document.getElementById("recipeIngCarb");
+
+  if (calEl) calEl.textContent = cal;
+  if (proEl) proEl.textContent = pro;
+  if (fatEl) fatEl.textContent = fat;
+  if (carbEl) carbEl.textContent = carb;
+
+  const manCal = document.getElementById("recipeIngManualCal");
+  const manPro = document.getElementById("recipeIngManualPro");
+  const manFat = document.getElementById("recipeIngManualFat");
+  const manCarb = document.getElementById("recipeIngManualCarb");
+  if (manCal) manCal.value = cal;
+  if (manPro) manPro.value = pro;
+  if (manFat) manFat.value = fat;
+  if (manCarb) manCarb.value = carb;
+}
+window.recalcRecipeIngMacros = recalcRecipeIngMacros;
+
+function toggleRecipeIngManualMacros() {
+  const sec = document.getElementById("recipeIngManualMacrosSection");
+  if (!sec) return;
+  const isHidden = sec.style.display === "none";
+  sec.style.display = isHidden ? "block" : "none";
+}
+window.toggleRecipeIngManualMacros = toggleRecipeIngManualMacros;
+
+function onRecipeIngManualMacroInput() {
+  currentRecipeIngManualOverride = true;
+  const cal = Math.round(parseFloat(document.getElementById("recipeIngManualCal")?.value) || 0);
+  const pro = (parseFloat(document.getElementById("recipeIngManualPro")?.value) || 0).toFixed(1);
+  const fat = (parseFloat(document.getElementById("recipeIngManualFat")?.value) || 0).toFixed(1);
+  const carb = (parseFloat(document.getElementById("recipeIngManualCarb")?.value) || 0).toFixed(1);
+
+  const calEl = document.getElementById("recipeIngCal");
+  const proEl = document.getElementById("recipeIngPro");
+  const fatEl = document.getElementById("recipeIngFat");
+  const carbEl = document.getElementById("recipeIngCarb");
+
+  if (calEl) calEl.textContent = cal;
+  if (proEl) proEl.textContent = pro;
+  if (fatEl) fatEl.textContent = fat;
+  if (carbEl) carbEl.textContent = carb;
+
+  const w = Math.max(1, parseFloat(document.getElementById("recipeIngWeight")?.value) || 100);
+  const factor100 = 100.0 / w;
+  currentRecipeIngBase = {
+    cal100: cal * factor100,
+    pro100: parseFloat(pro) * factor100,
+    fat100: parseFloat(fat) * factor100,
+    carb100: parseFloat(carb) * factor100,
+  };
+}
+window.onRecipeIngManualMacroInput = onRecipeIngManualMacroInput;
+
+function handleSaveRecipeIngSubmit(e) {
+  e.preventDefault();
+
+  let name = (document.getElementById("recipeIngName")?.value || "").trim();
+  if (!name) {
+    showToast("⚠️ Введите название ингредиента");
+    return;
+  }
+
+  const weight = Math.max(1, parseFloat(document.getElementById("recipeIngWeight")?.value) || 100);
+
+  let cal = parseFloat(document.getElementById("recipeIngCal")?.textContent) || 0;
+  let pro = parseFloat(document.getElementById("recipeIngPro")?.textContent) || 0;
+  let fat = parseFloat(document.getElementById("recipeIngFat")?.textContent) || 0;
+  let carb = parseFloat(document.getElementById("recipeIngCarb")?.textContent) || 0;
+
+  const itemObj = {
+    name,
+    weight_g: weight,
+    calories: Math.round(cal),
+    protein: parseFloat(pro.toFixed(1)),
+    fat: parseFloat(fat.toFixed(1)),
+    carbs: parseFloat(carb.toFixed(1)),
+  };
+
+  if (currentRecipeIngIndex >= 0 && currentRecipeIngIndex < state.editingRecipeItems.length) {
+    state.editingRecipeItems[currentRecipeIngIndex] = itemObj;
+    showToast(`✏️ ${name} обновлен`);
+  } else {
+    state.editingRecipeItems.push(itemObj);
+    showToast(`➕ ${name} добавлен`);
+  }
+
+  closeRecipeIngredientModal();
+  renderRecipeEditorItems();
+}
+window.handleSaveRecipeIngSubmit = handleSaveRecipeIngSubmit;
+
+function handleDeleteRecipeIngSubmit() {
+  if (currentRecipeIngIndex >= 0 && currentRecipeIngIndex < state.editingRecipeItems.length) {
+    const it = state.editingRecipeItems[currentRecipeIngIndex];
+    if (confirm(`Удалить ингредиент «${it.name}»?`)) {
+      removeRecipeItem(currentRecipeIngIndex);
+      closeRecipeIngredientModal();
+      showToast(`🗑️ ${it.name} удален`);
+    }
+  }
+}
+window.handleDeleteRecipeIngSubmit = handleDeleteRecipeIngSubmit;
+
 function editRecipeClick(id) {
   const recipe = state.recipes.find((r) => r.id === id);
   if (recipe) {
@@ -1120,7 +1409,7 @@ window.deleteRecipeClick = deleteRecipeClick;
 
 // Добавление ингредиента через текстовый запрос к ИИ
 async function handleRecipeAddAi() {
-  const query = prompt("Введите ингредиент и вес (например: Куриное филе 400г):");
+  const query = prompt("Введите ингредиент и вес (например: Мука 100г, Яйцо 2 шт):");
   if (!query || !query.trim()) return;
 
   showToast("⏳ ИИ рассчитывает КБЖУ ингредиента...");
@@ -1137,7 +1426,7 @@ async function handleRecipeAddAi() {
     }
 
     const data = await res.json();
-    if (data.items && data.items.length > 0) {
+    if (data.items && data.items.length > 1) {
       data.items.forEach((it) => {
         state.editingRecipeItems.push({
           name: it.name,
@@ -1148,19 +1437,19 @@ async function handleRecipeAddAi() {
           carbs: it.carbs,
         });
       });
+      renderRecipeEditorItems();
+      showToast("✨ Ингредиенты добавлены! Нажмите на ингредиент для изменения веса.");
     } else {
-      state.editingRecipeItems.push({
+      const it = (data.items && data.items[0]) || {
         name: data.dish_name || query.trim(),
         weight_g: data.weight_g || 100,
         calories: data.calories,
         protein: data.protein,
         fat: data.fat,
         carbs: data.carbs,
-      });
+      };
+      openRecipeIngredientModal(-1, it);
     }
-
-    renderRecipeEditorItems();
-    showToast("✨ Ингредиент добавлен!");
   } catch (err) {
     console.error("Ошибка добавления через ИИ:", err);
     showToast(`❌ ${err.message}`);
@@ -1182,21 +1471,15 @@ async function handleRecipeAddBarcode() {
     }
 
     const data = await res.json();
-    const weightPrompt = prompt(`Найден: ${data.name}.\nУкажите вес сырого ингредиента в граммах:`, Math.round(data.weight_g || 100));
-    const weight = parseFloat(weightPrompt) || data.weight_g || 100;
-
-    const factor = weight / 100.0;
-    state.editingRecipeItems.push({
+    const it = {
       name: data.brand ? `${data.name} (${data.brand})` : data.name,
-      weight_g: weight,
-      calories: Math.round(data.calories_100g * factor),
-      protein: parseFloat((data.protein_100g * factor).toFixed(1)),
-      fat: parseFloat((data.fat_100g * factor).toFixed(1)),
-      carbs: parseFloat((data.carbs_100g * factor).toFixed(1)),
-    });
-
-    renderRecipeEditorItems();
-    showToast(`📦 Добавлен: ${data.name}`);
+      weight_g: data.weight_g || 100,
+      calories: data.calories_100g || 0,
+      protein: data.protein_100g || 0,
+      fat: data.fat_100g || 0,
+      carbs: data.carbs_100g || 0,
+    };
+    openRecipeIngredientModal(-1, it);
   } catch (err) {
     console.error("Ошибка поиска по штрихкоду:", err);
     showToast(`❌ ${err.message}`);
@@ -1205,35 +1488,14 @@ async function handleRecipeAddBarcode() {
 
 // Ручное добавление ингредиента
 function handleRecipeAddManual() {
-  const name = prompt("Название ингредиента (например: Морковь):");
-  if (!name || !name.trim()) return;
-
-  const wStr = prompt("Вес в граммах:", "100");
-  const weight = parseFloat(wStr) || 100;
-
-  const cStr = prompt("Калории (ккал) на этот вес:", "50");
-  const calories = parseFloat(cStr) || 0;
-
-  const pStr = prompt("Белки (г):", "1.0");
-  const protein = parseFloat(pStr) || 0;
-
-  const fStr = prompt("Жиры (г):", "0.2");
-  const fat = parseFloat(fStr) || 0;
-
-  const carbStr = prompt("Углеводы (г):", "10.0");
-  const carbs = parseFloat(carbStr) || 0;
-
-  state.editingRecipeItems.push({
-    name: name.trim(),
-    weight_g: weight,
-    calories: Math.round(calories),
-    protein: parseFloat(protein.toFixed(1)),
-    fat: parseFloat(fat.toFixed(1)),
-    carbs: parseFloat(carbs.toFixed(1)),
+  openRecipeIngredientModal(-1, {
+    name: "",
+    weight_g: 100,
+    calories: 100,
+    protein: 5.0,
+    fat: 2.0,
+    carbs: 15.0,
   });
-
-  renderRecipeEditorItems();
-  showToast("➕ Ингредиент добавлен!");
 }
 
 // Сохранение рецепта (создание или обновление)

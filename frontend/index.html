@@ -344,6 +344,101 @@
     </div>
   </div>
 
+  <!-- Модальное окно редактирования ингредиента рецепта -->
+  <div class="modal-overlay" id="recipeIngredientModal" style="display: none; z-index: 1050;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="recipeIngModalTitle">⚖️ Ингредиент рецепта</div>
+          <div class="modal-subtitle">Настройка веса и штучности</div>
+        </div>
+        <button class="modal-close-btn" id="closeRecipeIngModalBtn" type="button" aria-label="Закрыть">&times;</button>
+      </div>
+
+      <form id="recipeIngForm" class="modal-form">
+        <input type="hidden" id="recipeIngIndex" value="-1" />
+
+        <label class="form-label" for="recipeIngName">Название продукта</label>
+        <input type="text" id="recipeIngName" class="form-input" required />
+
+        <!-- Переключатель режима: Граммы / Штуки -->
+        <div style="display: flex; gap: 8px; margin: 10px 0;">
+          <button type="button" class="btn-outline active" id="recipeIngModeGramsBtn" style="flex: 1; padding: 6px; font-size: 0.82rem;">⚖️ Граммы (г)</button>
+          <button type="button" class="btn-outline" id="recipeIngModePiecesBtn" style="flex: 1; padding: 6px; font-size: 0.82rem;">🥚 Штуки (шт)</button>
+        </div>
+
+        <div id="recipeIngGramsSection">
+          <label class="form-label" for="recipeIngWeight">Вес ингредиента (г)</label>
+          <input type="number" id="recipeIngWeight" class="form-input" min="1" step="any" required />
+          <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px;">
+            <button type="button" class="btn-outline" onclick="adjustRecipeIngWeight(-50)" style="padding: 2px 8px; font-size: 0.75rem;">-50г</button>
+            <button type="button" class="btn-outline" onclick="adjustRecipeIngWeight(-10)" style="padding: 2px 8px; font-size: 0.75rem;">-10г</button>
+            <button type="button" class="btn-outline" onclick="adjustRecipeIngWeight(10)" style="padding: 2px 8px; font-size: 0.75rem;">+10г</button>
+            <button type="button" class="btn-outline" onclick="adjustRecipeIngWeight(50)" style="padding: 2px 8px; font-size: 0.75rem;">+50г</button>
+            <button type="button" class="btn-outline" onclick="adjustRecipeIngWeight(100)" style="padding: 2px 8px; font-size: 0.75rem;">+100г</button>
+          </div>
+        </div>
+
+        <div id="recipeIngPiecesSection" style="display: none;">
+          <div style="display: flex; gap: 8px;">
+            <div style="flex: 1;">
+              <label class="form-label" for="recipeIngPieces">Количество (шт)</label>
+              <input type="number" id="recipeIngPieces" class="form-input" min="1" step="1" value="1" />
+            </div>
+            <div style="flex: 1;">
+              <label class="form-label" for="recipeIngUnitWeight">Вес 1 шт (г)</label>
+              <input type="number" id="recipeIngUnitWeight" class="form-input" min="1" step="any" value="55" />
+            </div>
+          </div>
+          <div class="field-hint" id="recipeIngPiecesTotalHint" style="margin-top: 4px;">
+            Итоговый вес: 55 г
+          </div>
+        </div>
+
+        <!-- Превью КБЖУ -->
+        <div class="recipe-100g-box" style="margin-top: 14px;">
+          <div class="recipe-100g-title">Итого КБЖУ на порцию:</div>
+          <div class="recipe-100g-grid">
+            <div class="r-macro-pill cal"><span id="recipeIngCal">0</span> ккал</div>
+            <div class="r-macro-pill pro"><span id="recipeIngPro">0</span> г Б</div>
+            <div class="r-macro-pill fat"><span id="recipeIngFat">0</span> г Ж</div>
+            <div class="r-macro-pill carb"><span id="recipeIngCarb">0</span> г У</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 8px;">
+          <button type="button" class="btn-text" id="toggleRecipeIngManualMacrosBtn" style="font-size: 0.8rem; color: var(--primary); background: none; border: none; cursor: pointer; padding: 4px 0;">⚙️ Изменить КБЖУ вручную</button>
+          <div id="recipeIngManualMacrosSection" style="display: none; margin-top: 8px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <div>
+                <label class="form-label" for="recipeIngManualCal" style="font-size: 0.75rem;">Калории (ккал)</label>
+                <input type="number" id="recipeIngManualCal" class="form-input" min="0" step="any" />
+              </div>
+              <div>
+                <label class="form-label" for="recipeIngManualPro" style="font-size: 0.75rem;">Белки (г)</label>
+                <input type="number" id="recipeIngManualPro" class="form-input" min="0" step="any" />
+              </div>
+              <div>
+                <label class="form-label" for="recipeIngManualFat" style="font-size: 0.75rem;">Жиры (г)</label>
+                <input type="number" id="recipeIngManualFat" class="form-input" min="0" step="any" />
+              </div>
+              <div>
+                <label class="form-label" for="recipeIngManualCarb" style="font-size: 0.75rem;">Углеводы (г)</label>
+                <input type="number" id="recipeIngManualCarb" class="form-input" min="0" step="any" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 14px;">
+          <button type="submit" class="btn-save" id="saveRecipeIngBtn">Сохранить</button>
+          <button type="button" class="btn-delete" id="deleteRecipeIngBtn" style="display: none;">Удалить</button>
+          <button type="button" class="btn-cancel" id="cancelRecipeIngBtn">Отмена</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Модальное окно внесения порции рецепта в дневник -->
   <div class="modal-overlay" id="logRecipeModal" style="display: none;">
     <div class="modal-dialog">

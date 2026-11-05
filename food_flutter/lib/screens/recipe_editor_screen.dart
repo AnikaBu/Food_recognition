@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/meal_models.dart';
 import '../services/api_service.dart';
 import '../widgets/barcode_scanner_dialog.dart';
+import '../widgets/recipe_ingredient_edit_sheet.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_screen_background.dart';
 
@@ -84,6 +85,26 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     return _rawCarbs * (100.0 / _finalCookedWeight);
   }
 
+  // --- Редактирование существующего ингредиента ---
+  Future<void> _editIngredient(int index) async {
+    final item = _items[index];
+    final updated = await RecipeIngredientEditSheet.show(
+      context,
+      initialItem: item,
+      isNew: false,
+      onDelete: () {
+        setState(() {
+          _items.removeAt(index);
+        });
+      },
+    );
+    if (updated != null && mounted) {
+      setState(() {
+        _items[index] = updated;
+      });
+    }
+  }
+
   // --- Добавление ингредиента по штрихкоду ---
   Future<void> _addViaBarcode() async {
     final barcode = await showDialog<String>(
@@ -100,73 +121,24 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
       final product = await widget.apiService.lookupBarcode(barcode);
       if (!mounted) return;
 
-      final weightController = TextEditingController(text: product.weightG.toStringAsFixed(0));
-      final confirmedWeight = await showDialog<double>(
-        context: context,
-        builder: (ctx) {
-          final isDark = Theme.of(ctx).brightness == Brightness.dark;
-          final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
-          final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
-
-          return AlertDialog(
-            backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-            ),
-            title: Text(product.name, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary)),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (product.brand.isNotEmpty)
-                  Text('Бренд: ${product.brand}', style: TextStyle(fontSize: 13, color: textSecondary)),
-                const SizedBox(height: 12),
-                Text('Укажите вес сырого ингредиента (г):', style: TextStyle(fontSize: 14, color: textPrimary)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: weightController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  autofocus: true,
-                  style: TextStyle(color: textPrimary),
-                  decoration: const InputDecoration(
-                    suffixText: 'г',
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text('Отмена', style: TextStyle(color: textSecondary)),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () {
-                  final w = double.tryParse(weightController.text.trim()) ?? product.weightG;
-                  Navigator.pop(ctx, w);
-                },
-                child: const Text('Добавить'),
-              ),
-            ],
-          );
-        },
+      final initialItem = RecipeIngredientItem(
+        name: product.brand.isNotEmpty ? '${product.name} (${product.brand})' : product.name,
+        weightG: product.weightG > 0 ? product.weightG : 100.0,
+        calories: double.parse(product.calories100g.toStringAsFixed(1)),
+        protein: double.parse(product.protein100g.toStringAsFixed(1)),
+        fat: double.parse(product.fat100g.toStringAsFixed(1)),
+        carbs: double.parse(product.carbs100g.toStringAsFixed(1)),
       );
 
-      if (confirmedWeight != null && confirmedWeight > 0) {
-        final factor = confirmedWeight / 100.0;
+      final confirmed = await RecipeIngredientEditSheet.show(
+        context,
+        initialItem: initialItem,
+        isNew: true,
+      );
+
+      if (confirmed != null && mounted) {
         setState(() {
-          _items.add(RecipeIngredientItem(
-            name: product.brand.isNotEmpty ? '${product.name} (${product.brand})' : product.name,
-            weightG: confirmedWeight,
-            calories: double.parse((product.calories100g * factor).toStringAsFixed(1)),
-            protein: double.parse((product.protein100g * factor).toStringAsFixed(1)),
-            fat: double.parse((product.fat100g * factor).toStringAsFixed(1)),
-            carbs: double.parse((product.carbs100g * factor).toStringAsFixed(1)),
-          ));
+          _items.add(confirmed);
         });
       }
     } catch (e) {
@@ -216,7 +188,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                 autofocus: true,
                 style: TextStyle(color: textPrimary),
                 decoration: const InputDecoration(
-                  hintText: 'например: Куриное филе 350г',
+                  hintText: 'например: Куриное филе 350г или 2 яйца',
                 ),
               ),
             ],
@@ -248,16 +220,28 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     try {
       final res = await widget.apiService.estimateNutrition(query);
       if (!mounted) return;
-      setState(() {
-        _items.add(RecipeIngredientItem(
-          name: res.name.isNotEmpty ? res.name : query,
-          weightG: res.weightG,
-          calories: res.calories,
-          protein: res.protein,
-          fat: res.fat,
-          carbs: res.carbs,
-        ));
-      });
+
+      final initialItem = RecipeIngredientItem(
+        name: res.name.isNotEmpty ? res.name : query,
+        weightG: res.weightG,
+        calories: res.calories,
+        protein: res.protein,
+        fat: res.fat,
+        carbs: res.carbs,
+      );
+
+      // Открываем модальное окно для проверки и настройки веса/штучности
+      final confirmed = await RecipeIngredientEditSheet.show(
+        context,
+        initialItem: initialItem,
+        isNew: true,
+      );
+
+      if (confirmed != null && mounted) {
+        setState(() {
+          _items.add(confirmed);
+        });
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -268,143 +252,19 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
 
   // --- Ручное добавление ингредиента ---
   Future<void> _addManual() async {
-    final nameCtrl = TextEditingController();
-    final weightCtrl = TextEditingController(text: '100');
-    final calCtrl = TextEditingController(text: '50');
-    final proCtrl = TextEditingController(text: '1.0');
-    final fatCtrl = TextEditingController(text: '0.2');
-    final carbCtrl = TextEditingController(text: '10.0');
+    final initialItem = RecipeIngredientItem(
+      name: '',
+      weightG: 100.0,
+      calories: 50.0,
+      protein: 1.0,
+      fat: 0.2,
+      carbs: 10.0,
+    );
 
-    final result = await showDialog<RecipeIngredientItem>(
-      context: context,
-      builder: (ctx) {
-        final isDark = Theme.of(ctx).brightness == Brightness.dark;
-        final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
-        final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
-
-        return AlertDialog(
-          backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-          ),
-          title: Text(
-            'Добавить ингредиент вручную',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameCtrl,
-                  autofocus: true,
-                  style: TextStyle(color: textPrimary),
-                  decoration: const InputDecoration(
-                    labelText: 'Название продукта',
-                    hintText: 'например: Морковь сырая',
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: weightCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: TextStyle(color: textPrimary),
-                  decoration: const InputDecoration(
-                    labelText: 'Вес (граммы)',
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: calCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: TextStyle(color: textPrimary),
-                        decoration: const InputDecoration(
-                          labelText: 'Ккал',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: proCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: TextStyle(color: textPrimary),
-                        decoration: const InputDecoration(
-                          labelText: 'Белки',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: fatCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: TextStyle(color: textPrimary),
-                        decoration: const InputDecoration(
-                          labelText: 'Жиры',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: carbCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: TextStyle(color: textPrimary),
-                        decoration: const InputDecoration(
-                          labelText: 'Углеводы',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Отмена', style: TextStyle(color: textSecondary)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () {
-                final name = nameCtrl.text.trim();
-                if (name.isEmpty) return;
-                final w = double.tryParse(weightCtrl.text.trim()) ?? 100.0;
-                final cal = double.tryParse(calCtrl.text.trim()) ?? 0.0;
-                final p = double.tryParse(proCtrl.text.trim()) ?? 0.0;
-                final f = double.tryParse(fatCtrl.text.trim()) ?? 0.0;
-                final c = double.tryParse(carbCtrl.text.trim()) ?? 0.0;
-
-                Navigator.pop(
-                  ctx,
-                  RecipeIngredientItem(
-                    name: name,
-                    weightG: w,
-                    calories: cal,
-                    protein: p,
-                    fat: f,
-                    carbs: c,
-                  ),
-                );
-              },
-              child: const Text('Добавить'),
-            ),
-          ],
-        );
-      },
+    final result = await RecipeIngredientEditSheet.show(
+      context,
+      initialItem: initialItem,
+      isNew: true,
     );
 
     if (result != null && mounted) {
@@ -604,21 +464,57 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                   separatorBuilder: (_, __) => Divider(height: 1, indent: 16, endIndent: 16, color: cardBorder),
                   itemBuilder: (ctx, idx) {
                     final it = _items[idx];
-                    return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      title: Text(it.name, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: textPrimary)),
-                      subtitle: Text(
-                        '${it.weightG.toStringAsFixed(0)} г • ${it.calories.toStringAsFixed(0)} ккал '
-                        '(Б:${it.protein.toStringAsFixed(1)} Ж:${it.fat.toStringAsFixed(1)} У:${it.carbs.toStringAsFixed(1)})',
-                        style: TextStyle(fontSize: 12, color: textSecondary),
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.close, size: 18, color: AppColors.error),
-                        onPressed: () {
-                          setState(() {
-                            _items.removeAt(idx);
-                          });
-                        },
+                    return Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => _editIngredient(idx),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      it.name,
+                                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: textPrimary),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      '${it.weightG.toStringAsFixed(0)} г • ${it.calories.toStringAsFixed(0)} ккал '
+                                      '(Б:${it.protein.toStringAsFixed(1)} Ж:${it.fat.toStringAsFixed(1)} У:${it.carbs.toStringAsFixed(1)})',
+                                      style: TextStyle(fontSize: 12, color: textSecondary),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                icon: const Icon(Icons.edit_outlined, size: 18),
+                                color: AppColors.primary,
+                                tooltip: 'Изменить вес или штуки',
+                                onPressed: () => _editIngredient(idx),
+                              ),
+                              const SizedBox(width: 8),
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                icon: const Icon(Icons.close, size: 18, color: AppColors.error),
+                                tooltip: 'Удалить',
+                                onPressed: () {
+                                  setState(() {
+                                    _items.removeAt(idx);
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     );
                   },

@@ -636,6 +636,80 @@ def test_11_product_autocomplete_workflow(page: Page):
     expect(manual_modal).not_to_be_visible()
 
 
+def test_12_recipe_ingredient_weight_and_pieces_editing(page: Page):
+    """
+    Тест 12: Интерактивное редактирование веса и штучности ингредиента в конструкторе рецептов.
+    - Открытие конструктора рецептов;
+    - Добавление ингредиента;
+    - Клик по строке ингредиента и открытие recipeIngredientModal;
+    - Использование степпера +50г и пересчет КБЖУ в граммовом режиме;
+    - Переключение в режим штук (pieces), изменение количества (2 шт x 60г = 120г);
+    - Сохранение ингредиента и автоматическое обновление сумм сырого веса и калорий.
+    """
+    page.goto(BASE_URL)
+    page.wait_for_load_state("networkidle")
+
+    # 1. Открываем окно рецептов и конструктор
+    page.locator("#openRecipesBtn").click()
+    expect(page.locator("#recipesListModal")).to_be_visible()
+
+    page.locator("#openNewRecipeEditorBtn").click()
+    expect(page.locator("#recipeEditorModal")).to_be_visible()
+
+    # 2. Добавляем ингредиент через evaluate
+    page.evaluate("""() => {
+        state.editingRecipeItems = [
+            { name: 'Пшеничная мука', weight_g: 100, calories: 340, protein: 10.0, fat: 1.0, carbs: 70.0 }
+        ];
+        renderRecipeEditorItems();
+    }""")
+
+    expect(page.locator("#recipeRawWeightSum")).to_have_text("100")
+    expect(page.locator("#recipeRawCaloriesSum")).to_have_text("340")
+
+    # 3. Кликаем по ингредиенту для открытия модального окна настройки
+    ing_row = page.locator("#recipeEditorItemsList .recipe-item-row").first
+    ing_row.click()
+
+    modal = page.locator("#recipeIngredientModal")
+    expect(modal).to_be_visible()
+    expect(page.locator("#recipeIngName")).to_have_value("Пшеничная мука")
+    expect(page.locator("#recipeIngWeight")).to_have_value("100")
+
+    # 4. Проверяем работу степпера +50г
+    page.locator("#recipeIngGramsSection button:has-text('+50г')").click()
+    expect(page.locator("#recipeIngWeight")).to_have_value("150")
+    expect(page.locator("#recipeIngCal")).to_have_text("510")
+
+    # 5. Переключаемся в режим штук (pieces)
+    page.locator("#recipeIngModePiecesBtn").click()
+    expect(page.locator("#recipeIngPiecesSection")).to_be_visible()
+
+    # Задаем 2 шт по 60г = 120г
+    page.locator("#recipeIngPieces").fill("2")
+    page.locator("#recipeIngPieces").dispatch_event("input")
+    page.locator("#recipeIngUnitWeight").fill("60")
+    page.locator("#recipeIngUnitWeight").dispatch_event("input")
+
+    expect(page.locator("#recipeIngWeight")).to_have_value("120")
+    # 340 * 1.2 = 408 ккал
+    expect(page.locator("#recipeIngCal")).to_have_text("408")
+
+    # 6. Сохраняем обновленный ингредиент
+    page.locator("#saveRecipeIngBtn").click()
+    expect(modal).not_to_be_visible()
+
+    # 7. Проверяем, что в конструкторе рецепта суммы сырого веса и калорий обновились
+    expect(page.locator("#recipeRawWeightSum")).to_have_text("120")
+    expect(page.locator("#recipeRawCaloriesSum")).to_have_text("408")
+
+    # Закрываем конструктор и окно рецептов
+    page.locator("#closeRecipeEditorBtn").click()
+    expect(page.locator("#recipeEditorModal")).not_to_be_visible()
+    page.locator("#closeRecipesListModalBtn").click()
+    expect(page.locator("#recipesListModal")).not_to_be_visible()
+
+
 # =====================================================================
 # Возможность прямого запуска через: python test_frontend.py
 # =====================================================================
