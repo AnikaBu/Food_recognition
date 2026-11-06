@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../theme/theme_palette.dart';
 
 class SettingsService extends ChangeNotifier {
   static const String _keyServerUrl = 'server_url';
@@ -10,6 +11,7 @@ class SettingsService extends ChangeNotifier {
   static const String _keyTargetCarbs = 'target_carbs';
   static const String _keyHasCustomGoals = 'has_user_custom_goals';
   static const String _keyIsDarkMode = 'is_dark_mode';
+  static const String _keyThemePalette = 'theme_palette';
 
   static const String _keyCalcGender = 'calc_gender';
   static const String _keyCalcAge = 'calc_age';
@@ -30,6 +32,7 @@ class SettingsService extends ChangeNotifier {
   double _cachedCarbs = defaultTargetCarbs;
   bool _hasCustomGoals = false;
   bool _isDarkMode = true; // Prototype opens in Dark Mode by default
+  String _themePalette = 'cyber_sapphire'; // Default: Cyber Sapphire
   bool _initialized = false;
 
   String _calcGender = 'female';
@@ -45,6 +48,8 @@ class SettingsService extends ChangeNotifier {
   double get targetCarbs => _cachedCarbs;
   bool get hasCustomGoals => _hasCustomGoals;
   bool get isDarkMode => _isDarkMode;
+  String get themePalette => _themePalette;
+  AppThemePalette get themePaletteEnum => AppThemePalette.fromString(_themePalette);
 
   String get calcGender => _calcGender;
   int get calcAge => _calcAge;
@@ -58,6 +63,7 @@ class SettingsService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _hasCustomGoals = prefs.getBool(_keyHasCustomGoals) ?? false;
     _isDarkMode = prefs.getBool(_keyIsDarkMode) ?? true;
+    _themePalette = prefs.getString(_keyThemePalette) ?? 'cyber_sapphire';
     _cachedCalories = prefs.getDouble(_keyTargetCalories) ?? defaultTargetCalories;
     _cachedProtein = prefs.getDouble(_keyTargetProtein) ?? defaultTargetProtein;
     _cachedFat = prefs.getDouble(_keyTargetFat) ?? defaultTargetFat;
@@ -225,6 +231,14 @@ class SettingsService extends ChangeNotifier {
 
   Future<void> toggleDarkMode() async {
     await setDarkMode(!_isDarkMode);
+  }
+
+  Future<void> setThemePalette(String palette) async {
+    if (_themePalette == palette) return;
+    _themePalette = palette;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyThemePalette, palette);
   }
 }
 

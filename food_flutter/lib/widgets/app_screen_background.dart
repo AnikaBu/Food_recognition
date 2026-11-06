@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
+import '../theme/theme_palette.dart';
 
 /// Reusable background widget that renders a full-screen vertical gradient
-/// in dark mode (lighter steel-navy at top to deep midnight-navy at bottom)
+/// in dark mode matching the active theme palette
 /// and transparent/child in light mode.
 class AppScreenBackground extends StatelessWidget {
   final Widget child;
@@ -14,9 +14,10 @@ class AppScreenBackground extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     if (!isDark) return child;
 
+    final tokens = AppThemeTokens.of(context);
     return Container(
-      decoration: const BoxDecoration(
-        gradient: AppColors.darkBackgroundGradient,
+      decoration: BoxDecoration(
+        gradient: tokens.backgroundGradient,
       ),
       child: child,
     );

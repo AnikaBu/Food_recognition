@@ -10,6 +10,7 @@ import 'screens/recipes_screen.dart';
 import 'screens/settings_screen.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
+import 'theme/theme_palette.dart';
 import 'widgets/app_screen_background.dart';
 
 void main() async {
@@ -93,8 +94,8 @@ class FoodRecognitionApp extends StatelessWidget {
         return MaterialApp(
           title: 'MyFoodDiary',
           debugShowCheckedModeBanner: false,
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.darkTheme,
+          theme: AppTheme.lightThemeFor(settingsService.themePaletteEnum),
+          darkTheme: AppTheme.darkThemeFor(settingsService.themePaletteEnum),
           themeMode: settingsService.isDarkMode ? ThemeMode.dark : ThemeMode.light,
           home: MainNavigationScreen(
             settingsService: settingsService,
@@ -140,13 +141,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 
   void _showPhotoSourceBottomSheet() {
+    final tokens = AppThemeTokens.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? AppColors.darkCard : AppColors.lightCard;
-    final border = isDark ? AppColors.darkBorder : AppColors.lightBorder;
-    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
-    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final cardBg = isDark ? tokens.cardBg : AppColors.lightCard;
+    final border = isDark ? tokens.cardBorder : AppColors.lightBorder;
+    final textPrimary = isDark ? tokens.textPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? tokens.textSecondary : AppColors.lightTextSecondary;
 
-    final accentColor = isDark ? AppColors.primary : AppColors.primaryRoyal;
+    final accentColor = isDark ? tokens.primary : tokens.primaryRoyal;
 
     showModalBottomSheet(
       context: context,
@@ -253,7 +255,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = AppThemeTokens.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryAccent = isDark ? tokens.primary : tokens.primaryRoyal;
 
     final screens = [
       DiaryScreen(
@@ -280,7 +284,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBgBottom : AppColors.lightScaffold,
+      backgroundColor: isDark ? tokens.bgBottom : AppColors.lightScaffold,
       body: AppScreenBackground(
         child: IndexedStack(
           index: _currentIndex,
@@ -289,10 +293,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkBgBottom : Colors.white,
+          color: isDark ? tokens.bgBottom : Colors.white,
           border: Border(
             top: BorderSide(
-              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+              color: isDark ? tokens.cardBorder : AppColors.lightBorder,
               width: 1,
             ),
           ),
@@ -300,28 +304,28 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         child: NavigationBar(
           selectedIndex: _currentIndex,
           onDestinationSelected: _onTabSelected,
-          backgroundColor: isDark ? AppColors.darkBgBottom : Colors.white,
+          backgroundColor: isDark ? tokens.bgBottom : Colors.white,
           elevation: 0,
-          indicatorColor: (isDark ? AppColors.primary : AppColors.primaryRoyal).withOpacity(0.18),
+          indicatorColor: primaryAccent.withOpacity(0.18),
           destinations: [
             NavigationDestination(
               icon: const Icon(Icons.calendar_today_outlined),
-              selectedIcon: Icon(Icons.calendar_today, color: isDark ? AppColors.primary : AppColors.primaryRoyal),
+              selectedIcon: Icon(Icons.calendar_today, color: primaryAccent),
               label: 'Дневник',
             ),
             NavigationDestination(
               icon: const Icon(Icons.camera_alt_outlined),
-              selectedIcon: Icon(Icons.camera_alt, color: isDark ? AppColors.primary : AppColors.primaryRoyal),
+              selectedIcon: Icon(Icons.camera_alt, color: primaryAccent),
               label: 'Фото',
             ),
             NavigationDestination(
               icon: const Icon(Icons.restaurant_menu_outlined),
-              selectedIcon: Icon(Icons.restaurant_menu, color: isDark ? AppColors.primary : AppColors.primaryRoyal),
+              selectedIcon: Icon(Icons.restaurant_menu, color: primaryAccent),
               label: 'Рецепты',
             ),
             NavigationDestination(
               icon: const Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person, color: isDark ? AppColors.primary : AppColors.primaryRoyal),
+              selectedIcon: Icon(Icons.person, color: primaryAccent),
               label: 'Профиль',
             ),
           ],

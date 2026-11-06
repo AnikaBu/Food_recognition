@@ -23,7 +23,7 @@ class AppUpdateInfo {
 }
 
 class UpdateService {
-  static const String currentVersion = '1.0.33';
+  static const String currentVersion = '1.0.34';
   static const String repoOwner = 'AnikaBu';
   static const String repoName = 'Food_recognition';
 

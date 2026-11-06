@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'theme_palette.dart';
 
 /// Design tokens extracted directly from myfooddiary_prototype.html (Single Source of Truth)
 class AppColors {
@@ -19,6 +20,9 @@ class AppColors {
 
   /// Returns the optimal primary blue variant based on active theme
   static Color primaryColor(bool isDark) => isDark ? primary : primaryRoyal;
+
+  /// Returns active dynamic palette tokens for the given BuildContext
+  static AppThemeTokens tokens(BuildContext context) => AppThemeTokens.of(context);
 
   // Macro Nutrients (Exact prototype mapping)
   static const Color macroCalorie = Color(0xFFF97316); // Coral-orange

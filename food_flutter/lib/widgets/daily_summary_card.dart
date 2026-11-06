@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../models/meal_models.dart';
 import '../theme/app_colors.dart';
+import '../theme/theme_palette.dart';
 
 class DailySummaryCard extends StatelessWidget {
   final DailySummary summary;
@@ -26,11 +27,11 @@ class DailySummaryCard extends StatelessWidget {
     required double target,
     required Color color,
     required bool isDark,
+    required Color textColor,
+    required Color subColor,
   }) {
     final progress = target > 0 ? (current / target).clamp(0.0, 1.0) : 0.0;
     final trackColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9);
-    final textColor = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
-    final subColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,6 +100,7 @@ class DailySummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = AppThemeTokens.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final calProgress = targetCalories > 0
         ? (summary.totalCalories / targetCalories).clamp(0.0, 1.0)
@@ -106,9 +108,11 @@ class DailySummaryCard extends StatelessWidget {
     final remaining = targetCalories - summary.totalCalories;
     final isOver = remaining < 0;
 
-    final cardBg = isDark ? AppColors.darkCard : AppColors.lightCard;
-    final cardBorder = isDark ? AppColors.darkBorder : AppColors.lightBorder;
-    final headerTextColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final cardBg = isDark ? tokens.cardBg : AppColors.lightCard;
+    final cardBorder = isDark ? tokens.cardBorder : AppColors.lightBorder;
+    final headerTextColor = isDark ? tokens.textSecondary : AppColors.lightTextSecondary;
+    final textColor = isDark ? tokens.textPrimary : AppColors.lightTextPrimary;
+    final subColor = isDark ? tokens.textSecondary : AppColors.lightTextSecondary;
 
     return Container(
       decoration: BoxDecoration(
@@ -135,8 +139,8 @@ class DailySummaryCard extends StatelessWidget {
                   Container(
                     width: 9,
                     height: 9,
-                    decoration: const BoxDecoration(
-                      color: AppColors.macroCalorie,
+                    decoration: BoxDecoration(
+                      color: tokens.macroCalorie,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -156,13 +160,13 @@ class DailySummaryCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
                 decoration: BoxDecoration(
                   color: isOver
-                      ? (isDark ? AppColors.macroCalorie.withOpacity(0.18) : const Color(0xFFFFF1F2))
-                      : (isDark ? AppColors.primary.withOpacity(0.15) : AppColors.primaryLight),
+                      ? (isDark ? tokens.macroCalorie.withOpacity(0.18) : const Color(0xFFFFF1F2))
+                      : (isDark ? tokens.primary.withOpacity(0.15) : tokens.primaryLight),
                   borderRadius: BorderRadius.circular(999),
                   border: Border.all(
                     color: isOver
-                        ? AppColors.macroCalorie.withOpacity(0.4)
-                        : AppColors.primary.withOpacity(0.35),
+                        ? tokens.macroCalorie.withOpacity(0.4)
+                        : tokens.primary.withOpacity(0.35),
                   ),
                 ),
                 child: Text(
@@ -172,7 +176,7 @@ class DailySummaryCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: isOver ? AppColors.macroCalorie : AppColors.primaryDark,
+                    color: isOver ? tokens.macroCalorie : (isDark ? tokens.primary : tokens.primaryDark),
                   ),
                 ),
               ),
@@ -192,14 +196,16 @@ class DailySummaryCard extends StatelessWidget {
                   painter: _CalorieRingPainter(
                     progress: calProgress,
                     isDark: isDark,
+                    calorieLight: tokens.macroCalorieLight,
+                    calorieDark: tokens.macroCalorieDark,
                   ),
                   child: Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.local_fire_department,
-                          color: AppColors.macroCalorie,
+                          color: tokens.macroCalorie,
                           size: 18,
                         ),
                         Text(
@@ -208,7 +214,7 @@ class DailySummaryCard extends StatelessWidget {
                             fontSize: 17,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.5,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                            color: textColor,
                           ),
                         ),
                         Text(
@@ -216,7 +222,7 @@ class DailySummaryCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w500,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                            color: subColor,
                           ),
                         ),
                       ],
@@ -236,8 +242,10 @@ class DailySummaryCard extends StatelessWidget {
                       label: 'Белки',
                       current: summary.totalProtein,
                       target: targetProtein,
-                      color: AppColors.macroProtein,
+                      color: tokens.macroProtein,
                       isDark: isDark,
+                      textColor: textColor,
+                      subColor: subColor,
                     ),
                     const SizedBox(height: 10),
                     _buildMacroBar(
@@ -245,8 +253,10 @@ class DailySummaryCard extends StatelessWidget {
                       label: 'Жиры',
                       current: summary.totalFat,
                       target: targetFat,
-                      color: AppColors.macroFat,
+                      color: tokens.macroFat,
                       isDark: isDark,
+                      textColor: textColor,
+                      subColor: subColor,
                     ),
                     const SizedBox(height: 10),
                     _buildMacroBar(
@@ -254,8 +264,10 @@ class DailySummaryCard extends StatelessWidget {
                       label: 'Углеводы',
                       current: summary.totalCarbs,
                       target: targetCarbs,
-                      color: AppColors.macroCarb,
+                      color: tokens.macroCarb,
                       isDark: isDark,
+                      textColor: textColor,
+                      subColor: subColor,
                     ),
                   ],
                 ),
@@ -271,10 +283,14 @@ class DailySummaryCard extends StatelessWidget {
 class _CalorieRingPainter extends CustomPainter {
   final double progress;
   final bool isDark;
+  final Color calorieLight;
+  final Color calorieDark;
 
   _CalorieRingPainter({
     required this.progress,
     required this.isDark,
+    required this.calorieLight,
+    required this.calorieDark,
   });
 
   @override
@@ -297,9 +313,9 @@ class _CalorieRingPainter extends CustomPainter {
     final gradient = SweepGradient(
       startAngle: -math.pi / 2,
       endAngle: 3 * math.pi / 2,
-      colors: const [
-        AppColors.macroCalorieLight,
-        AppColors.macroCalorieDark,
+      colors: [
+        calorieLight,
+        calorieDark,
       ],
     );
 
@@ -315,6 +331,9 @@ class _CalorieRingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _CalorieRingPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.isDark != isDark;
+    return oldDelegate.progress != progress ||
+        oldDelegate.isDark != isDark ||
+        oldDelegate.calorieLight != calorieLight ||
+        oldDelegate.calorieDark != calorieDark;
   }
 }

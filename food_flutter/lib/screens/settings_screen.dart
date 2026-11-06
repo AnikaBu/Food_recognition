@@ -6,6 +6,7 @@ import '../services/update_service.dart';
 import '../widgets/update_dialog.dart';
 import '../widgets/macro_calculator_sheet.dart';
 import '../theme/app_colors.dart';
+import '../theme/theme_palette.dart';
 
 class SettingsScreen extends StatefulWidget {
   final SettingsService settingsService;
@@ -234,11 +235,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = AppThemeTokens.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? AppColors.darkCard : AppColors.lightCard;
-    final cardBorder = isDark ? AppColors.darkBorder : AppColors.lightBorder;
-    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
-    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final cardBg = isDark ? tokens.cardBg : AppColors.lightCard;
+    final cardBorder = isDark ? tokens.cardBorder : AppColors.lightBorder;
+    final textPrimary = isDark ? tokens.textPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? tokens.textSecondary : AppColors.lightTextSecondary;
+    final activePalette = widget.settingsService.themePaletteEnum;
 
     return Scaffold(
       backgroundColor: isDark ? Colors.transparent : AppColors.lightScaffold,
@@ -466,45 +469,195 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 14),
 
-          // 3. Theme Mode Switch Card
+          // 3. Theme Mode & Palette Selector Card
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: cardBg,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: cardBorder),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Icon(
-                      isDark ? Icons.dark_mode : Icons.light_mode,
-                      color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706),
-                      size: 22,
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
                       children: [
-                        Text(
-                          isDark ? 'Тёмная тема оформления' : 'Светлая тема оформления',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textPrimary),
+                        Icon(
+                          Icons.palette_outlined,
+                          color: isDark ? tokens.primary : tokens.primaryRoyal,
+                          size: 22,
                         ),
-                        Text(
-                          isDark ? 'Глубокий ночной фон #0D131F' : 'Чистый светлый фон #F8FAFC',
-                          style: TextStyle(fontSize: 11, color: textSecondary),
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Тема оформления',
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimary),
+                            ),
+                            Text(
+                              'Дизайн-палитра и ночной режим',
+                              style: TextStyle(fontSize: 11, color: textSecondary),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Icon(
+                          isDark ? Icons.dark_mode : Icons.light_mode,
+                          color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706),
+                          size: 18,
+                        ),
+                        const SizedBox(width: 4),
+                        Switch(
+                          value: isDark,
+                          activeColor: tokens.primary,
+                          onChanged: (val) => widget.settingsService.setDarkMode(val),
                         ),
                       ],
                     ),
                   ],
                 ),
-                Switch(
-                  value: isDark,
-                  activeColor: AppColors.primary,
-                  onChanged: (val) => widget.settingsService.setDarkMode(val),
+                const SizedBox(height: 16),
+                Text(
+                  'СТИЛЬ ИНТЕРФЕЙСА',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                    color: textSecondary,
+                  ),
                 ),
+                const SizedBox(height: 10),
+                ...AppThemePalette.values.map((palette) {
+                  final isSelected = activePalette == palette;
+                  final pTokens = AppThemeTokens.forPalette(palette, isDark: isDark);
+
+                  return GestureDetector(
+                    onTap: () => widget.settingsService.setThemePalette(palette.id),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? (isDark ? pTokens.primary.withOpacity(0.12) : pTokens.primaryLight)
+                            : (isDark ? tokens.inputBg : const Color(0xFFF8FAFC)),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isSelected
+                              ? pTokens.primary
+                              : (isDark ? tokens.cardBorder : AppColors.lightBorder),
+                          width: isSelected ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Text(palette.emoji, style: const TextStyle(fontSize: 20)),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      palette.title,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: isSelected
+                                            ? (isDark ? pTokens.primary : pTokens.primaryDark)
+                                            : textPrimary,
+                                      ),
+                                    ),
+                                    if (palette == AppThemePalette.cyberSapphire) ...[
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: pTokens.primary.withOpacity(0.18),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          'Концепт 2',
+                                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: pTokens.primary),
+                                        ),
+                                      ),
+                                    ] else if (palette == AppThemePalette.bioForest) ...[
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: pTokens.primary.withOpacity(0.18),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          'Концепт 3',
+                                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: pTokens.primary),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  palette.description,
+                                  style: TextStyle(fontSize: 11, color: textSecondary),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Color preview dots
+                          Row(
+                            children: [
+                              Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: pTokens.primary,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 1),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: pTokens.macroProtein,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 1),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: pTokens.macroFat,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 1),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
+                            size: 18,
+                            color: isSelected ? pTokens.primary : textSecondary.withOpacity(0.4),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
               ],
             ),
           ),

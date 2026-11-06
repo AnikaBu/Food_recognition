@@ -13,6 +13,7 @@ import '../widgets/meal_edit_sheet.dart';
 import '../widgets/meal_category_detail_sheet.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../theme/theme_palette.dart';
 
 class DiaryScreen extends StatefulWidget {
   final ApiService apiService;
@@ -320,6 +321,7 @@ class DiaryScreenState extends State<DiaryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = AppThemeTokens.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final weekDates = _getWeekDates(_selectedDate);
     final isSelectedToday = _isSameDay(_selectedDate, DateTime.now());
@@ -352,7 +354,7 @@ class DiaryScreenState extends State<DiaryScreen> {
           },
           child: RefreshIndicator(
             onRefresh: reloadGoalsAndData,
-            color: AppColors.primary,
+            color: tokens.primary,
             child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             children: [
@@ -407,9 +409,9 @@ class DiaryScreenState extends State<DiaryScreen> {
                             width: 42,
                             height: 42,
                             decoration: BoxDecoration(
-                              color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                              color: isDark ? tokens.cardBg : AppColors.lightCard,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                              border: Border.all(color: isDark ? tokens.cardBorder : AppColors.lightBorder),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
@@ -417,10 +419,10 @@ class DiaryScreenState extends State<DiaryScreen> {
                                 ),
                               ],
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.insights_rounded,
                               size: 20,
-                              color: AppColors.primary,
+                              color: tokens.primary,
                             ),
                           ),
                         ),
@@ -435,9 +437,9 @@ class DiaryScreenState extends State<DiaryScreen> {
                             width: 42,
                             height: 42,
                             decoration: BoxDecoration(
-                              color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                              color: isDark ? tokens.cardBg : AppColors.lightCard,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                              border: Border.all(color: isDark ? tokens.cardBorder : AppColors.lightBorder),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
@@ -448,15 +450,15 @@ class DiaryScreenState extends State<DiaryScreen> {
                             child: Stack(
                               alignment: Alignment.center,
                               children: [
-                                const Icon(Icons.refresh, size: 20, color: AppColors.primary),
+                                Icon(Icons.refresh, size: 20, color: tokens.primary),
                                 Positioned(
                                   top: 8,
                                   right: 8,
                                   child: Container(
                                     width: 7,
                                     height: 7,
-                                    decoration: const BoxDecoration(
-                                      color: AppColors.primary,
+                                    decoration: BoxDecoration(
+                                      color: tokens.primary,
                                       shape: BoxShape.circle,
                                     ),
                                   ),
@@ -498,24 +500,22 @@ class DiaryScreenState extends State<DiaryScreen> {
                       decoration: BoxDecoration(
                         gradient: isSelected
                             ? LinearGradient(
-                                colors: isDark
-                                    ? const [AppColors.primary, AppColors.primaryDark]
-                                    : const [AppColors.primaryRoyal, AppColors.primaryDark],
+                                colors: [tokens.primary, tokens.primaryDark],
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                               )
                             : null,
                         color: isSelected
                             ? null
-                            : (isDark ? AppColors.darkCard : AppColors.lightCard),
+                            : (isDark ? tokens.cardBg : AppColors.lightCard),
                         borderRadius: BorderRadius.circular(16),
                         border: isSelected
                             ? null
-                            : Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                            : Border.all(color: isDark ? tokens.cardBorder : AppColors.lightBorder),
                         boxShadow: isSelected
                             ? [
                                 BoxShadow(
-                                  color: (isDark ? AppColors.primary : AppColors.primaryRoyal).withOpacity(0.4),
+                                  color: tokens.primary.withOpacity(0.4),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -532,7 +532,7 @@ class DiaryScreenState extends State<DiaryScreen> {
                               fontWeight: FontWeight.w600,
                               color: isSelected
                                   ? Colors.white.withOpacity(0.9)
-                                  : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                                  : (isDark ? tokens.textSecondary : AppColors.lightTextSecondary),
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -543,7 +543,7 @@ class DiaryScreenState extends State<DiaryScreen> {
                               fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
                               color: isSelected
                                   ? Colors.white
-                                  : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                                  : (isDark ? tokens.textPrimary : AppColors.lightTextPrimary),
                             ),
                           ),
                           if (isSelected) ...[
@@ -744,13 +744,14 @@ class DiaryScreenState extends State<DiaryScreen> {
     required Color bgColor,
     required Color textColor,
   }) {
+    final tokens = AppThemeTokens.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final meals = _summary?.meals.where((m) => m.mealType == type).toList() ?? [];
     final categoryCals = meals.fold<double>(0.0, (acc, m) => acc + m.totalCalories);
     final isExpanded = _expandedCategories.contains(type);
 
-    final cardBg = isDark ? AppColors.darkCard : AppColors.lightCard;
-    final cardBorder = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final cardBg = isDark ? tokens.cardBg : AppColors.lightCard;
+    final cardBorder = isDark ? tokens.cardBorder : AppColors.lightBorder;
 
     final summaryText = meals.isEmpty
         ? 'Нет добавленных блюд'
@@ -813,16 +814,16 @@ class DiaryScreenState extends State<DiaryScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary.withOpacity(0.12),
+                                  color: tokens.primary.withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                                  border: Border.all(color: tokens.primary.withOpacity(0.3)),
                                 ),
                                 child: Text(
                                   badge,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 9,
                                     fontWeight: FontWeight.w700,
-                                    color: AppColors.primaryDark,
+                                    color: isDark ? tokens.primary : tokens.primaryDark,
                                   ),
                                 ),
                               ),
@@ -925,24 +926,24 @@ class DiaryScreenState extends State<DiaryScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 9),
                       decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkSurface : const Color(0xFFF8FAFC),
+                        color: isDark ? tokens.surfaceBg : const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isDark ? AppColors.darkBorder : const Color(0xFFCBD5E1),
+                          color: isDark ? tokens.cardBorder : const Color(0xFFCBD5E1),
                           style: BorderStyle.solid,
                         ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.add, size: 16, color: AppColors.primary),
+                          Icon(Icons.add, size: 16, color: tokens.primary),
                           const SizedBox(width: 6),
                           Text(
                             'Добавить блюдо к «$title»',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                              color: isDark ? tokens.textPrimary : AppColors.lightTextPrimary,
                             ),
                           ),
                         ],
@@ -959,9 +960,10 @@ class DiaryScreenState extends State<DiaryScreen> {
   }
 
   Widget _buildDishRow(MealRecord meal) {
+    final tokens = AppThemeTokens.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final rowBg = isDark ? AppColors.darkSurface : const Color(0xFFF8FAFC);
-    final rowBorder = isDark ? AppColors.darkBorder : AppColors.lightBorderSubtle;
+    final rowBg = isDark ? tokens.surfaceBg : const Color(0xFFF8FAFC);
+    final rowBorder = isDark ? tokens.cardBorder : AppColors.lightBorderSubtle;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
@@ -993,7 +995,7 @@ class DiaryScreenState extends State<DiaryScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                          color: isDark ? tokens.textPrimary : AppColors.lightTextPrimary,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -1001,7 +1003,7 @@ class DiaryScreenState extends State<DiaryScreen> {
                         '${meal.totalWeightG.toStringAsFixed(0)}г • Б: ${meal.totalProtein.toStringAsFixed(0)}г • Ж: ${meal.totalFat.toStringAsFixed(0)}г • У: ${meal.totalCarbs.toStringAsFixed(0)}г',
                         style: TextStyle(
                           fontSize: 10,
-                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                          color: isDark ? tokens.textSecondary : AppColors.lightTextSecondary,
                         ),
                       ),
                     ],
@@ -1009,10 +1011,10 @@ class DiaryScreenState extends State<DiaryScreen> {
                 ),
                 Text(
                   '${meal.totalCalories.toStringAsFixed(0)} ккал',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.macroCalorie,
+                    color: tokens.macroCalorie,
                   ),
                 ),
                 const SizedBox(width: 4),
