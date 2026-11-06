@@ -77,6 +77,7 @@ class SettingsService extends ChangeNotifier {
     _calcGoal = prefs.getString(_keyCalcGoal) ?? 'lose_weight';
 
     _initialized = true;
+    AppThemeTokens.setActive(themePaletteEnum, _isDarkMode);
     notifyListeners();
   }
 
@@ -224,6 +225,7 @@ class SettingsService extends ChangeNotifier {
   Future<void> setDarkMode(bool isDark) async {
     if (_isDarkMode == isDark) return;
     _isDarkMode = isDark;
+    AppThemeTokens.setActive(themePaletteEnum, _isDarkMode);
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyIsDarkMode, isDark);
@@ -236,6 +238,7 @@ class SettingsService extends ChangeNotifier {
   Future<void> setThemePalette(String palette) async {
     if (_themePalette == palette) return;
     _themePalette = palette;
+    AppThemeTokens.setActive(themePaletteEnum, _isDarkMode);
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyThemePalette, palette);

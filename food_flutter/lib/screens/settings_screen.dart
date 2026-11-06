@@ -194,12 +194,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
+        SnackBar(
+          content: const Text(
             'Расчёт КБЖУ применён! Вы можете скорректировать цифры и нажать «Сохранить цели». ✨',
           ),
           backgroundColor: AppColors.primary,
-          duration: Duration(seconds: 4),
+          duration: const Duration(seconds: 4),
         ),
       );
     }
@@ -270,8 +270,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: isDark
-                          ? const [AppColors.primary, AppColors.sapphire400]
-                          : const [AppColors.primaryRoyal, AppColors.primary],
+                          ? [AppColors.primary, AppColors.sapphire400]
+                          : [AppColors.primaryRoyal, AppColors.primary],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -348,7 +348,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 TextField(
                   controller: _calController,
                   keyboardType: TextInputType.number,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: AppColors.macroCalorie,
@@ -369,7 +369,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           Row(
                             children: [
-                              Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppColors.macroProtein, shape: BoxShape.circle)),
+                              Container(width: 6, height: 6, decoration: BoxDecoration(color: AppColors.macroProtein, shape: BoxShape.circle)),
                               const SizedBox(width: 4),
                               Text('Белки (г)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textPrimary)),
                             ],
@@ -378,7 +378,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           TextField(
                             controller: _proteinController,
                             keyboardType: TextInputType.number,
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.macroProtein),
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.macroProtein),
                             decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
                           ),
                         ],
@@ -391,7 +391,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           Row(
                             children: [
-                              Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppColors.macroFat, shape: BoxShape.circle)),
+                              Container(width: 6, height: 6, decoration: BoxDecoration(color: AppColors.macroFat, shape: BoxShape.circle)),
                               const SizedBox(width: 4),
                               Text('Жиры (г)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textPrimary)),
                             ],
@@ -400,7 +400,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           TextField(
                             controller: _fatController,
                             keyboardType: TextInputType.number,
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.macroFat),
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.macroFat),
                             decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
                           ),
                         ],
@@ -413,7 +413,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           Row(
                             children: [
-                              Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppColors.macroCarb, shape: BoxShape.circle)),
+                              Container(width: 6, height: 6, decoration: BoxDecoration(color: AppColors.macroCarb, shape: BoxShape.circle)),
                               const SizedBox(width: 4),
                               Text('Углеводы (г)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textPrimary)),
                             ],
@@ -422,7 +422,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           TextField(
                             controller: _carbsController,
                             keyboardType: TextInputType.number,
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.macroCarb),
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.macroCarb),
                             decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
                           ),
                         ],
@@ -677,7 +677,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.dns_outlined, color: AppColors.primary),
+                    Icon(Icons.dns_outlined, color: AppColors.primary),
                     const SizedBox(width: 8),
                     Text(
                       'Подключение к серверу',
@@ -716,19 +716,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 11),
-                      side: const BorderSide(color: AppColors.primary),
+                      side: BorderSide(color: AppColors.primary),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                     icon: _isTesting
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2),
                           )
-                        : const Icon(Icons.wifi_tethering, color: AppColors.primary),
+                        : Icon(Icons.wifi_tethering, color: AppColors.primary),
                     label: Text(
                       _isTesting ? 'Проверка связи...' : 'Проверить подключение',
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                      style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
                     ),
                     onPressed: _isTesting ? null : _testConnection,
                   ),
@@ -798,7 +798,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Нейросеть FoodVision AI', style: TextStyle(fontSize: 12, color: textSecondary)),
-                    const Text('Gemini Vision v4.2', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                    Text('Gemini Vision v4.2', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary)),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -810,7 +810,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       foregroundColor: AppColors.primary,
                     ),
                     icon: _isCheckingUpdate
-                        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2))
+                        ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2))
                         : const Icon(Icons.system_update_alt, size: 18),
                     label: Text(
                       _isCheckingUpdate ? 'Проверка...' : 'Проверить обновления',

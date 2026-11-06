@@ -159,7 +159,7 @@ class IngredientTile extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: Text(
                       '${item.weightG.toStringAsFixed(0)}г',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: AppColors.primaryDark,

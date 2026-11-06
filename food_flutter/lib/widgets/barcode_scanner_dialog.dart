@@ -159,7 +159,7 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog> with Widget
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
-                const Icon(Icons.qr_code_scanner, color: AppColors.primary),
+                Icon(Icons.qr_code_scanner, color: AppColors.primary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -271,13 +271,13 @@ class _BarcodeScannerDialogState extends State<BarcodeScannerDialog> with Widget
 
   Widget _buildCameraContent() {
     if (_isPermissionChecking) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             CircularProgressIndicator(color: AppColors.primary),
-            SizedBox(height: 16),
-            Text(
+            const SizedBox(height: 16),
+            const Text(
               'Подключение камеры...',
               style: TextStyle(color: Colors.white70, fontSize: 14),
             ),

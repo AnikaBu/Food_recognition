@@ -267,8 +267,8 @@ class DiaryScreenState extends State<DiaryScreen> {
         await widget.apiService.deleteMeal(meal.id);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Прием пищи удален ✅'),
+            SnackBar(
+              content: const Text('Прием пищи удален ✅'),
               backgroundColor: AppColors.primary,
             ),
           );
@@ -613,8 +613,8 @@ class DiaryScreenState extends State<DiaryScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       if (_isLoading && _summary == null)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 40),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 40),
                           child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
                         )
                       else if (_errorMessage != null)
@@ -669,7 +669,7 @@ class DiaryScreenState extends State<DiaryScreen> {
                             ),
                             Text(
                               '${_summary!.meals.length} ${_getPluralMeals(_summary!.meals.length)}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.primary,
@@ -850,7 +850,7 @@ class DiaryScreenState extends State<DiaryScreen> {
                         children: [
                           Text(
                             categoryCals.toStringAsFixed(0),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w900,
                               color: AppColors.macroCalorie,

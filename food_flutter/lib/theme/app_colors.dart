@@ -3,39 +3,39 @@ import 'theme_palette.dart';
 
 /// Design tokens extracted directly from myfooddiary_prototype.html (Single Source of Truth)
 class AppColors {
-  // Brand Sapphire (Option 1: Royal Sapphire / Electric Blue)
-  static const Color primary = Color(0xFF3B82F6);       // Vibrant Sapphire (#3B82F6) for Dark Mode & general accents
-  static const Color primaryDark = Color(0xFF1D4ED8);   // Deep Blue (#1D4ED8)
-  static const Color primaryLight = Color(0xFFEFF6FF);  // Soft Sky Light (#EFF6FF)
-  static const Color primaryRoyal = Color(0xFF2563EB);  // Rich Royal Blue (#2563EB) for high contrast Light Mode buttons
-  static const Color sapphire300 = Color(0xFF93C5FD);
-  static const Color sapphire400 = Color(0xFF60A5FA);
-  static const Color sapphire500 = Color(0xFF3B82F6);
-  static const Color sapphire600 = Color(0xFF2563EB);
+  // Dynamic primary brand colors (resolves automatically from active theme palette)
+  static Color get primary => AppThemeTokens.active.primary;
+  static Color get primaryDark => AppThemeTokens.active.primaryDark;
+  static Color get primaryLight => AppThemeTokens.active.primaryLight;
+  static Color get primaryRoyal => AppThemeTokens.active.primaryRoyal;
+  static Color get sapphire300 => AppThemeTokens.active.primaryLight;
+  static Color get sapphire400 => AppThemeTokens.active.primary;
+  static Color get sapphire500 => AppThemeTokens.active.primary;
+  static Color get sapphire600 => AppThemeTokens.active.primaryRoyal;
 
   // Backward-compatible aliases for legacy token references
-  static const Color emerald400 = Color(0xFF60A5FA); // soft sapphire highlight
-  static const Color emerald500 = Color(0xFF3B82F6); // primary sapphire
+  static Color get emerald400 => AppThemeTokens.active.primary;
+  static Color get emerald500 => AppThemeTokens.active.primary;
   static const Color amber500 = Color(0xFFF59E0B);
 
-  /// Returns the optimal primary blue variant based on active theme
+  /// Returns the optimal primary variant based on active theme
   static Color primaryColor(bool isDark) => isDark ? primary : primaryRoyal;
 
   /// Returns active dynamic palette tokens for the given BuildContext
   static AppThemeTokens tokens(BuildContext context) => AppThemeTokens.of(context);
 
-  // Macro Nutrients (Exact prototype mapping)
-  static const Color macroCalorie = Color(0xFFF97316); // Coral-orange
-  static const Color macroCalorieLight = Color(0xFFFB923C);
-  static const Color macroCalorieDark = Color(0xFFEA580C);
+  // Macro Nutrients (Harmonized with active theme palette)
+  static Color get macroCalorie => AppThemeTokens.active.macroCalorie;
+  static Color get macroCalorieLight => AppThemeTokens.active.macroCalorieLight;
+  static Color get macroCalorieDark => AppThemeTokens.active.macroCalorieDark;
 
-  static const Color macroProtein = Color(0xFF6366F1); // Indigo-blue
+  static Color get macroProtein => AppThemeTokens.active.macroProtein;
   static const Color macroProteinLight = Color(0xFF818CF8);
 
-  static const Color macroFat = Color(0xFFF59E0B); // Warm amber
+  static Color get macroFat => AppThemeTokens.active.macroFat;
   static const Color macroFatLight = Color(0xFFFBBF24);
 
-  static const Color macroCarb = Color(0xFF14B8A6); // Mint-teal
+  static Color get macroCarb => AppThemeTokens.active.macroCarb;
   static const Color macroCarbLight = Color(0xFF2DD4BF);
 
   // Light Mode Surfaces & Text
@@ -47,26 +47,21 @@ class AppColors {
   static const Color lightTextSecondary = Color(0xFF64748B);
   static const Color lightInput = Color(0xFFF1F5F9);
 
-  // Dark Mode Background Gradient (from lighter steel-navy at top to deep midnight-navy at bottom)
-  static const Color darkBgTop = Color(0xFF22354A);     // Мягкий стальной темно-синий (#22354A)
-  static const Color darkBgMiddle = Color(0xFF182232);  // Глубокий синий переходный (#182232)
-  static const Color darkBgBottom = Color(0xFF0F131D);  // Глубокая темно-синяя ночь (#0F131D)
+  // Dark Mode Background Gradient (dynamically resolved from active theme)
+  static Color get darkBgTop => AppThemeTokens.active.bgTop;
+  static Color get darkBgMiddle => AppThemeTokens.active.bgMiddle;
+  static Color get darkBgBottom => AppThemeTokens.active.bgBottom;
 
-  static const LinearGradient darkBackgroundGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [darkBgTop, darkBgMiddle, darkBgBottom],
-    stops: [0.0, 0.45, 1.0],
-  );
+  static LinearGradient get darkBackgroundGradient => AppThemeTokens.active.backgroundGradient;
 
-  // Dark Mode Surfaces & Text (Harmonized with the steel-navy gradient)
-  static const Color darkCanvas = Color(0xFF0F131D);
-  static const Color darkSurface = Color(0xFF141A26);
-  static const Color darkCard = Color(0xFF1E2638);
-  static const Color darkBorder = Color(0xFF2D374D);
-  static const Color darkInput = Color(0xFF182030);
-  static const Color darkTextPrimary = Color(0xFFF8FAFC);
-  static const Color darkTextSecondary = Color(0xFF94A3B8);
+  // Dark Mode Surfaces & Text (dynamically resolved from active theme)
+  static Color get darkCanvas => AppThemeTokens.active.canvasBg;
+  static Color get darkSurface => AppThemeTokens.active.surfaceBg;
+  static Color get darkCard => AppThemeTokens.active.cardBg;
+  static Color get darkBorder => AppThemeTokens.active.cardBorder;
+  static Color get darkInput => AppThemeTokens.active.inputBg;
+  static Color get darkTextPrimary => AppThemeTokens.active.textPrimary;
+  static Color get darkTextSecondary => AppThemeTokens.active.textSecondary;
 
   // Category Icon Accents
   static const Color catBreakfastBg = Color(0xFFFEF3C7);

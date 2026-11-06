@@ -184,7 +184,7 @@ class _RecipePickerSheetState extends State<RecipePickerSheet> {
                         color: AppColors.primary.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.menu_book,
                         color: AppColors.primary,
                         size: 20,
@@ -239,8 +239,8 @@ class _RecipePickerSheetState extends State<RecipePickerSheet> {
 
   Widget _buildRecipesList(Color textPrimary, Color textSecondary, Color border, bool isDark) {
     if (_isLoading) {
-      return const Padding(
-        padding: EdgeInsets.all(40),
+      return Padding(
+        padding: const EdgeInsets.all(40),
         child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
       );
     }
@@ -341,7 +341,7 @@ class _RecipePickerSheetState extends State<RecipePickerSheet> {
                     color: AppColors.primary.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
@@ -352,7 +352,7 @@ class _RecipePickerSheetState extends State<RecipePickerSheet> {
                           color: AppColors.primary,
                         ),
                       ),
-                      SizedBox(width: 4),
+                      const SizedBox(width: 4),
                       Icon(Icons.chevron_right, size: 16, color: AppColors.primary),
                     ],
                   ),
@@ -393,7 +393,7 @@ class _RecipePickerSheetState extends State<RecipePickerSheet> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             autofocus: true,
             style: TextStyle(color: textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               suffixText: 'г',
               hintText: '250',
               prefixIcon: Icon(Icons.scale, color: AppColors.primary),
@@ -507,7 +507,7 @@ class _MacroTile extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(fontSize: 11, color: AppColors.darkTextSecondary),
+          style: TextStyle(fontSize: 11, color: AppColors.darkTextSecondary),
         ),
       ],
     );

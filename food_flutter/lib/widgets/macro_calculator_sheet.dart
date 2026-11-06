@@ -264,7 +264,7 @@ class _MacroCalculatorSheetState extends State<MacroCalculatorSheet> {
                           color: AppColors.primary.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.auto_awesome,
                           color: AppColors.primary,
                           size: 20,
@@ -350,7 +350,7 @@ class _MacroCalculatorSheetState extends State<MacroCalculatorSheet> {
                           children: [
                             Text(
                               _calculatedCalories.toStringAsFixed(0),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.w900,
                                 color: AppColors.macroCalorie,

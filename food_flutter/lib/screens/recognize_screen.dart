@@ -267,8 +267,8 @@ class RecognizeScreenState extends State<RecognizeScreen> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Блюдо успешно сохранено в дневник! 🍽️✅'),
+          SnackBar(
+            content: const Text('Блюдо успешно сохранено в дневник! 🍽️✅'),
             backgroundColor: AppColors.primary,
           ),
         );
@@ -333,11 +333,11 @@ class RecognizeScreenState extends State<RecognizeScreen> {
               borderRadius: BorderRadius.circular(999),
               border: Border.all(color: AppColors.primary.withOpacity(0.3)),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.auto_awesome, color: AppColors.primary, size: 14),
-                SizedBox(width: 4),
+                const SizedBox(width: 4),
                 Text(
                   'Gemini Vision',
                   style: TextStyle(
@@ -418,7 +418,7 @@ class RecognizeScreenState extends State<RecognizeScreen> {
                         ),
                         border: Border.all(color: AppColors.primary.withOpacity(0.35), width: 2),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Icon(
                           Icons.camera_alt_rounded,
                           size: 44,
@@ -481,7 +481,7 @@ class RecognizeScreenState extends State<RecognizeScreen> {
                       height: 50,
                       child: OutlinedButton.icon(
                         onPressed: () => pickImage(ImageSource.gallery),
-                        icon: const Icon(Icons.photo_library_outlined, color: AppColors.primary, size: 20),
+                        icon: Icon(Icons.photo_library_outlined, color: AppColors.primary, size: 20),
                         label: Text(
                           'Выбрать из галереи',
                           style: TextStyle(
@@ -519,7 +519,7 @@ class RecognizeScreenState extends State<RecognizeScreen> {
                       color: AppColors.primary.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.edit_note, color: AppColors.primary, size: 22),
+                    child: Icon(Icons.edit_note, color: AppColors.primary, size: 22),
                   ),
                   title: Text(
                     'Ввести блюдо вручную',
@@ -622,7 +622,7 @@ class RecognizeScreenState extends State<RecognizeScreen> {
                   height: 88,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                       colors: [AppColors.primary, AppColors.emerald400],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -656,7 +656,7 @@ class RecognizeScreenState extends State<RecognizeScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                const SizedBox(
+                SizedBox(
                   width: 32,
                   height: 32,
                   child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5),
@@ -708,11 +708,11 @@ class RecognizeScreenState extends State<RecognizeScreen> {
                   borderRadius: BorderRadius.circular(999),
                   border: Border.all(color: AppColors.primary.withOpacity(0.3)),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.auto_awesome, color: AppColors.primary, size: 13),
-                    SizedBox(width: 5),
+                    const SizedBox(width: 5),
                     Text(
                       'Точность AI: 96%',
                       style: TextStyle(
@@ -726,8 +726,8 @@ class RecognizeScreenState extends State<RecognizeScreen> {
               ),
               TextButton.icon(
                 onPressed: () => pickImage(ImageSource.camera),
-                icon: const Icon(Icons.refresh, size: 16, color: AppColors.primary),
-                label: const Text('Переснять', style: TextStyle(fontSize: 12, color: AppColors.primary)),
+                icon: Icon(Icons.refresh, size: 16, color: AppColors.primary),
+                label: Text('Переснять', style: TextStyle(fontSize: 12, color: AppColors.primary)),
               ),
             ],
           ),
@@ -798,12 +798,12 @@ class RecognizeScreenState extends State<RecognizeScreen> {
               InkWell(
                 onTap: _showAddIngredientDialog,
                 borderRadius: BorderRadius.circular(8),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: Row(
                     children: [
                       Icon(Icons.add, size: 15, color: AppColors.primary),
-                      SizedBox(width: 4),
+                      const SizedBox(width: 4),
                       Text(
                         'Добавить',
                         style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),

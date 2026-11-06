@@ -207,8 +207,8 @@ class _MealEditSheetState extends State<MealEditSheet> {
         widget.onMealUpdated();
         Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Блюдо успешно обновлено ✅'),
+          SnackBar(
+            content: const Text('Блюдо успешно обновлено ✅'),
             backgroundColor: AppColors.primary,
           ),
         );
@@ -278,8 +278,8 @@ class _MealEditSheetState extends State<MealEditSheet> {
           widget.onMealUpdated();
           Navigator.pop(context, true);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Блюдо удалено ✅'),
+            SnackBar(
+              content: const Text('Блюдо удалено ✅'),
               backgroundColor: AppColors.primary,
             ),
           );
@@ -421,7 +421,7 @@ class _MealEditSheetState extends State<MealEditSheet> {
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: bgInput,
-                      prefixIcon: const Icon(Icons.restaurant_rounded, size: 20, color: AppColors.primary),
+                      prefixIcon: Icon(Icons.restaurant_rounded, size: 20, color: AppColors.primary),
                       hintText: 'Название блюда или продукта',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -433,7 +433,7 @@ class _MealEditSheetState extends State<MealEditSheet> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                        borderSide: BorderSide(color: AppColors.primary, width: 2),
                       ),
                     ),
                   ),
@@ -503,7 +503,7 @@ class _MealEditSheetState extends State<MealEditSheet> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(14),
-                              borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                              borderSide: BorderSide(color: AppColors.primary, width: 2),
                             ),
                           ),
                         ),
@@ -664,7 +664,7 @@ class _MealEditSheetState extends State<MealEditSheet> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                        borderSide: BorderSide(color: AppColors.primary, width: 2),
                       ),
                     ),
                   ),
@@ -821,7 +821,7 @@ class _MealEditSheetState extends State<MealEditSheet> {
             const SizedBox(width: 4),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: AppColors.primary,

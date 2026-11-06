@@ -102,11 +102,17 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
     required this.backgroundGradient,
   });
 
+  static AppThemeTokens _active = AppThemeTokens.forPalette(AppThemePalette.cyberSapphire, isDark: true);
+  static AppThemeTokens get active => _active;
+
+  static void setActive(AppThemePalette palette, bool isDark) {
+    _active = AppThemeTokens.forPalette(palette, isDark: isDark);
+  }
+
   static AppThemeTokens of(BuildContext context) {
     final ext = Theme.of(context).extension<AppThemeTokens>();
     if (ext != null) return ext;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return forPalette(AppThemePalette.cyberSapphire, isDark: isDark);
+    return _active;
   }
 
   static AppThemeTokens forPalette(AppThemePalette palette, {required bool isDark}) {

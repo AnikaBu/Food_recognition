@@ -189,7 +189,7 @@ class _WeeklyMacroSheetState extends State<WeeklyMacroSheet> {
                               color: AppColors.primary.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text(
+                            child: Text(
                               'Макро',
                               style: TextStyle(
                                 fontSize: 12,
@@ -247,9 +247,9 @@ class _WeeklyMacroSheetState extends State<WeeklyMacroSheet> {
             // Тело шторки
             Flexible(
               child: _isLoading
-                  ? const Center(
+                  ? Center(
                       child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 48),
+                        padding: const EdgeInsets.symmetric(vertical: 48),
                         child: CircularProgressIndicator(color: AppColors.primary),
                       ),
                     )
@@ -393,7 +393,7 @@ class _WeeklyMacroSheetState extends State<WeeklyMacroSheet> {
                     color: AppColors.primary.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.tune_rounded,
                     size: 20,
                     color: AppColors.primary,

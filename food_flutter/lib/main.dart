@@ -38,7 +38,7 @@ void main() async {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.info_outline, size: 44, color: AppColors.primary),
+                  Icon(Icons.info_outline, size: 44, color: AppColors.primary),
                   const SizedBox(height: 12),
                   Text(
                     'Не удалось отобразить данные',
@@ -91,6 +91,10 @@ class FoodRecognitionApp extends StatelessWidget {
     return ListenableBuilder(
       listenable: settingsService,
       builder: (context, _) {
+        AppThemeTokens.setActive(
+          settingsService.themePaletteEnum,
+          settingsService.isDarkMode,
+        );
         return MaterialApp(
           title: 'MyFoodDiary',
           debugShowCheckedModeBanner: false,

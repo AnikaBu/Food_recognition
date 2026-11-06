@@ -167,7 +167,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
           ),
           title: Row(
             children: [
-              const Icon(Icons.auto_awesome, color: AppColors.primary, size: 22),
+              Icon(Icons.auto_awesome, color: AppColors.primary, size: 22),
               const SizedBox(width: 8),
               Text(
                 'ИИ-расчет ингредиента',
@@ -347,7 +347,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
           IconButton(
             icon: _isSaving
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.check, color: AppColors.primary),
+                : Icon(Icons.check, color: AppColors.primary),
             onPressed: _isSaving ? null : _saveRecipe,
             tooltip: 'Сохранить рецепт',
           ),
@@ -577,7 +577,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.local_fire_department, color: AppColors.primary, size: 20),
+                      Icon(Icons.local_fire_department, color: AppColors.primary, size: 20),
                       const SizedBox(width: 6),
                       Text(
                         'КБЖУ готового блюда на 100 г:',

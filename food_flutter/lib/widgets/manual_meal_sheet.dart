@@ -477,7 +477,7 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                             color: AppColors.primary.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.edit_note,
                             color: AppColors.primary,
                             size: 22,
@@ -535,11 +535,11 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                   controller: _dishNameController,
                   focusNode: _dishNameFocusNode,
                   style: TextStyle(color: textPrimary),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Название блюда или продукта *',
                     hintText: 'например: хлеб зерновой 30г или яблоко',
                     prefixIcon: Icon(Icons.restaurant, color: AppColors.primary, size: 20),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {
@@ -585,7 +585,7 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.history, color: AppColors.primary, size: 16),
+                                  Icon(Icons.history, color: AppColors.primary, size: 16),
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Column(
@@ -610,7 +610,7 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                                       ],
                                     ),
                                   ),
-                                  const Icon(Icons.north_west, color: AppColors.primary, size: 14),
+                                  Icon(Icons.north_west, color: AppColors.primary, size: 14),
                                 ],
                               ),
                             ),
@@ -627,7 +627,7 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: _openRecipePicker,
-                        icon: const Icon(Icons.menu_book, size: 14, color: AppColors.primary),
+                        icon: Icon(Icons.menu_book, size: 14, color: AppColors.primary),
                         label: Text(
                           'Рецепты',
                           style: TextStyle(
@@ -649,8 +649,8 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                       child: OutlinedButton.icon(
                         onPressed: (_isLookingUpBarcode || _isEstimatingAi) ? null : _scanBarcode,
                         icon: _isLookingUpBarcode
-                            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))
-                            : const Icon(Icons.qr_code_scanner, size: 14, color: AppColors.primary),
+                            ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))
+                            : Icon(Icons.qr_code_scanner, size: 14, color: AppColors.primary),
                         label: Text(
                           _isLookingUpBarcode ? 'Поиск...' : 'Штрихкод',
                           style: TextStyle(
@@ -672,8 +672,8 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
                       child: OutlinedButton.icon(
                         onPressed: (_isLookingUpBarcode || _isEstimatingAi) ? null : _estimateWithAi,
                         icon: _isEstimatingAi
-                            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))
-                            : const Icon(Icons.auto_awesome, size: 14, color: AppColors.primary),
+                            ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))
+                            : Icon(Icons.auto_awesome, size: 14, color: AppColors.primary),
                         label: Text(
                           _isEstimatingAi ? 'Считаем...' : 'ИИ-расчет',
                           style: TextStyle(

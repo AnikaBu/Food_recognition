@@ -322,7 +322,7 @@ class _RecipeIngredientEditSheetState extends State<RecipeIngredientEditSheet> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   alignment: Alignment.center,
-                  child: const Icon(Icons.scale_rounded, color: AppColors.primary, size: 22),
+                  child: Icon(Icons.scale_rounded, color: AppColors.primary, size: 22),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -373,7 +373,7 @@ class _RecipeIngredientEditSheetState extends State<RecipeIngredientEditSheet> {
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textPrimary),
                     decoration: InputDecoration(
                       hintText: 'например: Мука пшеничная',
-                      prefixIcon: const Icon(Icons.restaurant, size: 18, color: AppColors.primary),
+                      prefixIcon: Icon(Icons.restaurant, size: 18, color: AppColors.primary),
                       filled: true,
                       fillColor: cardBg,
                     ),
@@ -468,7 +468,7 @@ class _RecipeIngredientEditSheetState extends State<RecipeIngredientEditSheet> {
                               ),
                               Text(
                                 'Итого: ${currentWeight.toStringAsFixed(0)} г',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w800,
                                   color: AppColors.primary,
@@ -638,7 +638,7 @@ class _RecipeIngredientEditSheetState extends State<RecipeIngredientEditSheet> {
                                 children: [
                                   Text(
                                     _showManualMacros ? 'Скрыть поля' : 'Ручные правки',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
                                       color: AppColors.primary,

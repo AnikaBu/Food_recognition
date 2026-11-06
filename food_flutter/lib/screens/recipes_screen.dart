@@ -185,7 +185,7 @@ class RecipesScreenState extends State<RecipesScreen> {
     final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+      return Center(child: CircularProgressIndicator(color: AppColors.primary));
     }
 
     if (_errorMessage != null) {
@@ -229,7 +229,7 @@ class RecipesScreenState extends State<RecipesScreen> {
                       color: AppColors.primary.withOpacity(isDark ? 0.15 : 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.restaurant_menu, size: 52, color: AppColors.primary),
+                    child: Icon(Icons.restaurant_menu, size: 52, color: AppColors.primary),
                   ),
                   const SizedBox(height: 20),
                   Text(

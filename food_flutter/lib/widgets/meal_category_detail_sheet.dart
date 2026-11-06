@@ -322,7 +322,7 @@ class _MealCategoryDetailSheetState extends State<MealCategoryDetailSheet> {
                                   children: [
                                     Text(
                                       _totalCalories.toStringAsFixed(0),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 32,
                                         fontWeight: FontWeight.w900,
                                         color: AppColors.macroCalorie,
@@ -351,7 +351,7 @@ class _MealCategoryDetailSheetState extends State<MealCategoryDetailSheet> {
                               ),
                               child: Text(
                                 '$calPercent% от нормы',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                   color: AppColors.macroCalorie,
@@ -654,7 +654,7 @@ class _MealCategoryDetailSheetState extends State<MealCategoryDetailSheet> {
                       children: [
                         Text(
                           '${meal.totalCalories.toStringAsFixed(0)} ккал',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w900,
                             color: AppColors.macroCalorie,
