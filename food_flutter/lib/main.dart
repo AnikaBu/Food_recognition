@@ -12,6 +12,7 @@ import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_palette.dart';
 import 'widgets/app_screen_background.dart';
+import 'widgets/manual_meal_sheet.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -295,45 +296,191 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           children: screens,
         ),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: isDark ? tokens.bgBottom : Colors.white,
-          border: Border(
-            top: BorderSide(
-              color: isDark ? tokens.cardBorder : AppColors.lightBorder,
-              width: 1,
+      bottomNavigationBar: _buildCustomBottomBar(
+        context: context,
+        tokens: tokens,
+        isDark: isDark,
+        primaryAccent: primaryAccent,
+      ),
+    );
+  }
+
+  void _onBarcodeTapped() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => ManualMealSheet(
+        date: DateTime.now(),
+        apiService: widget.apiService,
+        onMealSaved: () => _diaryKey.currentState?.reloadGoalsAndData(),
+        autoStartBarcodeScan: true,
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required Color primaryAccent,
+    required Color inactiveColor,
+  }) {
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 22,
+                  color: isSelected ? primaryAccent : inactiveColor,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    color: isSelected ? primaryAccent : inactiveColor,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-        child: NavigationBar(
-          selectedIndex: _currentIndex,
-          onDestinationSelected: _onTabSelected,
-          backgroundColor: isDark ? tokens.bgBottom : Colors.white,
-          elevation: 0,
-          indicatorColor: primaryAccent.withOpacity(0.18),
-          destinations: [
-            NavigationDestination(
-              icon: const Icon(Icons.calendar_today_outlined),
-              selectedIcon: Icon(Icons.calendar_today, color: primaryAccent),
-              label: 'Дневник',
+      ),
+    );
+  }
+
+  Widget _buildCustomBottomBar({
+    required BuildContext context,
+    required AppThemeTokens tokens,
+    required bool isDark,
+    required Color primaryAccent,
+  }) {
+    final inactiveColor = isDark ? tokens.textSecondary : AppColors.lightTextSecondary;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final barHeight = 58.0 + bottomPadding;
+    final totalHeight = 74.0 + bottomPadding;
+
+    return SizedBox(
+      height: totalHeight,
+      child: Stack(
+        alignment: Alignment.topCenter,
+        clipBehavior: Clip.none,
+        children: [
+          // Frosted Glass Bar Container
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: barHeight,
+            child: Container(
+              padding: EdgeInsets.only(bottom: bottomPadding),
+              decoration: BoxDecoration(
+                color: isDark ? tokens.cardBg.withOpacity(0.96) : Colors.white.withOpacity(0.96),
+                border: Border(
+                  top: BorderSide(
+                    color: isDark ? tokens.cardBorder : AppColors.lightBorder,
+                    width: 1,
+                  ),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.35 : 0.05),
+                    blurRadius: 16,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  _buildNavItem(
+                    icon: Icons.calendar_today_rounded,
+                    label: 'Дневник',
+                    isSelected: _currentIndex == 0,
+                    onTap: () => _onTabSelected(0),
+                    primaryAccent: primaryAccent,
+                    inactiveColor: inactiveColor,
+                  ),
+                  _buildNavItem(
+                    icon: Icons.restaurant_menu_rounded,
+                    label: 'Рецепты',
+                    isSelected: _currentIndex == 2,
+                    onTap: () => _onTabSelected(2),
+                    primaryAccent: primaryAccent,
+                    inactiveColor: inactiveColor,
+                  ),
+                  const SizedBox(width: 58), // Space for center glowing button
+                  _buildNavItem(
+                    icon: Icons.qr_code_scanner_rounded,
+                    label: 'Штрихкод',
+                    isSelected: false,
+                    onTap: _onBarcodeTapped,
+                    primaryAccent: primaryAccent,
+                    inactiveColor: inactiveColor,
+                  ),
+                  _buildNavItem(
+                    icon: Icons.person_rounded,
+                    label: 'Профиль',
+                    isSelected: _currentIndex == 3,
+                    onTap: () => _onTabSelected(3),
+                    primaryAccent: primaryAccent,
+                    inactiveColor: inactiveColor,
+                  ),
+                ],
+              ),
             ),
-            NavigationDestination(
-              icon: const Icon(Icons.camera_alt_outlined),
-              selectedIcon: Icon(Icons.camera_alt, color: primaryAccent),
-              label: 'Фото',
+          ),
+
+          // Center Elevated Glowing Button
+          Positioned(
+            top: 0,
+            child: GestureDetector(
+              onTap: () => _onTabSelected(1),
+              child: Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [tokens.primary, tokens.primaryDark],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: tokens.primary.withOpacity(isDark ? 0.50 : 0.35),
+                      blurRadius: 18,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: isDark ? Colors.white.withOpacity(0.35) : Colors.white,
+                    width: 2.5,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.camera_alt_rounded,
+                  color: Colors.white,
+                  size: 26,
+                ),
+              ),
             ),
-            NavigationDestination(
-              icon: const Icon(Icons.restaurant_menu_outlined),
-              selectedIcon: Icon(Icons.restaurant_menu, color: primaryAccent),
-              label: 'Рецепты',
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person, color: primaryAccent),
-              label: 'Профиль',
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -959,6 +959,47 @@ class DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
+  Widget _buildMacroPill({
+    required String label,
+    required String value,
+    required Color color,
+    required bool isDark,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(right: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+      decoration: BoxDecoration(
+        color: color.withOpacity(isDark ? 0.16 : 0.10),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: color.withOpacity(isDark ? 0.35 : 0.25),
+          width: 0.8,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$label ',
+            style: TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w600,
+              color: isDark ? const Color(0xFFF1F5F9) : const Color(0xFF334155),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDishRow(MealRecord meal) {
     final tokens = AppThemeTokens.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -966,16 +1007,16 @@ class DiaryScreenState extends State<DiaryScreen> {
     final rowBorder = isDark ? tokens.cardBorder : AppColors.lightBorderSubtle;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 6),
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: rowBg,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: rowBorder),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           onTap: () => MealEditSheet.show(
             context,
             meal: meal,
@@ -983,7 +1024,7 @@ class DiaryScreenState extends State<DiaryScreen> {
             onMealUpdated: reloadGoalsAndData,
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
             child: Row(
               children: [
                 Expanded(
@@ -992,38 +1033,78 @@ class DiaryScreenState extends State<DiaryScreen> {
                     children: [
                       Text(
                         meal.dishName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 13,
                           fontWeight: FontWeight.bold,
                           color: isDark ? tokens.textPrimary : AppColors.lightTextPrimary,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${meal.totalWeightG.toStringAsFixed(0)}г • Б: ${meal.totalProtein.toStringAsFixed(0)}г • Ж: ${meal.totalFat.toStringAsFixed(0)}г • У: ${meal.totalCarbs.toStringAsFixed(0)}г',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: isDark ? tokens.textSecondary : AppColors.lightTextSecondary,
-                        ),
+                      const SizedBox(height: 5),
+                      Row(
+                        children: [
+                          Text(
+                            '${meal.totalWeightG.toStringAsFixed(0)}г',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? tokens.textSecondary : AppColors.lightTextSecondary,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildMacroPill(
+                            label: 'Б',
+                            value: '${meal.totalProtein.toStringAsFixed(0)}г',
+                            color: tokens.macroProtein,
+                            isDark: isDark,
+                          ),
+                          _buildMacroPill(
+                            label: 'Ж',
+                            value: '${meal.totalFat.toStringAsFixed(0)}г',
+                            color: tokens.macroFat,
+                            isDark: isDark,
+                          ),
+                          _buildMacroPill(
+                            label: 'У',
+                            value: '${meal.totalCarbs.toStringAsFixed(0)}г',
+                            color: tokens.macroCarb,
+                            isDark: isDark,
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-                Text(
-                  '${meal.totalCalories.toStringAsFixed(0)} ккал',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: tokens.macroCalorie,
-                  ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      meal.totalCalories.toStringAsFixed(0),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        color: tokens.macroCalorie,
+                      ),
+                    ),
+                    Text(
+                      'ккал',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? tokens.textSecondary : AppColors.lightTextSecondary,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 6),
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   icon: const Icon(Icons.edit_outlined, size: 16),
-                  color: AppColors.primary,
+                  color: tokens.primary,
                   tooltip: 'Редактировать',
                   onPressed: () => MealEditSheet.show(
                     context,
@@ -1032,13 +1113,13 @@ class DiaryScreenState extends State<DiaryScreen> {
                     onMealUpdated: reloadGoalsAndData,
                   ),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 6),
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   icon: const Icon(Icons.delete_outline, size: 16),
-                  color: const Color(0xFF94A3B8),
+                  color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
                   tooltip: 'Удалить',
                   onPressed: () => _confirmDeleteMeal(meal),
                 ),

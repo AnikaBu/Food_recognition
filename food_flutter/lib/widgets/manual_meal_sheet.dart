@@ -13,6 +13,7 @@ class ManualMealSheet extends StatefulWidget {
   final ApiService apiService;
   final VoidCallback onMealSaved;
   final MealType? initialMealType;
+  final bool autoStartBarcodeScan;
 
   const ManualMealSheet({
     super.key,
@@ -20,6 +21,7 @@ class ManualMealSheet extends StatefulWidget {
     required this.apiService,
     required this.onMealSaved,
     this.initialMealType,
+    this.autoStartBarcodeScan = false,
   });
 
   @override
@@ -66,6 +68,12 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
     _proteinController.addListener(_onMacroChanged);
     _fatController.addListener(_onMacroChanged);
     _carbsController.addListener(_onMacroChanged);
+
+    if (widget.autoStartBarcodeScan) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _scanBarcode();
+      });
+    }
   }
 
   @override
