@@ -45,6 +45,17 @@ jobs:
         run: |
           python3 -m pip install pillow
 
+      - name: Compute automated build version
+        working-directory: food_flutter
+        run: |
+          MAJOR_MINOR=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'.' -f1,2)
+          APP_VERSION="${MAJOR_MINOR}.${{ github.run_number }}"
+          TAG_NAME="v${APP_VERSION}"
+          sed -i "s/^version:.*/version: ${APP_VERSION}+${{ github.run_number }}/" pubspec.yaml
+          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+          echo "Automated build version: $APP_VERSION (Tag: $TAG_NAME, Run: ${{ github.run_number }})"
+
       - name: Configure Android permissions, icons and signing
         working-directory: food_flutter
         run: |
@@ -77,14 +88,10 @@ jobs:
           path: food_flutter/build/app/outputs/flutter-apk/myfooddiary.apk
           if-no-files-found: error
 
-      - name: Extract version from pubspec.yaml
-        id: get_version
+      - name: Verify release version
         working-directory: food_flutter
         run: |
-          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
-          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
-          echo "TAG_NAME=v$VERSION" >> $GITHUB_ENV
-          echo "Extracted version: $VERSION"
+          echo "Verified release version: ${{ env.APP_VERSION }} (Tag: ${{ env.TAG_NAME }})"
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
