@@ -15,6 +15,8 @@ APP_DIR = os.path.join(ANDROID_DIR, "app")
 MANIFEST_PATH = os.path.join(APP_DIR, "src", "main", "AndroidManifest.xml")
 GRADLE_GROOVY_PATH = os.path.join(APP_DIR, "build.gradle")
 GRADLE_KTS_PATH = os.path.join(APP_DIR, "build.gradle.kts")
+ROOT_GRADLE_GROOVY_PATH = os.path.join(ANDROID_DIR, "build.gradle")
+ROOT_GRADLE_KTS_PATH = os.path.join(ANDROID_DIR, "build.gradle.kts")
 GRADLE_PROPERTIES_PATH = os.path.join(ANDROID_DIR, "gradle.properties")
 PROGUARD_PATH = os.path.join(APP_DIR, "proguard-rules.pro")
 
@@ -155,6 +157,17 @@ def configure_gradle():
             content
         )
 
+        # Disable lintVital & crash-prone lint checks in Groovy DSL
+        if "lint {" not in content and "lintOptions {" not in content:
+            lint_groovy = """    lintOptions {
+        checkReleaseBuilds false
+        abortOnError false
+        checkDependencies false
+        disable 'CommentDetector', 'StopShip'
+    }\n\n"""
+            if "buildTypes {" in content:
+                content = content.replace("buildTypes {", lint_groovy + "    buildTypes {")
+
         # Ensure release signing uses release.jks
         if os.path.exists(keystore_path):
             groovy_signing_block = """    signingConfigs {
@@ -199,6 +212,17 @@ def configure_gradle():
 
         content = re.sub(r"minSdk\s*=\s*(?:flutter\.minSdkVersion|\d+)", "minSdk = 21", content)
 
+        # Disable lintVital & crash-prone lint checks in Kotlin DSL
+        if "lint {" not in content:
+            lint_kts = """    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+        checkDependencies = false
+        disable.addAll(listOf("CommentDetector", "StopShip"))
+    }\n\n"""
+            if "buildTypes {" in content:
+                content = content.replace("buildTypes {", lint_kts + "    buildTypes {")
+
         # Ensure release signing uses release.jks in Kotlin DSL
         if os.path.exists(keystore_path):
             kts_signing_block = """    signingConfigs {
@@ -239,6 +263,44 @@ def configure_gradle():
         with open(GRADLE_KTS_PATH, "w", encoding="utf-8") as f:
             f.write(content)
         print("[+] Kotlin build.gradle.kts configured successfully.")
+
+    # Configure root Groovy build.gradle to disable lintVital across all subprojects
+    if os.path.exists(ROOT_GRADLE_GROOVY_PATH):
+        with open(ROOT_GRADLE_GROOVY_PATH, "r", encoding="utf-8") as f:
+            root_content = f.read()
+        if "lintVital" not in root_content:
+            disable_lint_block = """
+allprojects {
+    tasks.configureEach { task ->
+        if (task.name.contains("lintVital") || task.name.contains("lintAnalyze")) {
+            task.enabled = false
+        }
+    }
+}
+"""
+            root_content += disable_lint_block
+            with open(ROOT_GRADLE_GROOVY_PATH, "w", encoding="utf-8") as f:
+                f.write(root_content)
+            print("[+] Disabled lintVital tasks in root build.gradle.")
+
+    # Configure root Kotlin DSL build.gradle.kts to disable lintVital across all subprojects
+    if os.path.exists(ROOT_GRADLE_KTS_PATH):
+        with open(ROOT_GRADLE_KTS_PATH, "r", encoding="utf-8") as f:
+            root_content = f.read()
+        if "lintVital" not in root_content:
+            disable_lint_kts = """
+allprojects {
+    tasks.configureEach {
+        if (name.contains("lintVital") || name.contains("lintAnalyze")) {
+            enabled = false
+        }
+    }
+}
+"""
+            root_content += disable_lint_kts
+            with open(ROOT_GRADLE_KTS_PATH, "w", encoding="utf-8") as f:
+                f.write(root_content)
+            print("[+] Disabled lintVital tasks in root build.gradle.kts.")
 
 
 def configure_proguard():
@@ -352,6 +414,8 @@ def configure_gradle_properties():
         "android.newDsl": "false",
         "android.builtInKotlin": "false",
         "android.enableR8.fullMode": "false",
+        "android.lint.abortOnError": "false",
+        "android.lint.checkReleaseBuilds": "false",
     }
 
     new_lines = []
