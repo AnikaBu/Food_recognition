@@ -230,21 +230,23 @@ class _MealCategoryDetailSheetState extends State<MealCategoryDetailSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: Row(
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkCard : const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: borderColor),
+                if (widget.emoji.isNotEmpty) ...[
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkCard : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: borderColor),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      widget.emoji,
+                      style: const TextStyle(fontSize: 22),
+                    ),
                   ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    widget.emoji,
-                    style: const TextStyle(fontSize: 22),
-                  ),
-                ),
-                const SizedBox(width: 14),
+                  const SizedBox(width: 14),
+                ],
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

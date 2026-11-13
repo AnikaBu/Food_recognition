@@ -358,113 +358,92 @@ class DiaryScreenState extends State<DiaryScreen> {
             child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             children: [
-              // 1. Top Header (Date + Refresh Button)
+              // 1. Top Header (Centered MyFoodDiary + Date Picker & Actions)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   GestureDetector(
                     onTap: _pickDate,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          isSelectedToday ? 'СЕГОДНЯ' : 'ДАТА',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.8,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: isDark ? tokens.cardBg : AppColors.lightCard,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: isDark ? tokens.cardBorder : AppColors.lightBorder),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.calendar_today_rounded,
+                            size: 15,
+                            color: tokens.primary,
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Row(
-                          children: [
-                            Text(
-                              _formatDateHeader(_selectedDate),
-                              style: TextStyle(
-                                fontSize: 19,
-                                fontWeight: FontWeight.w800,
-                                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                              ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _formatDateHeader(_selectedDate),
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? tokens.textPrimary : AppColors.lightTextPrimary,
                             ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              Icons.keyboard_arrow_down,
-                              size: 20,
-                              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                            ),
-                          ],
-                        ),
-                      ],
+                          ),
+                          const SizedBox(width: 2),
+                          Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: 16,
+                            color: isDark ? tokens.textSecondary : AppColors.lightTextSecondary,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Text(
+                    'MyFoodDiary',
+                    style: TextStyle(
+                      fontSize: 17.5,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.3,
+                      color: isDark ? tokens.textPrimary : AppColors.lightTextPrimary,
                     ),
                   ),
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       InkWell(
                         onTap: _openWeeklyMacroReview,
-                        borderRadius: BorderRadius.circular(16),
-                        child: Tooltip(
-                          message: 'Недельный обзор КБЖУ',
-                          child: Container(
-                            width: 42,
-                            height: 42,
-                            decoration: BoxDecoration(
-                              color: isDark ? tokens.cardBg : AppColors.lightCard,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: isDark ? tokens.cardBorder : AppColors.lightBorder),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
-                                  blurRadius: 8,
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              Icons.insights_rounded,
-                              size: 20,
-                              color: tokens.primary,
-                            ),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: isDark ? tokens.cardBg : AppColors.lightCard,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: isDark ? tokens.cardBorder : AppColors.lightBorder),
+                          ),
+                          child: Icon(
+                            Icons.insights_rounded,
+                            size: 18,
+                            color: tokens.primary,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       InkWell(
                         onTap: reloadGoalsAndData,
-                        borderRadius: BorderRadius.circular(16),
-                        child: Tooltip(
-                          message: 'Обновить дневник',
-                          child: Container(
-                            width: 42,
-                            height: 42,
-                            decoration: BoxDecoration(
-                              color: isDark ? tokens.cardBg : AppColors.lightCard,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: isDark ? tokens.cardBorder : AppColors.lightBorder),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
-                                  blurRadius: 8,
-                                ),
-                              ],
-                            ),
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                Icon(Icons.refresh, size: 20, color: tokens.primary),
-                                Positioned(
-                                  top: 8,
-                                  right: 8,
-                                  child: Container(
-                                    width: 7,
-                                    height: 7,
-                                    decoration: BoxDecoration(
-                                      color: tokens.primary,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: isDark ? tokens.cardBg : AppColors.lightCard,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: isDark ? tokens.cardBorder : AppColors.lightBorder),
+                          ),
+                          child: Icon(
+                            Icons.refresh_rounded,
+                            size: 18,
+                            color: tokens.primary,
                           ),
                         ),
                       ),
@@ -475,7 +454,7 @@ class DiaryScreenState extends State<DiaryScreen> {
 
               const SizedBox(height: 12),
 
-              // 2. Horizontal Week Strip
+              // 2. Horizontal Week Strip (Concept 1: glowing theme border on selected day)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(7, (idx) {
@@ -496,28 +475,21 @@ class DiaryScreenState extends State<DiaryScreen> {
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       width: 44,
-                      height: 58,
+                      height: 56,
                       decoration: BoxDecoration(
-                        gradient: isSelected
-                            ? LinearGradient(
-                                colors: [tokens.primary, tokens.primaryDark],
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                              )
-                            : null,
-                        color: isSelected
-                            ? null
-                            : (isDark ? tokens.cardBg : AppColors.lightCard),
-                        borderRadius: BorderRadius.circular(16),
-                        border: isSelected
-                            ? null
-                            : Border.all(color: isDark ? tokens.cardBorder : AppColors.lightBorder),
+                        color: isDark ? tokens.cardBg : AppColors.lightCard,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isSelected ? tokens.primary : (isDark ? tokens.cardBorder : AppColors.lightBorder),
+                          width: isSelected ? 2.0 : 1.0,
+                        ),
                         boxShadow: isSelected
                             ? [
                                 BoxShadow(
-                                  color: tokens.primary.withOpacity(0.4),
+                                  color: tokens.primary.withOpacity(isDark ? 0.35 : 0.20),
                                   blurRadius: 10,
-                                  offset: const Offset(0, 4),
+                                  spreadRadius: 0.5,
+                                  offset: const Offset(0, 2),
                                 ),
                               ]
                             : null,
@@ -528,10 +500,10 @@ class DiaryScreenState extends State<DiaryScreen> {
                           Text(
                             weekDayNames[idx],
                             style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
                               color: isSelected
-                                  ? Colors.white.withOpacity(0.9)
+                                  ? tokens.primary
                                   : (isDark ? tokens.textSecondary : AppColors.lightTextSecondary),
                             ),
                           ),
@@ -539,24 +511,13 @@ class DiaryScreenState extends State<DiaryScreen> {
                           Text(
                             dayDate.day.toString(),
                             style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
+                              fontSize: 15.5,
+                              fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
                               color: isSelected
-                                  ? Colors.white
+                                  ? tokens.primary
                                   : (isDark ? tokens.textPrimary : AppColors.lightTextPrimary),
                             ),
                           ),
-                          if (isSelected) ...[
-                            const SizedBox(height: 3),
-                            Container(
-                              width: 4,
-                              height: 4,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -682,38 +643,22 @@ class DiaryScreenState extends State<DiaryScreen> {
 
                         _buildMealCategoryCard(
                           type: MealType.breakfast,
-                          emoji: '🍳',
                           title: 'Завтрак',
-                          badge: null,
-                          bgColor: AppColors.catBreakfastBg,
-                          textColor: AppColors.catBreakfastText,
                         ),
                         const SizedBox(height: 10),
                         _buildMealCategoryCard(
                           type: MealType.lunch,
-                          emoji: '🥗',
                           title: 'Обед',
-                          badge: 'Основной',
-                          bgColor: AppColors.catLunchBg,
-                          textColor: AppColors.catLunchText,
                         ),
                         const SizedBox(height: 10),
                         _buildMealCategoryCard(
                           type: MealType.dinner,
-                          emoji: '🥑',
                           title: 'Ужин',
-                          badge: null,
-                          bgColor: AppColors.catDinnerBg,
-                          textColor: AppColors.catDinnerText,
                         ),
                         const SizedBox(height: 10),
                         _buildMealCategoryCard(
                           type: MealType.snack,
-                          emoji: '🍏',
                           title: 'Перекус',
-                          badge: null,
-                          bgColor: AppColors.catSnackBg,
-                          textColor: AppColors.catSnackText,
                         ),
                       ],
                     ],
@@ -738,11 +683,7 @@ class DiaryScreenState extends State<DiaryScreen> {
 
   Widget _buildMealCategoryCard({
     required MealType type,
-    required String emoji,
     required String title,
-    required String? badge,
-    required Color bgColor,
-    required Color textColor,
   }) {
     final tokens = AppThemeTokens.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -753,14 +694,10 @@ class DiaryScreenState extends State<DiaryScreen> {
     final cardBg = isDark ? tokens.cardBg : AppColors.lightCard;
     final cardBorder = isDark ? tokens.cardBorder : AppColors.lightBorder;
 
-    final summaryText = meals.isEmpty
-        ? 'Нет добавленных блюд'
-        : meals.map((m) => m.dishName).join(', ');
-
     return Container(
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: cardBorder),
       ),
       child: Column(
@@ -776,131 +713,62 @@ class DiaryScreenState extends State<DiaryScreen> {
                 }
               });
             },
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
               child: Row(
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: isDark ? bgColor.withOpacity(0.18) : bgColor,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isDark ? textColor.withOpacity(0.3) : Colors.transparent,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(emoji, style: const TextStyle(fontSize: 18)),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              title,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                              ),
-                            ),
-                            if (badge != null) ...[
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                                decoration: BoxDecoration(
-                                  color: tokens.primary.withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: tokens.primary.withOpacity(0.3)),
-                                ),
-                                child: Text(
-                                  badge,
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w700,
-                                    color: isDark ? tokens.primary : tokens.primaryDark,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          summaryText,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                          ),
-                        ),
-                      ],
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? tokens.textPrimary : AppColors.lightTextPrimary,
                     ),
                   ),
-                  Row(
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            categoryCals.toStringAsFixed(0),
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.macroCalorie,
-                            ),
-                          ),
-                          Text(
-                            'ккал',
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w500,
-                              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                            ),
-                          ),
-                        ],
+                  const Spacer(),
+                  Text(
+                    '${categoryCals.toStringAsFixed(0)} ккал',
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () {
+                      MealCategoryDetailSheet.show(
+                        context,
+                        mealType: type,
+                        title: title,
+                        emoji: '',
+                        meals: meals,
+                        selectedDate: _selectedDate,
+                        dailyTargetCalories: _targetCalories,
+                        dailyTargetProtein: _targetProtein,
+                        dailyTargetFat: _targetFat,
+                        dailyTargetCarbs: _targetCarbs,
+                        apiService: widget.apiService,
+                        onDataChanged: reloadGoalsAndData,
+                        onAddMeal: () => _showManualAddMealModal(mealType: type),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(6),
+                    child: Padding(
+                      padding: const EdgeInsets.all(2),
+                      child: Icon(
+                        Icons.open_in_new_rounded,
+                        size: 16,
+                        color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
                       ),
-                      IconButton(
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        icon: Icon(
-                          Icons.open_in_new_rounded,
-                          size: 18,
-                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                        ),
-                        tooltip: 'Подробнее о приеме пищи',
-                        onPressed: () {
-                          MealCategoryDetailSheet.show(
-                            context,
-                            mealType: type,
-                            title: title,
-                            emoji: emoji,
-                            meals: meals,
-                            selectedDate: _selectedDate,
-                            dailyTargetCalories: _targetCalories,
-                            dailyTargetProtein: _targetProtein,
-                            dailyTargetFat: _targetFat,
-                            dailyTargetCarbs: _targetCarbs,
-                            apiService: widget.apiService,
-                            onDataChanged: reloadGoalsAndData,
-                            onAddMeal: () => _showManualAddMealModal(mealType: type),
-                          );
-                        },
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                        size: 20,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                      ),
-                    ],
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                    size: 20,
+                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                   ),
                 ],
               ),
@@ -916,30 +784,40 @@ class DiaryScreenState extends State<DiaryScreen> {
                 children: [
                   if (meals.isNotEmpty) ...[
                     ...meals.map((meal) => _buildDishRow(meal)),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
+                  ] else ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'Нет добавленных блюд',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? tokens.textSecondary : AppColors.lightTextSecondary,
+                        ),
+                      ),
+                    ),
                   ],
                   // Quick Add to category button
                   InkWell(
                     onTap: () => _showManualAddMealModal(mealType: type),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     child: Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: BoxDecoration(
                         color: isDark ? tokens.surfaceBg : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: isDark ? tokens.cardBorder : const Color(0xFFCBD5E1),
-                          style: BorderStyle.solid,
+                          color: isDark ? tokens.cardBorder : const Color(0xFFE2E8F0),
                         ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.add, size: 16, color: tokens.primary),
+                          Icon(Icons.add_rounded, size: 16, color: tokens.primary),
                           const SizedBox(width: 6),
                           Text(
-                            'Добавить блюдо к «$title»',
+                            'Добавить блюдо',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -959,57 +837,16 @@ class DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
-  Widget _buildMacroPill({
-    required String label,
-    required String value,
-    required Color color,
-    required bool isDark,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(right: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-      decoration: BoxDecoration(
-        color: color.withOpacity(isDark ? 0.16 : 0.10),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: color.withOpacity(isDark ? 0.35 : 0.25),
-          width: 0.8,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '$label ',
-            style: TextStyle(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w800,
-              color: color,
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w600,
-              color: isDark ? const Color(0xFFF1F5F9) : const Color(0xFF334155),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildDishRow(MealRecord meal) {
     final tokens = AppThemeTokens.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final rowBg = isDark ? tokens.surfaceBg : const Color(0xFFF8FAFC);
-    final rowBorder = isDark ? tokens.cardBorder : AppColors.lightBorderSubtle;
+    final rowBorder = isDark ? tokens.cardBorder.withOpacity(0.5) : AppColors.lightBorderSubtle;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: rowBg,
+        color: isDark ? tokens.surfaceBg : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: rowBorder),
       ),
@@ -1023,108 +860,163 @@ class DiaryScreenState extends State<DiaryScreen> {
             apiService: widget.apiService,
             onMealUpdated: reloadGoalsAndData,
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        meal.dishName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? tokens.textPrimary : AppColors.lightTextPrimary,
-                        ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top Row: Dish Name (Left) + Calories (Right)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      meal.dishName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? tokens.textPrimary : AppColors.lightTextPrimary,
                       ),
-                      const SizedBox(height: 5),
-                      Row(
-                        children: [
-                          Text(
-                            '${meal.totalWeightG.toStringAsFixed(0)}г',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: isDark ? tokens.textSecondary : AppColors.lightTextSecondary,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          _buildMacroPill(
-                            label: 'Б',
-                            value: '${meal.totalProtein.toStringAsFixed(0)}г',
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${meal.totalCalories.toStringAsFixed(0)} ккал',
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w900,
+                      color: tokens.macroCalorie,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              // Bottom Row: Weight + Unified Macro Chip (Left) + Edit/Delete Icons (Right)
+              Row(
+                children: [
+                  Text(
+                    '${meal.totalWeightG.toStringAsFixed(0)}г',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? tokens.textSecondary : AppColors.lightTextSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Unified Macro Chip matching Mockup 1: P 12g • C 55g • F 6g
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEDF2F7),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                        width: 0.6,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Б ',
+                          style: TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
                             color: tokens.macroProtein,
-                            isDark: isDark,
                           ),
-                          _buildMacroPill(
-                            label: 'Ж',
-                            value: '${meal.totalFat.toStringAsFixed(0)}г',
-                            color: tokens.macroFat,
-                            isDark: isDark,
+                        ),
+                        Text(
+                          '${meal.totalProtein.toStringAsFixed(0)}г',
+                          style: TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white70 : Colors.black87,
                           ),
-                          _buildMacroPill(
-                            label: 'У',
-                            value: '${meal.totalCarbs.toStringAsFixed(0)}г',
+                        ),
+                        Text(
+                          '  •  ',
+                          style: TextStyle(
+                            fontSize: 8.5,
+                            color: isDark ? Colors.white30 : Colors.black26,
+                          ),
+                        ),
+                        Text(
+                          'У ',
+                          style: TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
                             color: tokens.macroCarb,
-                            isDark: isDark,
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                        Text(
+                          '${meal.totalCarbs.toStringAsFixed(0)}г',
+                          style: TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          '  •  ',
+                          style: TextStyle(
+                            fontSize: 8.5,
+                            color: isDark ? Colors.white30 : Colors.black26,
+                          ),
+                        ),
+                        Text(
+                          'Ж ',
+                          style: TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            color: tokens.macroFat,
+                          ),
+                        ),
+                        Text(
+                          '${meal.totalFat.toStringAsFixed(0)}г',
+                          style: TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      meal.totalCalories.toStringAsFixed(0),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                        color: tokens.macroCalorie,
+                  const Spacer(),
+                  // Edit and Delete buttons
+                  InkWell(
+                    onTap: () => MealEditSheet.show(
+                      context,
+                      meal: meal,
+                      apiService: widget.apiService,
+                      onMealUpdated: reloadGoalsAndData,
+                    ),
+                    borderRadius: BorderRadius.circular(6),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Icon(
+                        Icons.edit_outlined,
+                        size: 16,
+                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                       ),
                     ),
-                    Text(
-                      'ккал',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w500,
-                        color: isDark ? tokens.textSecondary : AppColors.lightTextSecondary,
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () => _confirmDeleteMeal(meal),
+                    borderRadius: BorderRadius.circular(6),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Icon(
+                        Icons.delete_outline_rounded,
+                        size: 16,
+                        color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(width: 6),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  icon: const Icon(Icons.edit_outlined, size: 16),
-                  color: tokens.primary,
-                  tooltip: 'Редактировать',
-                  onPressed: () => MealEditSheet.show(
-                    context,
-                    meal: meal,
-                    apiService: widget.apiService,
-                    onMealUpdated: reloadGoalsAndData,
                   ),
-                ),
-                const SizedBox(width: 6),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  icon: const Icon(Icons.delete_outline, size: 16),
-                  color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
-                  tooltip: 'Удалить',
-                  onPressed: () => _confirmDeleteMeal(meal),
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ),
         ),
       ),

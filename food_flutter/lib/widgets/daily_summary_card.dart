@@ -20,81 +20,70 @@ class DailySummaryCard extends StatelessWidget {
     required this.targetCarbs,
   });
 
-  Widget _buildMacroBar({
-    required BuildContext context,
+  Widget _buildMacroCard({
     required String label,
     required double current,
     required double target,
-    required Color color,
+    required Color accentColor,
+    required Color bgColor,
+    required Color borderColor,
     required bool isDark,
-    required Color textColor,
-    required Color subColor,
   }) {
     final progress = target > 0 ? (current / target).clamp(0.0, 1.0) : 0.0;
-    final trackColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 9),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+              color: accentColor,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            '${current.toStringAsFixed(0)}г',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.3,
+              color: isDark ? Colors.white : AppColors.lightTextPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(99),
+            child: Container(
+              height: 3,
+              width: double.infinity,
+              color: accentColor.withOpacity(0.2),
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: progress,
+                child: Container(
                   decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                    boxShadow: isDark
-                        ? [BoxShadow(color: color.withOpacity(0.6), blurRadius: 6)]
-                        : null,
+                    color: accentColor,
+                    borderRadius: BorderRadius.circular(99),
                   ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: textColor,
-                  ),
-                ),
-              ],
-            ),
-            Text(
-              '${current.toStringAsFixed(0)} / ${target.toStringAsFixed(0)} г',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: subColor,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 5),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: Container(
-            height: 7,
-            color: trackColor,
-            alignment: Alignment.centerLeft,
-            child: FractionallySizedBox(
-              widthFactor: progress,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(999),
-                  boxShadow: isDark
-                      ? [BoxShadow(color: color.withOpacity(0.5), blurRadius: 4)]
-                      : null,
                 ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -110,169 +99,115 @@ class DailySummaryCard extends StatelessWidget {
 
     final cardBg = isDark ? tokens.cardBg : AppColors.lightCard;
     final cardBorder = isDark ? tokens.cardBorder : AppColors.lightBorder;
-    final headerTextColor = isDark ? tokens.textSecondary : AppColors.lightTextSecondary;
-    final textColor = isDark ? tokens.textPrimary : AppColors.lightTextPrimary;
-    final subColor = isDark ? tokens.textSecondary : AppColors.lightTextSecondary;
 
     return Container(
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: cardBorder, width: 1),
         boxShadow: [
           BoxShadow(
-            color: isDark ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: isDark ? Colors.black.withOpacity(0.35) : Colors.black.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(18),
-      child: Column(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      child: Row(
         children: [
-          // Header with pinging dot and status pill
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 9,
-                    height: 9,
-                    decoration: BoxDecoration(
-                      color: tokens.macroCalorie,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'СВОДКА БАЛАНСА ДНЯ',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.6,
-                      color: headerTextColor,
-                    ),
-                  ),
-                ],
+          // Left: Calorie Ring with Remaining kcal
+          SizedBox(
+            width: 86,
+            height: 86,
+            child: CustomPaint(
+              painter: _CalorieRingPainter(
+                progress: calProgress,
+                isDark: isDark,
+                calorieLight: tokens.macroCalorieLight,
+                calorieDark: tokens.macroCalorieDark,
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
-                decoration: BoxDecoration(
-                  color: isOver
-                      ? (isDark ? tokens.macroCalorie.withOpacity(0.18) : const Color(0xFFFFF1F2))
-                      : (isDark ? tokens.primary.withOpacity(0.15) : tokens.primaryLight),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: isOver
-                        ? tokens.macroCalorie.withOpacity(0.4)
-                        : tokens.primary.withOpacity(0.35),
-                  ),
-                ),
-                child: Text(
-                  isOver
-                      ? 'Перебор +${(-remaining).toStringAsFixed(0)} ккал'
-                      : 'Осталось ${remaining.toStringAsFixed(0)} ккал',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: isOver ? tokens.macroCalorie : (isDark ? tokens.primary : tokens.primaryDark),
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Calorie Ring + Macros Bars
-          Row(
-            children: [
-              // Custom Gradient Calorie Ring
-              SizedBox(
-                width: 104,
-                height: 104,
-                child: CustomPaint(
-                  painter: _CalorieRingPainter(
-                    progress: calProgress,
-                    isDark: isDark,
-                    calorieLight: tokens.macroCalorieLight,
-                    calorieDark: tokens.macroCalorieDark,
-                  ),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.local_fire_department,
-                          color: tokens.macroCalorie,
-                          size: 18,
-                        ),
-                        Text(
-                          summary.totalCalories.toStringAsFixed(0),
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5,
-                            color: textColor,
-                          ),
-                        ),
-                        Text(
-                          'из ${targetCalories.toStringAsFixed(0)}',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                            color: subColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(width: 18),
-
-              // Macro Bars Breakdown
-              Expanded(
+              child: Center(
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildMacroBar(
-                      context: context,
-                      label: 'Белки',
-                      current: summary.totalProtein,
-                      target: targetProtein,
-                      color: tokens.macroProtein,
-                      isDark: isDark,
-                      textColor: textColor,
-                      subColor: subColor,
+                    Text(
+                      isOver ? 'Перебор' : 'Осталось',
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w600,
+                        color: isOver
+                            ? tokens.macroCalorie
+                            : (isDark ? tokens.textSecondary : AppColors.lightTextSecondary),
+                      ),
                     ),
-                    const SizedBox(height: 10),
-                    _buildMacroBar(
-                      context: context,
-                      label: 'Жиры',
-                      current: summary.totalFat,
-                      target: targetFat,
-                      color: tokens.macroFat,
-                      isDark: isDark,
-                      textColor: textColor,
-                      subColor: subColor,
+                    const SizedBox(height: 1),
+                    Text(
+                      remaining.abs().toStringAsFixed(0),
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.4,
+                        color: isDark ? tokens.textPrimary : AppColors.lightTextPrimary,
+                      ),
                     ),
-                    const SizedBox(height: 10),
-                    _buildMacroBar(
-                      context: context,
-                      label: 'Углеводы',
-                      current: summary.totalCarbs,
-                      target: targetCarbs,
-                      color: tokens.macroCarb,
-                      isDark: isDark,
-                      textColor: textColor,
-                      subColor: subColor,
+                    Text(
+                      'ккал',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? tokens.textSecondary : AppColors.lightTextSecondary,
+                      ),
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
+          ),
+
+          const SizedBox(width: 12),
+
+          // Right: 3 Macro Cards in a horizontal row
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildMacroCard(
+                    label: 'Белки',
+                    current: summary.totalProtein,
+                    target: targetProtein,
+                    accentColor: tokens.macroProtein,
+                    bgColor: isDark ? tokens.macroProtein.withOpacity(0.16) : const Color(0xFFEEF2FF),
+                    borderColor: tokens.macroProtein.withOpacity(isDark ? 0.35 : 0.25),
+                    isDark: isDark,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildMacroCard(
+                    label: 'Углеводы',
+                    current: summary.totalCarbs,
+                    target: targetCarbs,
+                    accentColor: tokens.macroCarb,
+                    bgColor: isDark ? tokens.macroCarb.withOpacity(0.16) : const Color(0xFFECFDF5),
+                    borderColor: tokens.macroCarb.withOpacity(isDark ? 0.35 : 0.25),
+                    isDark: isDark,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildMacroCard(
+                    label: 'Жиры',
+                    current: summary.totalFat,
+                    target: targetFat,
+                    accentColor: tokens.macroFat,
+                    bgColor: isDark ? tokens.macroFat.withOpacity(0.16) : const Color(0xFFFEF3C7),
+                    borderColor: tokens.macroFat.withOpacity(isDark ? 0.35 : 0.25),
+                    isDark: isDark,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -296,13 +231,13 @@ class _CalorieRingPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.width - 12) / 2;
+    final radius = (size.width - 10) / 2;
 
     // Background track
     final trackPaint = Paint()
       ..color = isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 10.0;
+      ..strokeWidth = 7.5;
 
     canvas.drawCircle(center, radius, trackPaint);
 
@@ -323,7 +258,7 @@ class _CalorieRingPainter extends CustomPainter {
       ..shader = gradient.createShader(rect)
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
-      ..strokeWidth = 10.0;
+      ..strokeWidth = 7.5;
 
     final sweepAngle = 2 * math.pi * progress;
     canvas.drawArc(rect, -math.pi / 2, sweepAngle, false, progressPaint);
