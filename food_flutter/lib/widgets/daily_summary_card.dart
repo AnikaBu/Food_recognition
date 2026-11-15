@@ -54,13 +54,45 @@ class DailySummaryCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 3),
-          Text(
-            '${current.toStringAsFixed(0)}г',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.3,
-              color: isDark ? Colors.white : AppColors.lightTextPrimary,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: RichText(
+              maxLines: 1,
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: current.toStringAsFixed(0),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.3,
+                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                    ),
+                  ),
+                  if (target > 0)
+                    TextSpan(
+                      text: '/${target.toStringAsFixed(0)}г',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.2,
+                        color: isDark
+                            ? Colors.white.withOpacity(0.55)
+                            : AppColors.lightTextSecondary,
+                      ),
+                    )
+                  else
+                    TextSpan(
+                      text: 'г',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.3,
+                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 4),
