@@ -493,8 +493,49 @@ def test_api_endpoints():
     assert abs(saved_from_meal.calories_100g - 424.0) < 0.5
     print("✅ 11.5. POST /api/meals — штрихкод из комментария автоматически привязан к персональному каталогу SQLite.")
 
-    # Очищаем созданный прием пищи
-    client.delete(f"/api/meals/{meal_bc_id}")
+    # 12. Тестирование API эндпоинтов учета тренировок
+    test_workout_payload = {
+        "workout_type": "elliptical",
+        "custom_name": "Эллипс интервальный",
+        "duration_minutes": 40,
+        "calories_burned": 320.0,
+        "comment": "Кардио сессия",
+        "date": "2026-11-15",
+    }
+    resp_create_w = client.post("/api/workouts", json=test_workout_payload)
+    assert resp_create_w.status_code == 201, f"Ошибка создания: {resp_create_w.text}"
+    w_data = resp_create_w.json()
+    assert w_data["id"] > 0
+    assert w_data["workout_type"] == "elliptical"
+    assert w_data["duration_minutes"] == 40
+    assert w_data["calories_burned"] == 320.0
+    w_id = w_data["id"]
+
+    # Проверка получения списка тренировок за дату
+    resp_get_w = client.get("/api/workouts?date=2026-11-15")
+    assert resp_get_w.status_code == 200
+    w_list = resp_get_w.json()
+    assert len(w_list) == 1
+    assert w_list[0]["id"] == w_id
+
+    # Проверка включения тренировок в GET /api/diary
+    resp_diary_w = client.get("/api/diary?date=2026-11-15")
+    assert resp_diary_w.status_code == 200
+    diary_data = resp_diary_w.json()
+    assert "workouts" in diary_data
+    assert len(diary_data["workouts"]) == 1
+    assert diary_data["total_workout_calories"] == 320.0
+    assert diary_data["total_workout_minutes"] == 40
+
+    # Удаление тренировки
+    resp_del_w = client.delete(f"/api/workouts/{w_id}")
+    assert resp_del_w.status_code == 200
+    assert resp_del_w.json()["status"] == "deleted"
+
+    # Проверка 404 при повторном удалении
+    resp_del_404 = client.delete(f"/api/workouts/{w_id}")
+    assert resp_del_404.status_code == 404
+    print("✅ 12. POST/GET/DELETE /api/workouts — учет тренировок и включение в /api/diary работает корректно.")
 
     print("\n🎉 Все тесты FastAPI бэкенда пройдены успешно!")
 

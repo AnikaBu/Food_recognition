@@ -15,6 +15,7 @@ import sys
 import time
 import threading
 import urllib.request
+import re
 from pathlib import Path
 
 import pytest
@@ -708,6 +709,52 @@ def test_12_recipe_ingredient_weight_and_pieces_editing(page: Page):
     expect(page.locator("#recipeEditorModal")).not_to_be_visible()
     page.locator("#closeRecipesListModalBtn").click()
     expect(page.locator("#recipesListModal")).not_to_be_visible()
+
+
+def test_13_workout_logging_workflow(page: Page):
+    """
+    Тест 13: Добавление и удаление тренировки в веб-интерфейсе:
+    Клик '+ Внести тренировку' -> выбор эллипса -> ввод 45 мин и 350 ккал ->
+    сохранение -> проверка карточки в списке и бейджа -> удаление через корзину.
+    """
+    page.goto(BASE_URL)
+
+    # 1. Открываем модальное окно тренировки
+    page.locator("#openAddWorkoutBtn").click()
+    workout_modal = page.locator("#workoutModal")
+    expect(workout_modal).to_be_visible()
+
+    # 2. Выбираем вид активности 'elliptical'
+    page.locator("#workoutTypeTabs .workout-tab[data-type='elliptical']").click()
+    expect(page.locator("#workoutTypeTabs .workout-tab[data-type='elliptical']")).to_have_class(re.compile(r"active"))
+
+    # 3. Заполняем длительность и калории
+    page.locator("#workoutDurationInput").fill("45")
+    page.locator("#workoutCaloriesInput").fill("350")
+    page.locator("#workoutTitleInput").fill("Интервальный эллипс")
+
+    # 4. Сохраняем
+    page.locator("#saveWorkoutBtn").click()
+    expect(workout_modal).not_to_be_visible()
+
+    # 5. Проверяем, что тренировка появилась в списке
+    workout_item = page.locator("#workoutsList .workout-item")
+    expect(workout_item).to_be_visible()
+    expect(workout_item).to_contain_text("Интервальный эллипс")
+    expect(workout_item).to_contain_text("45 мин")
+    expect(workout_item).to_contain_text("350 ккал")
+
+    # Проверяем бейдж
+    badge = page.locator("#workoutsSummaryBadge")
+    expect(badge).to_be_visible()
+    expect(badge).to_contain_text("45 мин • 350 ккал")
+
+    # 6. Удаляем тренировку через диалог подтверждения
+    page.once("dialog", lambda d: d.accept())
+    workout_item.locator(".btn-delete-workout").click()
+
+    # Проверяем, что тренировка удалена
+    expect(page.locator("#workoutsList")).to_contain_text("Тренировок в этот день пока нет")
 
 
 # =====================================================================

@@ -900,3 +900,142 @@ h1 {
 .r-macro-pill.pro { color: #2563eb; border-color: #bfdbfe; }
 .r-macro-pill.fat { color: #d97706; border-color: #fde68a; }
 .r-macro-pill.carb { color: #16a34a; border-color: #bbf7d0; }
+
+/* --- Секция тренировок и активности --- */
+.workouts-card {
+  padding: 12px 16px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.workouts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.workouts-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.workouts-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.btn-sm-action {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #0284c7;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-sm-action:hover {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.workouts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.workout-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+
+.workout-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.workout-emoji {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.workout-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.workout-stats {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.workout-stats strong {
+  color: #0284c7;
+}
+
+.btn-delete-workout {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.btn-delete-workout:hover {
+  color: #ef4444;
+  background: #fee2e2;
+}
+
+.workout-type-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.workout-tab {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.workout-tab:hover {
+  background: #e2e8f0;
+}
+
+.workout-tab.active {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+

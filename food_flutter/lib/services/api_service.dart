@@ -298,6 +298,82 @@ class ApiService {
     }
   }
 
+  Future<WorkoutRecord> addWorkout({
+    required String workoutType,
+    String? customName,
+    required int durationMinutes,
+    required double caloriesBurned,
+    String? comment,
+    DateTime? date,
+  }) async {
+    final baseUrl = await _getBaseUrl();
+    final uri = Uri.parse('$baseUrl/api/workouts');
+    final headers = await _getHeaders(isJson: true);
+
+    final payload = {
+      'workout_type': workoutType,
+      'custom_name': customName,
+      'duration_minutes': durationMinutes,
+      'calories_burned': caloriesBurned,
+      'comment': comment ?? '',
+      'date': DateFormat('yyyy-MM-dd').format(date ?? DateTime.now()),
+    };
+
+    final res = await http
+        .post(uri, headers: headers, body: json.encode(payload))
+        .timeout(const Duration(seconds: 10));
+
+    if (res.statusCode == 201) {
+      final decoded = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      return WorkoutRecord.fromJson(decoded);
+    } else {
+      String err = 'Ошибка сохранения тренировки: ${res.statusCode}';
+      try {
+        final body = json.decode(utf8.decode(res.bodyBytes));
+        if (body['detail'] != null) err = body['detail'].toString();
+      } catch (_) {}
+      throw Exception(err);
+    }
+  }
+
+  Future<void> deleteWorkout(int workoutId) async {
+    final baseUrl = await _getBaseUrl();
+    final uri = Uri.parse('$baseUrl/api/workouts/$workoutId');
+    final headers = await _getHeaders(isJson: false);
+
+    final res = await http.delete(uri, headers: headers).timeout(const Duration(seconds: 10));
+
+    if (res.statusCode != 200) {
+      String err = 'Ошибка удаления тренировки: ${res.statusCode}';
+      try {
+        final body = json.decode(utf8.decode(res.bodyBytes));
+        if (body['detail'] != null) err = body['detail'].toString();
+      } catch (_) {}
+      throw Exception(err);
+    }
+  }
+
+  Future<List<WorkoutRecord>> getWorkouts(DateTime date) async {
+    final baseUrl = await _getBaseUrl();
+    final dateStr = DateFormat('yyyy-MM-dd').format(date);
+    final uri = Uri.parse('$baseUrl/api/workouts?date=$dateStr');
+    final headers = await _getHeaders(isJson: false);
+
+    final res = await http.get(uri, headers: headers).timeout(const Duration(seconds: 10));
+
+    if (res.statusCode == 200) {
+      final list = json.decode(utf8.decode(res.bodyBytes)) as List<dynamic>;
+      return list.map((e) => WorkoutRecord.fromJson(e as Map<String, dynamic>)).toList();
+    } else {
+      String err = 'Ошибка загрузки тренировок: ${res.statusCode}';
+      try {
+        final body = json.decode(utf8.decode(res.bodyBytes));
+        if (body['detail'] != null) err = body['detail'].toString();
+      } catch (_) {}
+      throw Exception(err);
+    }
+  }
+
   Future<MealRecord> updateMeal(
     int mealId, {
     String? dishName,

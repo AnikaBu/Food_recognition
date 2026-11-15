@@ -64,6 +64,20 @@
       </div>
     </div>
 
+    <!-- Блок тренировок и активности дня -->
+    <div class="card workouts-card" id="workoutsSection">
+      <div class="workouts-header">
+        <div class="workouts-title">
+          <span>🏃 Тренировки за день</span>
+          <span class="workouts-badge" id="workoutsSummaryBadge" style="display: none;">0 мин • 0 ккал</span>
+        </div>
+        <button class="btn-sm-action" id="openAddWorkoutBtn" type="button">
+          + Внести тренировку
+        </button>
+      </div>
+      <div class="workouts-list" id="workoutsList"></div>
+    </div>
+
     <!-- Блок добавления фото блюда -->
     <div class="card">
       <div class="upload-box" id="dropZone">
@@ -477,6 +491,51 @@
         <div class="modal-actions">
           <button type="submit" class="btn-save" id="confirmLogRecipeBtn">💾 Добавить в дневник</button>
           <button type="button" class="btn-cancel" id="cancelLogRecipeBtn">Отмена</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Модальное окно добавления тренировки -->
+  <div class="modal-overlay" id="workoutModal" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">🏃 Внести тренировку</div>
+          <div class="modal-subtitle">Данные активности для контекста дня (не меняют цель КБЖУ)</div>
+        </div>
+        <button class="modal-close-btn" id="closeWorkoutModalBtn" type="button" aria-label="Закрыть">&times;</button>
+      </div>
+
+      <form id="workoutForm" class="modal-form">
+        <label class="form-label">Вид активности</label>
+        <div class="workout-type-tabs" id="workoutTypeTabs">
+          <button type="button" class="workout-tab active" data-type="run">🏃 Бег</button>
+          <button type="button" class="workout-tab" data-type="gym">🏋️ Силовая</button>
+          <button type="button" class="workout-tab" data-type="bike">🚴 Велосипед</button>
+          <button type="button" class="workout-tab" data-type="elliptical">🎿 Эллипс</button>
+          <button type="button" class="workout-tab" data-type="walk">🚶 Ходьба</button>
+          <button type="button" class="workout-tab" data-type="yoga">🧘 Растяжка</button>
+          <button type="button" class="workout-tab" data-type="other">⚡ Другое</button>
+        </div>
+
+        <div class="form-row" style="margin-top: 10px;">
+          <div class="form-col">
+            <label class="form-label" for="workoutDurationInput">Длительность (мин)*</label>
+            <input type="number" id="workoutDurationInput" class="form-input" placeholder="45" min="1" max="1440" required />
+          </div>
+          <div class="form-col">
+            <label class="form-label" for="workoutCaloriesInput">Сожжено ккал</label>
+            <input type="number" id="workoutCaloriesInput" class="form-input" placeholder="350" min="0" step="any" />
+          </div>
+        </div>
+
+        <label class="form-label" for="workoutTitleInput" style="margin-top: 10px;">Название / заметка (опционально)</label>
+        <input type="text" id="workoutTitleInput" class="form-input" placeholder="Например: Интервалы или день ног" maxlength="100" />
+
+        <div class="modal-actions" style="margin-top: 14px;">
+          <button type="submit" class="btn-save" id="saveWorkoutBtn">💾 Сохранить тренировку</button>
+          <button type="button" class="btn-cancel" id="cancelWorkoutBtn">Отмена</button>
         </div>
       </form>
     </div>

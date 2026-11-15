@@ -1,5 +1,12 @@
 from pathlib import Path
-from models import MealType, IngredientItem, FoodAnalysisResult, NutritionGoals
+from models import (
+    MealType,
+    IngredientItem,
+    FoodAnalysisResult,
+    NutritionGoals,
+    WorkoutType,
+    CreateWorkoutRequest,
+)
 import db
 
 def test_database_workflow():
@@ -217,6 +224,58 @@ def test_database_workflow():
     assert db.delete_saved_product(prod_id, db_path=test_db_path) is True
     assert db.get_saved_product_by_barcode("20146603", db_path=test_db_path) is None
     print("✅ 11. Персональный каталог продуктов (upsert, поиск по штрихкоду, автокомплит, удаление) работает корректно.")
+
+    # 12. Тестирование ручного учета тренировок (активности)
+    today_str = "2026-11-15"
+    w1_id = db.save_workout(
+        CreateWorkoutRequest(
+            workout_type=WorkoutType.ELLIPTICAL,
+            custom_name="Эллипс кардио",
+            duration_minutes=45,
+            calories_burned=360.0,
+            comment="Утренняя разминка",
+            date=today_str,
+        ),
+        db_path=test_db_path,
+    )
+    assert w1_id > 0
+
+    w2_id = db.save_workout(
+        CreateWorkoutRequest(
+            workout_type=WorkoutType.RUN,
+            duration_minutes=30,
+            calories_burned=280.0,
+            date=today_str,
+        ),
+        db_path=test_db_path,
+    )
+    assert w2_id > 0
+
+    # Чтение по ID
+    w1 = db.get_workout(w1_id, db_path=test_db_path)
+    assert w1 is not None
+    assert w1.workout_type == WorkoutType.ELLIPTICAL
+    assert w1.duration_minutes == 45
+    assert w1.calories_burned == 360.0
+    assert w1.custom_name == "Эллипс кардио"
+
+    # Выборка по дате
+    day_workouts = db.get_workouts_by_date(today_str, db_path=test_db_path)
+    assert len(day_workouts) == 2
+
+    # Проверка включения в DailySummary
+    summary_with_workouts = db.get_daily_summary(today_str, db_path=test_db_path)
+    assert len(summary_with_workouts.workouts) == 2
+    assert summary_with_workouts.total_workout_calories == 640.0
+    assert summary_with_workouts.total_workout_minutes == 75
+
+    # Удаление одной тренировки
+    assert db.delete_workout(w2_id, db_path=test_db_path) is True
+    summary_after_del = db.get_daily_summary(today_str, db_path=test_db_path)
+    assert len(summary_after_del.workouts) == 1
+    assert summary_after_del.total_workout_calories == 360.0
+    assert summary_after_del.total_workout_minutes == 45
+    print("✅ 12. Учет тренировок (сохранение, эллипс/бег, расчет минут/калорий в DailySummary, удаление) работает корректно.")
 
     # Удаляем временную тестовую БД
     if test_db_path.exists():

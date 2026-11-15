@@ -16,6 +16,9 @@ from models import (
     WeeklyMacroDay,
     WeeklyMacroSummary,
     SavedProductRecord,
+    WorkoutType,
+    WorkoutRecord,
+    CreateWorkoutRequest,
 )
 
 DEFAULT_DB_PATH = Path(__file__).resolve().parent / "nutrition.db"
@@ -122,6 +125,17 @@ def init_db(db_path: Optional[Path] = None) -> None:
                 updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
             );
 
+            CREATE TABLE IF NOT EXISTS workouts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                workout_type TEXT NOT NULL DEFAULT 'run',
+                custom_name TEXT,
+                duration_minutes INTEGER NOT NULL,
+                calories_burned REAL NOT NULL DEFAULT 0.0,
+                comment TEXT,
+                date TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+            );
+
             CREATE INDEX IF NOT EXISTS idx_meals_created_at ON meals(created_at);
             CREATE INDEX IF NOT EXISTS idx_meal_items_meal_id ON meal_items(meal_id);
             CREATE INDEX IF NOT EXISTS idx_recipes_updated_at ON recipes(updated_at);
@@ -129,6 +143,7 @@ def init_db(db_path: Optional[Path] = None) -> None:
             CREATE INDEX IF NOT EXISTS idx_saved_products_barcode ON saved_products(barcode);
             CREATE INDEX IF NOT EXISTS idx_saved_products_name ON saved_products(name);
             CREATE INDEX IF NOT EXISTS idx_saved_products_usage ON saved_products(use_count DESC, updated_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_workouts_date ON workouts(date);
         """)
 
         # Миграция: автоматическое добавление колонок калькулятора, если таблица была создана ранее
@@ -399,12 +414,16 @@ def get_daily_summary(
         date_str = datetime.now().strftime("%Y-%m-%d")
 
     meals = get_meals_by_date(date_str, db_path=db_path)
+    workouts = get_workouts_by_date(date_str, db_path=db_path)
 
     total_w = sum(m.total_weight_g for m in meals)
     total_cal = sum(m.total_calories for m in meals)
     total_p = sum(m.total_protein for m in meals)
     total_f = sum(m.total_fat for m in meals)
     total_c = sum(m.total_carbs for m in meals)
+
+    total_work_cal = sum(w.calories_burned for w in workouts)
+    total_work_min = sum(w.duration_minutes for w in workouts)
 
     return DailySummary(
         date=date_str,
@@ -415,6 +434,9 @@ def get_daily_summary(
         total_fat=round(total_f, 1),
         total_carbs=round(total_c, 1),
         meals=meals,
+        workouts=workouts,
+        total_workout_calories=round(total_work_cal, 1),
+        total_workout_minutes=total_work_min,
     )
 
 
@@ -988,5 +1010,107 @@ def delete_saved_product(
         cur = conn.execute("DELETE FROM saved_products WHERE id = ?;", (product_id,))
         conn.commit()
         return cur.rowcount > 0
+
+
+def save_workout(
+    workout: CreateWorkoutRequest,
+    db_path: Optional[Path] = None,
+) -> int:
+    """Сохраняет запись о тренировке в базу данных."""
+    init_db(db_path)
+    date_str = workout.date or datetime.now().strftime("%Y-%m-%d")
+    workout_type_val = workout.workout_type.value if hasattr(workout.workout_type, "value") else str(workout.workout_type)
+
+    resolved_path = get_db_path(db_path)
+    with get_connection(resolved_path) as conn:
+        cursor = conn.execute(
+            """INSERT INTO workouts (workout_type, custom_name, duration_minutes, calories_burned, comment, date)
+               VALUES (?, ?, ?, ?, ?, ?);""",
+            (
+                workout_type_val,
+                workout.custom_name.strip() if workout.custom_name else None,
+                int(workout.duration_minutes),
+                float(workout.calories_burned),
+                workout.comment.strip() if workout.comment else None,
+                date_str,
+            ),
+        )
+        conn.commit()
+        return cursor.lastrowid
+
+
+def get_workout(
+    workout_id: int,
+    db_path: Optional[Path] = None,
+) -> Optional[WorkoutRecord]:
+    """Возвращает тренировку по её ID."""
+    init_db(db_path)
+    resolved_path = get_db_path(db_path)
+    with get_connection(resolved_path) as conn:
+        row = conn.execute(
+            """SELECT id, workout_type, custom_name, duration_minutes, calories_burned, comment, date, created_at
+               FROM workouts WHERE id = ?;""",
+            (workout_id,),
+        ).fetchone()
+        if not row:
+            return None
+        valid_types = [e.value for e in WorkoutType]
+        w_type = WorkoutType(row["workout_type"]) if row["workout_type"] in valid_types else WorkoutType.OTHER
+        return WorkoutRecord(
+            id=row["id"],
+            workout_type=w_type,
+            custom_name=row["custom_name"],
+            duration_minutes=int(row["duration_minutes"]),
+            calories_burned=float(row["calories_burned"]),
+            comment=row["comment"] or "",
+            date=row["date"],
+            created_at=str(row["created_at"]),
+        )
+
+
+def get_workouts_by_date(
+    date_str: str,
+    db_path: Optional[Path] = None,
+) -> List[WorkoutRecord]:
+    """Возвращает список всех тренировок за указанную дату."""
+    init_db(db_path)
+    resolved_path = get_db_path(db_path)
+    with get_connection(resolved_path) as conn:
+        rows = conn.execute(
+            """SELECT id, workout_type, custom_name, duration_minutes, calories_burned, comment, date, created_at
+               FROM workouts WHERE date = ? ORDER BY id ASC;""",
+            (date_str,),
+        ).fetchall()
+        workouts = []
+        valid_types = [e.value for e in WorkoutType]
+        for row in rows:
+            w_type = WorkoutType(row["workout_type"]) if row["workout_type"] in valid_types else WorkoutType.OTHER
+            workouts.append(
+                WorkoutRecord(
+                    id=row["id"],
+                    workout_type=w_type,
+                    custom_name=row["custom_name"],
+                    duration_minutes=int(row["duration_minutes"]),
+                    calories_burned=float(row["calories_burned"]),
+                    comment=row["comment"] or "",
+                    date=row["date"],
+                    created_at=str(row["created_at"]),
+                )
+            )
+        return workouts
+
+
+def delete_workout(
+    workout_id: int,
+    db_path: Optional[Path] = None,
+) -> bool:
+    """Удаляет тренировку по её ID."""
+    init_db(db_path)
+    resolved_path = get_db_path(db_path)
+    with get_connection(resolved_path) as conn:
+        cursor = conn.execute("DELETE FROM workouts WHERE id = ?;", (workout_id,))
+        conn.commit()
+        return cursor.rowcount > 0
+
 
 

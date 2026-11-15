@@ -92,6 +92,49 @@ class MealRecord(BaseModel):
     total_carbs: float
 
 
+class WorkoutType(str, Enum):
+    RUN = "run"              # Бег 🏃
+    GYM = "gym"              # Силовая 🏋️
+    BIKE = "bike"            # Велосипед 🚴
+    ELLIPTICAL = "elliptical"# Эллипс 🎿
+    WALK = "walk"            # Ходьба 🚶
+    YOGA = "yoga"            # Растяжка 🧘
+    OTHER = "other"          # Другое ⚡
+
+    @property
+    def label_ru(self) -> str:
+        labels = {
+            self.RUN: "Бег 🏃",
+            self.GYM: "Силовая 🏋️",
+            self.BIKE: "Велосипед 🚴",
+            self.ELLIPTICAL: "Эллипс 🎿",
+            self.WALK: "Ходьба 🚶",
+            self.YOGA: "Растяжка 🧘",
+            self.OTHER: "Другое ⚡",
+        }
+        return labels.get(self, "Тренировка")
+
+
+class CreateWorkoutRequest(BaseModel):
+    workout_type: WorkoutType = Field(default=WorkoutType.RUN, description="Вид тренировки")
+    custom_name: Optional[str] = Field(default=None, description="Пользовательское название тренировки")
+    duration_minutes: int = Field(gt=0, description="Длительность тренировки в минутах")
+    calories_burned: float = Field(default=0.0, ge=0, description="Сожженные калории")
+    comment: Optional[str] = Field(default="", description="Заметка или комментарий")
+    date: Optional[str] = Field(default=None, description="Дата в формате YYYY-MM-DD")
+
+
+class WorkoutRecord(BaseModel):
+    id: int
+    workout_type: WorkoutType
+    custom_name: Optional[str] = None
+    duration_minutes: int
+    calories_burned: float
+    comment: Optional[str] = ""
+    date: str
+    created_at: str
+
+
 class DailySummary(BaseModel):
     date: str
     meals_count: int
@@ -101,6 +144,9 @@ class DailySummary(BaseModel):
     total_fat: float
     total_carbs: float
     meals: list[MealRecord] = []
+    workouts: list[WorkoutRecord] = []
+    total_workout_calories: float = 0.0
+    total_workout_minutes: int = 0
 
 
 class NutritionGoals(BaseModel):

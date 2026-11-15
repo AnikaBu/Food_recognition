@@ -230,6 +230,14 @@
   - [x] Удаление устаревших плашек «Концепт 2» и «Концепт 3» из карточек тем оформления в настройках (`SettingsScreen`);
   - [x] Интерактивная подсветка дней с внесенной едой в недельной полосе (`DiaryScreen`): мягкая полупрозрачная заливка цветом активной темы, контрастный текст и светящаяся точка-индикатор под числом дня для дней с приемами пищи;
   - [x] Фоновая синхронизация с недельным эндпоинтом `/api/stats/weekly` с кэшированием и мгновенным обновлением при добавлении/удалении приемов пищи.
+- [x] Модуль учета тренировок и физической активности (Workouts & Daily Activity):
+  - [x] Модели данных Pydantic: `WorkoutType` (run, gym, bike, elliptical, walk, yoga, other), `CreateWorkoutRequest`, `WorkoutRecord` и расширение `DailySummary` (`workouts`, `total_workout_calories`, `total_workout_minutes`);
+  - [x] Таблица `workouts` в SQLite с индексом по дате, CRUD-функции `save_workout`, `get_workout`, `get_workouts_by_date`, `delete_workout`;
+  - [x] REST API эндпоинты `POST/GET/DELETE /api/workouts` и автоматическая интеграция данных активности в суточную сводку `GET /api/diary`;
+  - [x] Веб-клиент PWA: блок тренировок между КБЖУ и загрузкой фото, кнопка «+ Внести тренировку», модальное окно `#workoutModal` с чипами видов спорта и удаление;
+  - [x] Flutter Android: модель `WorkoutRecord`, методы `ApiService`, модальная шторка `WorkoutSheet`, карточка активности и удаление тренировок в `DiaryScreen`;
+  - [x] 100% покрытие сквозными тестами в `test_db.py`, `test_api.py`, `test_frontend.py` (Playwright) и валидация скобок во всех 28 Dart-файлах.
+
 
 
 

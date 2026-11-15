@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 enum MealType {
   breakfast,
   lunch,
@@ -266,6 +268,113 @@ class MealRecord {
   }
 }
 
+class WorkoutRecord {
+  final int id;
+  final String workoutType;
+  final String? customName;
+  final int durationMinutes;
+  final double caloriesBurned;
+  final String? comment;
+  final String date;
+  final String createdAt;
+
+  WorkoutRecord({
+    required this.id,
+    required this.workoutType,
+    this.customName,
+    required this.durationMinutes,
+    required this.caloriesBurned,
+    this.comment,
+    required this.date,
+    required this.createdAt,
+  });
+
+  factory WorkoutRecord.fromJson(Map<String, dynamic> json) {
+    return WorkoutRecord(
+      id: json['id'] as int? ?? 0,
+      workoutType: json['workout_type'] as String? ?? 'run',
+      customName: json['custom_name'] as String?,
+      durationMinutes: json['duration_minutes'] as int? ?? 0,
+      caloriesBurned: (json['calories_burned'] as num?)?.toDouble() ?? 0.0,
+      comment: json['comment'] as String?,
+      date: json['date'] as String? ?? '',
+      createdAt: json['created_at'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'workout_type': workoutType,
+      'custom_name': customName,
+      'duration_minutes': durationMinutes,
+      'calories_burned': caloriesBurned,
+      'comment': comment,
+      'date': date,
+      'created_at': createdAt,
+    };
+  }
+
+  String get titleRu {
+    switch (workoutType.toLowerCase()) {
+      case 'run':
+        return 'Бег';
+      case 'gym':
+        return 'Силовая';
+      case 'bike':
+        return 'Велосипед';
+      case 'elliptical':
+        return 'Эллипс';
+      case 'walk':
+        return 'Ходьба';
+      case 'yoga':
+        return 'Растяжка';
+      default:
+        return 'Тренировка';
+    }
+  }
+
+  String get displayName => (customName != null && customName!.trim().isNotEmpty) ? customName!.trim() : titleRu;
+
+  String get emoji {
+    switch (workoutType.toLowerCase()) {
+      case 'run':
+        return '🏃';
+      case 'gym':
+        return '🏋️';
+      case 'bike':
+        return '🚴';
+      case 'elliptical':
+        return '🎿';
+      case 'walk':
+        return '🚶';
+      case 'yoga':
+        return '🧘';
+      default:
+        return '⚡';
+    }
+  }
+
+  IconData get iconData {
+    switch (workoutType.toLowerCase()) {
+      case 'run':
+        return Icons.directions_run_rounded;
+      case 'gym':
+        return Icons.fitness_center_rounded;
+      case 'bike':
+        return Icons.directions_bike_rounded;
+      case 'elliptical':
+        return Icons.downhill_skiing_rounded;
+      case 'walk':
+        return Icons.directions_walk_rounded;
+      case 'yoga':
+        return Icons.self_improvement_rounded;
+      default:
+        return Icons.bolt_rounded;
+    }
+  }
+}
+
 class DailySummary {
   final String date;
   final int mealsCount;
@@ -275,6 +384,9 @@ class DailySummary {
   final double totalFat;
   final double totalCarbs;
   final List<MealRecord> meals;
+  final List<WorkoutRecord> workouts;
+  final double totalWorkoutCalories;
+  final int totalWorkoutMinutes;
 
   DailySummary({
     required this.date,
@@ -285,11 +397,18 @@ class DailySummary {
     required this.totalFat,
     required this.totalCarbs,
     required this.meals,
+    this.workouts = const [],
+    this.totalWorkoutCalories = 0.0,
+    this.totalWorkoutMinutes = 0,
   });
 
   factory DailySummary.fromJson(Map<String, dynamic> json) {
     final mealsList = (json['meals'] as List<dynamic>?)
             ?.map((e) => MealRecord.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        [];
+    final workoutsList = (json['workouts'] as List<dynamic>?)
+            ?.map((e) => WorkoutRecord.fromJson(e as Map<String, dynamic>))
             .toList() ??
         [];
     return DailySummary(
@@ -301,6 +420,9 @@ class DailySummary {
       totalFat: (json['total_fat'] as num?)?.toDouble() ?? 0.0,
       totalCarbs: (json['total_carbs'] as num?)?.toDouble() ?? 0.0,
       meals: mealsList,
+      workouts: workoutsList,
+      totalWorkoutCalories: (json['total_workout_calories'] as num?)?.toDouble() ?? 0.0,
+      totalWorkoutMinutes: (json['total_workout_minutes'] as num?)?.toInt() ?? 0,
     );
   }
 }

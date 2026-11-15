@@ -34,6 +34,8 @@ from models import (
     LogRecipePortionRequest,
     WeeklyMacroSummary,
     SavedProductRecord,
+    CreateWorkoutRequest,
+    WorkoutRecord,
 )
 from vision import analyze_food_image, estimate_food_nutrition_by_text
 from barcode_service import get_product_by_barcode, clean_barcode
@@ -445,6 +447,58 @@ def get_weekly_macro_summary_endpoint(
     среднесуточные значения за 7 дней и суточные целевые нормы.
     """
     return db.get_weekly_macro_summary(date_str=date, mode=mode)
+
+
+@app.post(
+    "/api/workouts",
+    response_model=WorkoutRecord,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Тренировки"],
+    summary="Сохранить запись о тренировке",
+)
+def save_workout_endpoint(request: CreateWorkoutRequest):
+    """
+    Сохраняет тренировку (вид, длительность в мин, сожженные калории по часам, заметку).
+    Данные не изменяют цели КБЖУ, а отображаются как контекстная активность дня.
+    """
+    try:
+        workout_id = db.save_workout(workout=request)
+        saved = db.get_workout(workout_id=workout_id)
+        if not saved:
+            raise HTTPException(status_code=500, detail="Не удалось прочитать сохраненную тренировку")
+        return saved
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Ошибка сохранения тренировки: {str(e)}")
+
+
+@app.get(
+    "/api/workouts",
+    response_model=List[WorkoutRecord],
+    tags=["Тренировки"],
+    summary="Получить список тренировок за дату",
+)
+def get_workouts_endpoint(
+    date: str = Query(..., description="Дата в формате YYYY-MM-DD")
+):
+    """Возвращает список всех тренировок за выбранный день."""
+    return db.get_workouts_by_date(date_str=date)
+
+
+@app.delete(
+    "/api/workouts/{workout_id}",
+    tags=["Тренировки"],
+    summary="Удалить тренировку",
+)
+def delete_workout_endpoint(workout_id: int):
+    """Удаляет тренировку по её ID."""
+    success = db.delete_workout(workout_id=workout_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Тренировка с ID {workout_id} не найдена",
+        )
+    return {"status": "deleted", "id": workout_id}
+
 
 
 @app.get(

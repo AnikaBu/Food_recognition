@@ -11,6 +11,7 @@ import '../widgets/manual_meal_sheet.dart';
 import '../widgets/weekly_macro_sheet.dart';
 import '../widgets/meal_edit_sheet.dart';
 import '../widgets/meal_category_detail_sheet.dart';
+import '../widgets/workout_sheet.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_palette.dart';
@@ -258,6 +259,87 @@ class DiaryScreenState extends State<DiaryScreen> {
         },
       ),
     );
+  }
+
+  void _showAddWorkoutModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => WorkoutSheet(
+        date: _selectedDate,
+        apiService: widget.apiService,
+        onWorkoutSaved: () {
+          _summaryCache.remove(_formatDateKey(_selectedDate));
+          _loadSummary();
+        },
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteWorkout(WorkoutRecord workout) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tokens = AppColors.tokens(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? tokens.cardBg : AppColors.lightCard,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          'Удалить тренировку?',
+          style: TextStyle(
+            color: isDark ? tokens.textPrimary : AppColors.lightTextPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Вы действительно хотите удалить "${workout.displayName}" (${workout.durationMinutes} мин)?',
+          style: TextStyle(
+            color: isDark ? tokens.textSecondary : AppColors.lightTextSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(
+              'Отмена',
+              style: TextStyle(color: isDark ? tokens.textSecondary : AppColors.lightTextSecondary),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Удалить', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await widget.apiService.deleteWorkout(workout.id);
+        _summaryCache.remove(_formatDateKey(_selectedDate));
+        _loadSummary();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Тренировка удалена'), behavior: SnackBarBehavior.floating),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Ошибка удаления: $e'),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    }
   }
 
   Future<void> _confirmDeleteMeal(MealRecord meal) async {
@@ -707,7 +789,11 @@ class DiaryScreenState extends State<DiaryScreen> {
                           targetCarbs: _targetCarbs,
                         ),
 
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 14),
+
+                        _buildWorkoutsSection(isDark, tokens),
+
+                        const SizedBox(height: 16),
 
                         // 4. Meal Sections Accordion
                         Row(
@@ -773,6 +859,196 @@ class DiaryScreenState extends State<DiaryScreen> {
     if (count % 10 == 1 && count % 100 != 11) return 'прием';
     if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 >= 20)) return 'приема';
     return 'приемов';
+  }
+
+  Widget _buildWorkoutsSection(bool isDark, AppThemeTokens tokens) {
+    final workouts = _summary?.workouts ?? [];
+    if (workouts.isEmpty) {
+      return InkWell(
+        onTap: _showAddWorkoutModal,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          decoration: BoxDecoration(
+            color: isDark ? tokens.cardBg.withOpacity(0.6) : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark ? tokens.cardBorder : const Color(0xFFE2E8F0),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.directions_run_rounded, size: 17, color: tokens.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Внести тренировку',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? tokens.textPrimary : AppColors.lightTextPrimary,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(Icons.add_rounded, size: 18, color: tokens.primary),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final totalMin = _summary?.totalWorkoutMinutes ?? 0;
+    final totalCal = _summary?.totalWorkoutCalories ?? 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? tokens.cardBg : AppColors.lightCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isDark ? tokens.cardBorder : AppColors.lightBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.directions_run_rounded, size: 17, color: tokens.primary),
+                  const SizedBox(width: 6),
+                  Text(
+                    'ТРЕНИРОВКИ ЗА ДЕНЬ',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.6,
+                      color: isDark ? tokens.textSecondary : AppColors.lightTextSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: tokens.primary.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$totalMin мин • ${totalCal.toStringAsFixed(0)} ккал',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                    color: tokens.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ...workouts.map((w) => _buildWorkoutTile(w, isDark, tokens)),
+          const SizedBox(height: 2),
+          InkWell(
+            onTap: _showAddWorkoutModal,
+            borderRadius: BorderRadius.circular(10),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add_rounded, size: 16, color: tokens.primary),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Добавить ещё активность',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: tokens.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWorkoutTile(WorkoutRecord w, bool isDark, AppThemeTokens tokens) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0F172A).withOpacity(0.5) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark ? tokens.cardBorder.withOpacity(0.5) : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Row(
+        children: [
+          Text(w.emoji, style: const TextStyle(fontSize: 18)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  w.displayName,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? tokens.textPrimary : AppColors.lightTextPrimary,
+                  ),
+                ),
+                Row(
+                  children: [
+                    Text(
+                      '${w.durationMinutes} мин',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: isDark ? tokens.textSecondary : AppColors.lightTextSecondary,
+                      ),
+                    ),
+                    if (w.caloriesBurned > 0) ...[
+                      Text(
+                        ' • ',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: isDark ? tokens.textSecondary : AppColors.lightTextSecondary,
+                        ),
+                      ),
+                      Text(
+                        '${w.caloriesBurned.toStringAsFixed(0)} ккал',
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFF97316),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline_rounded, size: 18),
+            color: isDark ? Colors.white38 : Colors.black38,
+            onPressed: () => _confirmDeleteWorkout(w),
+            tooltip: 'Удалить тренировку',
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildMealCategoryCard({

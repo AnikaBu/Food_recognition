@@ -9,6 +9,7 @@ let state = {
   editingRecipeItems: [],
   logRecipeSelectedMealType: "lunch",
   selectedRecipeForLog: null,
+  selectedWorkoutType: "run",
   deferredPrompt: null,
 };
 
@@ -276,6 +277,23 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Модальное окно тренировки
+  document.getElementById("openAddWorkoutBtn")?.addEventListener("click", openWorkoutModal);
+  document.getElementById("closeWorkoutModalBtn")?.addEventListener("click", closeWorkoutModal);
+  document.getElementById("cancelWorkoutBtn")?.addEventListener("click", closeWorkoutModal);
+  document.getElementById("workoutModal")?.addEventListener("click", (e) => {
+    if (e.target.id === "workoutModal") closeWorkoutModal();
+  });
+  document.getElementById("workoutForm")?.addEventListener("submit", handleSaveWorkoutSubmit);
+
+  document.querySelectorAll("#workoutTypeTabs .workout-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll("#workoutTypeTabs .workout-tab").forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+      state.selectedWorkoutType = tab.dataset.type;
+    });
+  });
+
   // Сохранение и отмена
   document.getElementById("saveMealBtn").addEventListener("click", saveMeal);
   document.getElementById("cancelMealBtn").addEventListener("click", cancelAnalyzedMeal);
@@ -308,6 +326,7 @@ async function loadDiaryData() {
     const data = await res.json();
     renderDailySummary(data);
     renderMealsHistory(data.meals);
+    renderWorkouts(data.workouts);
   } catch (err) {
     console.error("Ошибка загрузки дневника:", err);
     showToast("⚠️ Ошибка загрузки дневника");
@@ -363,6 +382,129 @@ function renderMealsHistory(meals) {
     container.appendChild(card);
   });
 }
+
+// ----------------- Тренировки и активность дня -----------------
+const WORKOUT_INFO = {
+  run: { name: "Бег", emoji: "🏃" },
+  gym: { name: "Силовая", emoji: "🏋️" },
+  bike: { name: "Велосипед", emoji: "🚴" },
+  elliptical: { name: "Эллипс", emoji: "🎿" },
+  walk: { name: "Ходьба", emoji: "🚶" },
+  yoga: { name: "Растяжка", emoji: "🧘" },
+  other: { name: "Другое", emoji: "⚡" },
+};
+
+function renderWorkouts(workouts) {
+  const container = document.getElementById("workoutsList");
+  const badge = document.getElementById("workoutsSummaryBadge");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  if (!workouts || workouts.length === 0) {
+    if (badge) badge.style.display = "none";
+    container.innerHTML = `
+      <div style="font-size: 0.82rem; color: var(--text-muted); padding: 4px 0;">
+        Тренировок в этот день пока нет
+      </div>
+    `;
+    return;
+  }
+
+  const totalMin = workouts.reduce((acc, w) => acc + (w.duration_minutes || 0), 0);
+  const totalCal = workouts.reduce((acc, w) => acc + (w.calories_burned || 0), 0);
+
+  if (badge) {
+    badge.textContent = `${totalMin} мин • ${Math.round(totalCal)} ккал`;
+    badge.style.display = "inline-block";
+  }
+
+  workouts.forEach((w) => {
+    const meta = WORKOUT_INFO[w.workout_type] || WORKOUT_INFO.other;
+    const item = document.createElement("div");
+    item.className = "workout-item";
+    item.dataset.id = w.id;
+    item.innerHTML = `
+      <div class="workout-info">
+        <div class="workout-emoji">${meta.emoji}</div>
+        <div>
+          <div class="workout-name">${escapeHtml(w.custom_name || meta.name)}</div>
+          <div class="workout-stats">${w.duration_minutes} мин • <strong>${Math.round(w.calories_burned)} ккал</strong>${w.comment ? ` • ${escapeHtml(w.comment)}` : ""}</div>
+        </div>
+      </div>
+      <button type="button" class="btn-delete-workout" title="Удалить" aria-label="Удалить тренировку" onclick="deleteWorkout(${w.id})">🗑️</button>
+    `;
+    container.appendChild(item);
+  });
+}
+
+function openWorkoutModal() {
+  state.selectedWorkoutType = "run";
+  document.querySelectorAll("#workoutTypeTabs .workout-tab").forEach((t) => {
+    t.classList.toggle("active", t.dataset.type === "run");
+  });
+  document.getElementById("workoutDurationInput").value = "";
+  document.getElementById("workoutCaloriesInput").value = "";
+  document.getElementById("workoutTitleInput").value = "";
+  document.getElementById("workoutModal").style.display = "flex";
+}
+
+function closeWorkoutModal() {
+  document.getElementById("workoutModal").style.display = "none";
+}
+
+async function handleSaveWorkoutSubmit(e) {
+  e.preventDefault();
+  const duration = parseInt(document.getElementById("workoutDurationInput").value, 10);
+  const calories = parseFloat(document.getElementById("workoutCaloriesInput").value) || 0.0;
+  const customName = document.getElementById("workoutTitleInput").value.trim() || null;
+  const workoutType = state.selectedWorkoutType || "run";
+
+  if (!duration || duration <= 0) {
+    showToast("⚠️ Укажите длительность тренировки");
+    return;
+  }
+
+  const payload = {
+    workout_type: workoutType,
+    custom_name: customName,
+    duration_minutes: duration,
+    calories_burned: calories,
+    comment: "",
+    date: state.currentDate,
+  };
+
+  try {
+    const res = await fetch("/api/workouts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error("Ошибка сохранения тренировки");
+    closeWorkoutModal();
+    loadDiaryData();
+    showToast("🏃 Тренировка сохранена!");
+  } catch (err) {
+    console.error("Ошибка сохранения тренировки:", err);
+    showToast("⚠️ Не удалось сохранить тренировку");
+  }
+}
+
+async function deleteWorkout(workoutId) {
+  if (!confirm("Удалить эту тренировку?")) return;
+  try {
+    const res = await fetch(`/api/workouts/${workoutId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) throw new Error("Ошибка удаления тренировки");
+    loadDiaryData();
+    showToast("Тренировка удалена");
+  } catch (err) {
+    console.error("Ошибка удаления тренировки:", err);
+    showToast("⚠️ Не удалось удалить тренировку");
+  }
+}
+window.deleteWorkout = deleteWorkout;
 
 // ----------------- Обработка и анализ фото -----------------
 async function handleFileSelect(file) {
