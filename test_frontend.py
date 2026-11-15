@@ -657,6 +657,24 @@ def test_12_recipe_ingredient_weight_and_pieces_editing(page: Page):
     page.locator("#openNewRecipeEditorBtn").click()
     expect(page.locator("#recipeEditorModal")).to_be_visible()
 
+    # Проверяем пошаговое меню добавления ингредиента ("+ Добавить ингредиент")
+    add_options_btn = page.locator("#openRecipeAddOptionsBtn")
+    options_panel = page.locator("#recipeAddOptionsPanel")
+    expect(add_options_btn).to_be_visible()
+    expect(options_panel).not_to_be_visible()
+
+    add_options_btn.click()
+    expect(options_panel).to_be_visible()
+    expect(page.locator("#recipeAddAiBtn")).to_be_visible()
+    expect(page.locator("#recipeAddBarcodeBtn")).to_be_visible()
+    expect(page.locator("#recipeAddManualBtn")).to_be_visible()
+
+    page.locator("#recipeAddManualBtn").click()
+    expect(options_panel).not_to_be_visible()
+    expect(page.locator("#recipeIngredientModal")).to_be_visible()
+    page.locator("#closeRecipeIngModalBtn").click()
+    expect(page.locator("#recipeIngredientModal")).not_to_be_visible()
+
     # 2. Добавляем ингредиент через evaluate
     page.evaluate("""() => {
         state.editingRecipeItems = [

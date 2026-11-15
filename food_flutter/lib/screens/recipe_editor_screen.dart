@@ -274,6 +274,134 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     }
   }
 
+  // --- Шторка выбора способа добавления ингредиента ---
+  Future<void> _showAddIngredientSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        final cardBg = isDark ? AppColors.darkCard : AppColors.lightCard;
+        final cardBorder = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+        final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+        final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
+        return SafeArea(
+          child: Container(
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: cardBorder),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: textSecondary.withOpacity(0.35),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Добавить ингредиент',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Выберите способ добавления продукта в рецепт',
+                  style: TextStyle(fontSize: 13, color: textSecondary),
+                ),
+                const SizedBox(height: 16),
+                _AddMethodTile(
+                  icon: Icons.auto_awesome,
+                  title: 'Через ИИ-расчет',
+                  subtitle: 'Например: «куриное филе 350г» или «2 яйца»',
+                  accentColor: AppColors.primary,
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _addViaAi();
+                  },
+                ),
+                const SizedBox(height: 10),
+                _AddMethodTile(
+                  icon: Icons.qr_code_scanner,
+                  title: 'По штрихкоду',
+                  subtitle: 'Отсканировать штрихкод с упаковки продукта',
+                  accentColor: AppColors.macroProtein,
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _addViaBarcode();
+                  },
+                ),
+                const SizedBox(height: 10),
+                _AddMethodTile(
+                  icon: Icons.add_circle_outline,
+                  title: 'Вручную',
+                  subtitle: 'Ввести название, вес или штуки самостоятельно',
+                  accentColor: AppColors.macroCarb,
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _addManual();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAddIngredientButton(bool isDark) {
+    final primary = AppColors.primary;
+    return Material(
+      color: primary.withOpacity(isDark ? 0.12 : 0.06),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: _showAddIngredientSheet,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: primary.withOpacity(0.5),
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.add_circle_outline_rounded, color: primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Добавить ингредиент',
+                style: TextStyle(
+                  color: primary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // --- Сохранение рецепта ---
   Future<void> _saveRecipe() async {
     if (!_formKey.currentState!.validate()) return;
@@ -382,7 +510,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Заголовок секции ингредиентов и кнопки добавления
+            // Заголовок секции ингредиентов
             Row(
               children: [
                 Expanded(
@@ -395,35 +523,24 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                     ),
                   ),
                 ),
-                IconButton.filledTonal(
-                  icon: const Icon(Icons.qr_code_scanner, size: 18),
-                  tooltip: 'По штрихкоду',
-                  style: IconButton.styleFrom(
-                    backgroundColor: isDark ? AppColors.macroProtein.withOpacity(0.2) : const Color(0xFFE0E7FF),
-                    foregroundColor: isDark ? AppColors.macroProteinLight : const Color(0xFF4338CA),
+                if (_items.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppColors.primary.withOpacity(0.18)
+                          : AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${_items.length} шт.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? AppColors.sapphire400 : AppColors.primaryDark,
+                      ),
+                    ),
                   ),
-                  onPressed: _addViaBarcode,
-                ),
-                const SizedBox(width: 6),
-                IconButton.filledTonal(
-                  icon: const Icon(Icons.auto_awesome, size: 18),
-                  tooltip: 'Через ИИ',
-                  style: IconButton.styleFrom(
-                    backgroundColor: isDark ? AppColors.primary.withOpacity(0.2) : AppColors.primaryLight,
-                    foregroundColor: isDark ? AppColors.sapphire400 : AppColors.primaryDark,
-                  ),
-                  onPressed: _addViaAi,
-                ),
-                const SizedBox(width: 6),
-                IconButton.filledTonal(
-                  icon: const Icon(Icons.add, size: 18),
-                  tooltip: 'Вручную',
-                  style: IconButton.styleFrom(
-                    backgroundColor: isDark ? AppColors.darkInput : const Color(0xFFF1F5F9),
-                    foregroundColor: isDark ? AppColors.darkTextPrimary : const Color(0xFF334155),
-                  ),
-                  onPressed: _addManual,
-                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -439,10 +556,10 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.inventory_2_outlined, color: textSecondary, size: 36),
+                    Icon(Icons.playlist_add_rounded, color: textSecondary, size: 36),
                     const SizedBox(height: 8),
                     Text(
-                      'Ингредиенты пока не добавлены.\nИспользуйте кнопки выше (штрихкод, ИИ или вручную).',
+                      'Ингредиенты пока не добавлены.\nДобавьте продукты, которые входят в состав блюда.',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 13, color: textSecondary),
                     ),
@@ -521,6 +638,8 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                 ),
               ),
 
+            const SizedBox(height: 10),
+            _buildAddIngredientButton(isDark),
             const SizedBox(height: 12),
 
             // Сводка сырого веса
@@ -692,6 +811,87 @@ class _MacroPill extends StatelessWidget {
             style: TextStyle(fontSize: 11, color: textSecondary),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AddMethodTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color accentColor;
+  final VoidCallback onTap;
+
+  const _AddMethodTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.accentColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tileBg = isDark ? AppColors.darkInput : const Color(0xFFF8FAFC);
+    final tileBorder = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final textPrimary =
+        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
+    return Material(
+      color: tileBg,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: tileBorder),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.14),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: accentColor, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: textSecondary, size: 20),
+            ],
+          ),
+        ),
       ),
     );
   }

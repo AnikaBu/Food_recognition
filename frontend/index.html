@@ -303,23 +303,48 @@
         <input type="text" id="recipeEditorDesc" class="form-input" placeholder="например: Классический рецепт в духовке" />
 
         <!-- Секция ингредиентов -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; margin-bottom: 6px; gap: 6px;">
           <label class="form-label" style="margin-bottom: 0;">Сырые ингредиенты <span class="required">*</span></label>
-          <div style="display: flex; gap: 6px;">
-            <button type="button" class="btn-barcode" id="recipeAddBarcodeBtn" title="Добавить по штрихкоду">
-              📦 Штрихкод
-            </button>
-            <button type="button" class="btn-ai-calc" id="recipeAddAiBtn" title="Добавить ингредиент через ИИ">
-              ✨ ИИ-расчет
-            </button>
-            <button type="button" class="btn-outline" id="recipeAddManualBtn" style="font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; cursor: pointer;">
-              ➕ Вручную
-            </button>
-          </div>
+          <span id="recipeItemsCountBadge" style="display: none; font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 12px; background: var(--primary-light); color: var(--primary);"></span>
         </div>
 
         <div id="recipeEditorItemsList" class="recipe-items-list">
           <!-- Динамические строки ингредиентов -->
+        </div>
+
+        <div class="recipe-add-ing-wrapper" style="margin-top: 8px;">
+          <button type="button" id="openRecipeAddOptionsBtn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px; border-radius: var(--radius-md); border: 1.5px dashed var(--primary-border); background: var(--primary-light); color: var(--primary); font-size: 0.9rem; font-weight: 600; cursor: pointer;">
+            <span>+ Добавить ингредиент</span>
+          </button>
+
+          <div id="recipeAddOptionsPanel" style="display: none; margin-top: 8px; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--card-bg); box-shadow: var(--shadow-sm);">
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">
+              Выберите способ добавления:
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <button type="button" id="recipeAddAiBtn" title="Добавить ингредиент через ИИ" style="width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--primary-border); background: var(--primary-light); color: var(--text-main); text-align: left; cursor: pointer;">
+                <span style="font-size: 1.05rem;">✨</span>
+                <span style="display: flex; flex-direction: column; gap: 1px;">
+                  <span style="font-size: 0.85rem; font-weight: 600; color: var(--primary-hover);">Через ИИ-расчет</span>
+                  <span style="font-size: 0.73rem; color: var(--text-muted);">Например: «куриное филе 350г» или «2 яйца»</span>
+                </span>
+              </button>
+              <button type="button" id="recipeAddBarcodeBtn" title="Добавить по штрихкоду" style="width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid #c7d2fe; background: var(--protein-bg); color: var(--text-main); text-align: left; cursor: pointer;">
+                <span style="font-size: 1.05rem;">📦</span>
+                <span style="display: flex; flex-direction: column; gap: 1px;">
+                  <span style="font-size: 0.85rem; font-weight: 600; color: #4338ca;">По штрихкоду</span>
+                  <span style="font-size: 0.73rem; color: var(--text-muted);">Найти продукт по штрихкоду с упаковки</span>
+                </span>
+              </button>
+              <button type="button" id="recipeAddManualBtn" title="Добавить вручную" style="width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid #99f6e4; background: var(--carb-bg); color: var(--text-main); text-align: left; cursor: pointer;">
+                <span style="font-size: 1.05rem;">➕</span>
+                <span style="display: flex; flex-direction: column; gap: 1px;">
+                  <span style="font-size: 0.85rem; font-weight: 600; color: #0f766e;">Вручную</span>
+                  <span style="font-size: 0.73rem; color: var(--text-muted);">Указать название, вес/штуки и КБЖУ самостоятельно</span>
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Сводка сырых ингредиентов -->

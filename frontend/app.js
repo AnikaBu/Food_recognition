@@ -241,9 +241,26 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target.id === "recipeEditorModal") closeRecipeEditorModal();
   });
 
-  document.getElementById("recipeAddAiBtn")?.addEventListener("click", handleRecipeAddAi);
-  document.getElementById("recipeAddBarcodeBtn")?.addEventListener("click", handleRecipeAddBarcode);
-  document.getElementById("recipeAddManualBtn")?.addEventListener("click", handleRecipeAddManual);
+  document.getElementById("openRecipeAddOptionsBtn")?.addEventListener("click", () => {
+    const panel = document.getElementById("recipeAddOptionsPanel");
+    if (!panel) return;
+    panel.style.display = panel.style.display === "block" ? "none" : "block";
+  });
+  document.getElementById("recipeAddAiBtn")?.addEventListener("click", () => {
+    const panel = document.getElementById("recipeAddOptionsPanel");
+    if (panel) panel.style.display = "none";
+    handleRecipeAddAi();
+  });
+  document.getElementById("recipeAddBarcodeBtn")?.addEventListener("click", () => {
+    const panel = document.getElementById("recipeAddOptionsPanel");
+    if (panel) panel.style.display = "none";
+    handleRecipeAddBarcode();
+  });
+  document.getElementById("recipeAddManualBtn")?.addEventListener("click", () => {
+    const panel = document.getElementById("recipeAddOptionsPanel");
+    if (panel) panel.style.display = "none";
+    handleRecipeAddManual();
+  });
   document.getElementById("recipeEditorCookedWeight")?.addEventListener("input", renderRecipeEditorItems);
   document.getElementById("recipeEditorForm")?.addEventListener("submit", handleSaveRecipeSubmit);
 
@@ -1223,6 +1240,8 @@ function openRecipeEditorModal(recipe = null) {
     state.editingRecipeItems = [];
   }
 
+  const addOptionsPanel = document.getElementById("recipeAddOptionsPanel");
+  if (addOptionsPanel) addOptionsPanel.style.display = "none";
   modal.style.display = "flex";
   renderRecipeEditorItems();
 }
@@ -1237,10 +1256,21 @@ function renderRecipeEditorItems() {
   const container = document.getElementById("recipeEditorItemsList");
   if (!container) return;
 
+  const countBadge = document.getElementById("recipeItemsCountBadge");
+  if (countBadge) {
+    if (state.editingRecipeItems.length > 0) {
+      countBadge.textContent = `${state.editingRecipeItems.length} шт.`;
+      countBadge.style.display = "inline-flex";
+    } else {
+      countBadge.textContent = "";
+      countBadge.style.display = "none";
+    }
+  }
+
   if (state.editingRecipeItems.length === 0) {
     container.innerHTML = `
       <div style="font-size: 0.85rem; color: var(--text-muted); padding: 10px 0; text-align: center;">
-        Добавьте сырые ингредиенты через кнопки выше (штрихкод, ИИ или вручную)
+        Ингредиенты пока не добавлены. Нажмите «+ Добавить ингредиент» ниже.
       </div>
     `;
   } else {
