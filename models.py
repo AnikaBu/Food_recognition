@@ -124,6 +124,14 @@ class CreateWorkoutRequest(BaseModel):
     date: Optional[str] = Field(default=None, description="Дата в формате YYYY-MM-DD")
 
 
+class UpdateWorkoutRequest(BaseModel):
+    workout_type: Optional[WorkoutType] = Field(default=None, description="Вид тренировки")
+    custom_name: Optional[str] = Field(default=None, description="Пользовательское название тренировки")
+    duration_minutes: Optional[int] = Field(default=None, gt=0, description="Длительность тренировки в минутах")
+    calories_burned: Optional[float] = Field(default=None, ge=0, description="Сожженные калории")
+    comment: Optional[str] = Field(default=None, description="Заметка или комментарий")
+
+
 class WorkoutRecord(BaseModel):
     id: int
     workout_type: WorkoutType

@@ -713,9 +713,9 @@ def test_12_recipe_ingredient_weight_and_pieces_editing(page: Page):
 
 def test_13_workout_logging_workflow(page: Page):
     """
-    Тест 13: Добавление и удаление тренировки в веб-интерфейсе:
+    Тест 13: Добавление, редактирование и удаление тренировки в веб-интерфейсе:
     Клик '+ Внести тренировку' -> выбор эллипса -> ввод 45 мин и 350 ккал ->
-    сохранение -> проверка карточки в списке и бейджа -> удаление через корзину.
+    сохранение -> редактирование (силовая, 60 мин, 410 ккал) -> проверка карточки -> удаление.
     """
     page.goto(BASE_URL)
 
@@ -749,7 +749,26 @@ def test_13_workout_logging_workflow(page: Page):
     expect(badge).to_be_visible()
     expect(badge).to_contain_text("45 мин • 350 ккал")
 
-    # 6. Удаляем тренировку через диалог подтверждения
+    # 6. Редактируем тренировку через кнопку карандаша
+    workout_item.locator(".btn-edit-workout").click()
+    expect(workout_modal).to_be_visible()
+    expect(page.locator("#workoutModalTitle")).to_contain_text("Редактировать тренировку")
+    expect(page.locator("#workoutDurationInput")).to_have_value("45")
+
+    page.locator("#workoutTypeTabs .workout-tab[data-type='gym']").click()
+    page.locator("#workoutDurationInput").fill("60")
+    page.locator("#workoutCaloriesInput").fill("410")
+    page.locator("#workoutTitleInput").fill("Силовая тренировка")
+    page.locator("#saveWorkoutBtn").click()
+    expect(workout_modal).not_to_be_visible()
+
+    # Проверяем обновленную карточку и бейдж
+    expect(workout_item).to_contain_text("Силовая тренировка")
+    expect(workout_item).to_contain_text("60 мин")
+    expect(workout_item).to_contain_text("410 ккал")
+    expect(badge).to_contain_text("60 мин • 410 ккал")
+
+    # 7. Удаляем тренировку через диалог подтверждения
     page.once("dialog", lambda d: d.accept())
     workout_item.locator(".btn-delete-workout").click()
 

@@ -19,6 +19,7 @@ from models import (
     WorkoutType,
     WorkoutRecord,
     CreateWorkoutRequest,
+    UpdateWorkoutRequest,
 )
 
 DEFAULT_DB_PATH = Path(__file__).resolve().parent / "nutrition.db"
@@ -1098,6 +1099,54 @@ def get_workouts_by_date(
                 )
             )
         return workouts
+
+
+def update_workout(
+    workout_id: int,
+    update_data: UpdateWorkoutRequest,
+    db_path: Optional[Path] = None,
+) -> Optional[WorkoutRecord]:
+    """Обновляет существующую запись о тренировке."""
+    existing = get_workout(workout_id, db_path=db_path)
+    if not existing:
+        return None
+
+    workout_type_val = (
+        (update_data.workout_type.value if hasattr(update_data.workout_type, "value") else str(update_data.workout_type))
+        if update_data.workout_type is not None
+        else existing.workout_type.value
+    )
+    custom_name = (
+        (update_data.custom_name.strip() if update_data.custom_name.strip() else None)
+        if update_data.custom_name is not None
+        else existing.custom_name
+    )
+    duration_minutes = (
+        int(update_data.duration_minutes)
+        if update_data.duration_minutes is not None
+        else existing.duration_minutes
+    )
+    calories_burned = (
+        float(update_data.calories_burned)
+        if update_data.calories_burned is not None
+        else existing.calories_burned
+    )
+    comment = (
+        (update_data.comment.strip() if update_data.comment.strip() else None)
+        if update_data.comment is not None
+        else (existing.comment or None)
+    )
+
+    resolved_path = get_db_path(db_path)
+    with get_connection(resolved_path) as conn:
+        conn.execute(
+            """UPDATE workouts
+               SET workout_type = ?, custom_name = ?, duration_minutes = ?, calories_burned = ?, comment = ?
+               WHERE id = ?;""",
+            (workout_type_val, custom_name, duration_minutes, calories_burned, comment, workout_id),
+        )
+        conn.commit()
+    return get_workout(workout_id, db_path=db_path)
 
 
 def delete_workout(

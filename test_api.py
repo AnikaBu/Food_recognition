@@ -527,6 +527,33 @@ def test_api_endpoints():
     assert diary_data["total_workout_calories"] == 320.0
     assert diary_data["total_workout_minutes"] == 40
 
+    # Обновление тренировки через PUT /api/workouts/{id}
+    update_workout_payload = {
+        "workout_type": "gym",
+        "custom_name": "Силовая фуллбоди",
+        "duration_minutes": 60,
+        "calories_burned": 420.0,
+        "comment": "Хорошая тренировка",
+    }
+    resp_upd_w = client.put(f"/api/workouts/{w_id}", json=update_workout_payload)
+    assert resp_upd_w.status_code == 200, f"Ошибка обновления: {resp_upd_w.text}"
+    upd_data = resp_upd_w.json()
+    assert upd_data["workout_type"] == "gym"
+    assert upd_data["custom_name"] == "Силовая фуллбоди"
+    assert upd_data["duration_minutes"] == 60
+    assert upd_data["calories_burned"] == 420.0
+
+    # Проверка обновленных данных в GET /api/diary
+    resp_diary_upd = client.get("/api/diary?date=2026-11-15")
+    assert resp_diary_upd.status_code == 200
+    diary_upd = resp_diary_upd.json()
+    assert diary_upd["total_workout_calories"] == 420.0
+    assert diary_upd["total_workout_minutes"] == 60
+
+    # Проверка 404 при обновлении несуществующей тренировки
+    resp_upd_404 = client.put("/api/workouts/999999", json=update_workout_payload)
+    assert resp_upd_404.status_code == 404
+
     # Удаление тренировки
     resp_del_w = client.delete(f"/api/workouts/{w_id}")
     assert resp_del_w.status_code == 200
@@ -535,7 +562,7 @@ def test_api_endpoints():
     # Проверка 404 при повторном удалении
     resp_del_404 = client.delete(f"/api/workouts/{w_id}")
     assert resp_del_404.status_code == 404
-    print("✅ 12. POST/GET/DELETE /api/workouts — учет тренировок и включение в /api/diary работает корректно.")
+    print("✅ 12. POST/GET/PUT/DELETE /api/workouts — учет и редактирование тренировок и включение в /api/diary работает корректно.")
 
     print("\n🎉 Все тесты FastAPI бэкенда пройдены успешно!")
 

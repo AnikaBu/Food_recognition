@@ -231,12 +231,12 @@
   - [x] Интерактивная подсветка дней с внесенной едой в недельной полосе (`DiaryScreen`): мягкая полупрозрачная заливка цветом активной темы, контрастный текст и светящаяся точка-индикатор под числом дня для дней с приемами пищи;
   - [x] Фоновая синхронизация с недельным эндпоинтом `/api/stats/weekly` с кэшированием и мгновенным обновлением при добавлении/удалении приемов пищи.
 - [x] Модуль учета тренировок и физической активности (Workouts & Daily Activity):
-  - [x] Модели данных Pydantic: `WorkoutType` (run, gym, bike, elliptical, walk, yoga, other), `CreateWorkoutRequest`, `WorkoutRecord` и расширение `DailySummary` (`workouts`, `total_workout_calories`, `total_workout_minutes`);
-  - [x] Таблица `workouts` в SQLite с индексом по дате, CRUD-функции `save_workout`, `get_workout`, `get_workouts_by_date`, `delete_workout`;
-  - [x] REST API эндпоинты `POST/GET/DELETE /api/workouts` и автоматическая интеграция данных активности в суточную сводку `GET /api/diary`;
-  - [x] Веб-клиент PWA: блок тренировок между КБЖУ и загрузкой фото, кнопка «+ Внести тренировку», модальное окно `#workoutModal` с чипами видов спорта и удаление;
-  - [x] Flutter Android: модель `WorkoutRecord`, методы `ApiService`, модальная шторка `WorkoutSheet`, карточка активности и удаление тренировок в `DiaryScreen`;
-  - [x] 100% покрытие сквозными тестами в `test_db.py`, `test_api.py`, `test_frontend.py` (Playwright) и валидация скобок во всех 28 Dart-файлах.
+  - [x] Модели данных Pydantic: `WorkoutType` (run, gym, bike, elliptical, walk, yoga, other), `CreateWorkoutRequest`, `UpdateWorkoutRequest`, `WorkoutRecord` и расширение `DailySummary` (`workouts`, `total_workout_calories`, `total_workout_minutes`);
+  - [x] Таблица `workouts` в SQLite с индексом по дате, CRUD-функции `save_workout`, `get_workout`, `get_workouts_by_date`, `update_workout`, `delete_workout`;
+  - [x] REST API эндпоинты `POST/GET/PUT/DELETE /api/workouts` и автоматическая интеграция данных активности в суточную сводку `GET /api/diary`;
+  - [x] Веб-клиент PWA: блок тренировок между КБЖУ и загрузкой фото, кнопка «+ Внести тренировку», единое модальное окно `#workoutModal` для создания и редактирования (`openEditWorkoutModal`) с чипами видов спорта и удалением;
+  - [x] Flutter Android: модель `WorkoutRecord`, методы `ApiService` (`addWorkout`, `updateWorkout`, `deleteWorkout`), модальная шторка `WorkoutSheet` с режимом создания и редактирования (`initialWorkout`), карточка активности с редактированием и удалением в `DiaryScreen`;
+  - [x] 100% покрытие сквозными тестами (создание, редактирование, очистка названия, удаление) в `test_db.py`, `test_api.py`, `test_frontend.py` (Playwright) и валидация скобок во всех 28 Dart-файлах.
 - [x] Адаптация модального календаря дат под активную тему оформления (DatePicker Theme Adaptation):
   - [x] Динамическая привязка `DatePickerThemeData` к токенам выбранной палитры (`AppThemeTokens.active.palette`);
   - [x] Применение темы в `showDatePicker` в `DiaryScreen`: адаптивные акцентные цвета кнопок «Отмена»/«ОК», обводка текущего дня (`todayBorder`), круг выделения дня с контрастным цветом текста (`onPrimary`);

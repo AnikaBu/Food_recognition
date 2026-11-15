@@ -10,6 +10,8 @@ let state = {
   logRecipeSelectedMealType: "lunch",
   selectedRecipeForLog: null,
   selectedWorkoutType: "run",
+  editingWorkoutId: null,
+  currentWorkouts: [],
   deferredPrompt: null,
 };
 
@@ -397,6 +399,7 @@ const WORKOUT_INFO = {
 function renderWorkouts(workouts) {
   const container = document.getElementById("workoutsList");
   const badge = document.getElementById("workoutsSummaryBadge");
+  state.currentWorkouts = workouts || [];
   if (!container) return;
 
   container.innerHTML = "";
@@ -425,29 +428,58 @@ function renderWorkouts(workouts) {
     item.className = "workout-item";
     item.dataset.id = w.id;
     item.innerHTML = `
-      <div class="workout-info">
+      <div class="workout-info" style="cursor: pointer; flex: 1;" onclick="openEditWorkoutModal(${w.id})">
         <div class="workout-emoji">${meta.emoji}</div>
         <div>
           <div class="workout-name">${escapeHtml(w.custom_name || meta.name)}</div>
           <div class="workout-stats">${w.duration_minutes} мин • <strong>${Math.round(w.calories_burned)} ккал</strong>${w.comment ? ` • ${escapeHtml(w.comment)}` : ""}</div>
         </div>
       </div>
-      <button type="button" class="btn-delete-workout" title="Удалить" aria-label="Удалить тренировку" onclick="deleteWorkout(${w.id})">🗑️</button>
+      <div class="workout-actions">
+        <button type="button" class="btn-edit-workout" title="Редактировать" aria-label="Редактировать тренировку" onclick="openEditWorkoutModal(${w.id})">✏️</button>
+        <button type="button" class="btn-delete-workout" title="Удалить" aria-label="Удалить тренировку" onclick="deleteWorkout(${w.id})">🗑️</button>
+      </div>
     `;
     container.appendChild(item);
   });
 }
 
 function openWorkoutModal() {
+  state.editingWorkoutId = null;
   state.selectedWorkoutType = "run";
   document.querySelectorAll("#workoutTypeTabs .workout-tab").forEach((t) => {
     t.classList.toggle("active", t.dataset.type === "run");
   });
+  const titleEl = document.getElementById("workoutModalTitle");
+  if (titleEl) titleEl.textContent = "🏃 Внести тренировку";
+  const saveBtn = document.getElementById("saveWorkoutBtn");
+  if (saveBtn) saveBtn.textContent = "💾 Сохранить тренировку";
   document.getElementById("workoutDurationInput").value = "";
   document.getElementById("workoutCaloriesInput").value = "";
   document.getElementById("workoutTitleInput").value = "";
   document.getElementById("workoutModal").style.display = "flex";
 }
+
+function openEditWorkoutModal(workoutId) {
+  const w = (state.currentWorkouts || []).find((x) => x.id === workoutId);
+  if (!w) return;
+
+  state.editingWorkoutId = w.id;
+  state.selectedWorkoutType = w.workout_type || "run";
+  document.querySelectorAll("#workoutTypeTabs .workout-tab").forEach((t) => {
+    t.classList.toggle("active", t.dataset.type === state.selectedWorkoutType);
+  });
+  const titleEl = document.getElementById("workoutModalTitle");
+  if (titleEl) titleEl.textContent = "✏️ Редактировать тренировку";
+  const saveBtn = document.getElementById("saveWorkoutBtn");
+  if (saveBtn) saveBtn.textContent = "💾 Сохранить изменения";
+
+  document.getElementById("workoutDurationInput").value = w.duration_minutes || "";
+  document.getElementById("workoutCaloriesInput").value = w.calories_burned > 0 ? w.calories_burned : "";
+  document.getElementById("workoutTitleInput").value = w.custom_name || "";
+  document.getElementById("workoutModal").style.display = "flex";
+}
+window.openEditWorkoutModal = openEditWorkoutModal;
 
 function closeWorkoutModal() {
   document.getElementById("workoutModal").style.display = "none";
@@ -457,7 +489,7 @@ async function handleSaveWorkoutSubmit(e) {
   e.preventDefault();
   const duration = parseInt(document.getElementById("workoutDurationInput").value, 10);
   const calories = parseFloat(document.getElementById("workoutCaloriesInput").value) || 0.0;
-  const customName = document.getElementById("workoutTitleInput").value.trim() || null;
+  const customName = document.getElementById("workoutTitleInput").value.trim();
   const workoutType = state.selectedWorkoutType || "run";
 
   if (!duration || duration <= 0) {
@@ -465,25 +497,37 @@ async function handleSaveWorkoutSubmit(e) {
     return;
   }
 
-  const payload = {
-    workout_type: workoutType,
-    custom_name: customName,
-    duration_minutes: duration,
-    calories_burned: calories,
-    comment: "",
-    date: state.currentDate,
-  };
+  const isEditing = state.editingWorkoutId !== null && state.editingWorkoutId !== undefined;
+  const url = isEditing ? `/api/workouts/${state.editingWorkoutId}` : "/api/workouts";
+  const method = isEditing ? "PUT" : "POST";
+
+  const payload = isEditing
+    ? {
+        workout_type: workoutType,
+        custom_name: customName,
+        duration_minutes: duration,
+        calories_burned: calories,
+        comment: "",
+      }
+    : {
+        workout_type: workoutType,
+        custom_name: customName || null,
+        duration_minutes: duration,
+        calories_burned: calories,
+        comment: "",
+        date: state.currentDate,
+      };
 
   try {
-    const res = await fetch("/api/workouts", {
-      method: "POST",
+    const res = await fetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error("Ошибка сохранения тренировки");
     closeWorkoutModal();
     loadDiaryData();
-    showToast("🏃 Тренировка сохранена!");
+    showToast(isEditing ? "✏️ Тренировка обновлена!" : "🏃 Тренировка сохранена!");
   } catch (err) {
     console.error("Ошибка сохранения тренировки:", err);
     showToast("⚠️ Не удалось сохранить тренировку");

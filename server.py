@@ -35,6 +35,7 @@ from models import (
     WeeklyMacroSummary,
     SavedProductRecord,
     CreateWorkoutRequest,
+    UpdateWorkoutRequest,
     WorkoutRecord,
 )
 from vision import analyze_food_image, estimate_food_nutrition_by_text
@@ -482,6 +483,23 @@ def get_workouts_endpoint(
 ):
     """Возвращает список всех тренировок за выбранный день."""
     return db.get_workouts_by_date(date_str=date)
+
+
+@app.put(
+    "/api/workouts/{workout_id}",
+    response_model=WorkoutRecord,
+    tags=["Тренировки"],
+    summary="Обновить запись о тренировке",
+)
+def update_workout_endpoint(workout_id: int, request: UpdateWorkoutRequest):
+    """Обновляет существующую запись о тренировке по её ID."""
+    updated = db.update_workout(workout_id=workout_id, update_data=request)
+    if not updated:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Тренировка с ID {workout_id} не найдена",
+        )
+    return updated
 
 
 @app.delete(

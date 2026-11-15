@@ -266,7 +266,7 @@ class DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
-  void _showAddWorkoutModal() {
+  void _showAddWorkoutModal({WorkoutRecord? workout}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -274,6 +274,7 @@ class DiaryScreenState extends State<DiaryScreen> {
       builder: (ctx) => WorkoutSheet(
         date: _selectedDate,
         apiService: widget.apiService,
+        initialWorkout: workout,
         onWorkoutSaved: () {
           _summaryCache.remove(_formatDateKey(_selectedDate));
           _loadSummary();
@@ -990,7 +991,6 @@ class DiaryScreenState extends State<DiaryScreen> {
   Widget _buildWorkoutTile(WorkoutRecord w, bool isDark, AppThemeTokens tokens) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0F172A).withOpacity(0.5) : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(14),
@@ -998,60 +998,75 @@ class DiaryScreenState extends State<DiaryScreen> {
           color: isDark ? tokens.cardBorder.withOpacity(0.5) : const Color(0xFFE2E8F0),
         ),
       ),
-      child: Row(
-        children: [
-          Text(w.emoji, style: const TextStyle(fontSize: 18)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  w.displayName,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? tokens.textPrimary : AppColors.lightTextPrimary,
-                  ),
-                ),
-                Row(
+      child: InkWell(
+        onTap: () => _showAddWorkoutModal(workout: w),
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              Text(w.emoji, style: const TextStyle(fontSize: 18)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${w.durationMinutes} мин',
+                      w.displayName,
                       style: TextStyle(
-                        fontSize: 11.5,
-                        color: isDark ? tokens.textSecondary : AppColors.lightTextSecondary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? tokens.textPrimary : AppColors.lightTextPrimary,
                       ),
                     ),
-                    if (w.caloriesBurned > 0) ...[
-                      Text(
-                        ' • ',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          color: isDark ? tokens.textSecondary : AppColors.lightTextSecondary,
+                    Row(
+                      children: [
+                        Text(
+                          '${w.durationMinutes} мин',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: isDark ? tokens.textSecondary : AppColors.lightTextSecondary,
+                          ),
                         ),
-                      ),
-                      Text(
-                        '${w.caloriesBurned.toStringAsFixed(0)} ккал',
-                        style: const TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFFF97316),
-                        ),
-                      ),
-                    ],
+                        if (w.caloriesBurned > 0) ...[
+                          Text(
+                            ' • ',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: isDark ? tokens.textSecondary : AppColors.lightTextSecondary,
+                            ),
+                          ),
+                          Text(
+                            '${w.caloriesBurned.toStringAsFixed(0)} ккал',
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFFF97316),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                color: isDark ? Colors.white54 : Colors.black45,
+                onPressed: () => _showAddWorkoutModal(workout: w),
+                tooltip: 'Редактировать тренировку',
+                visualDensity: VisualDensity.compact,
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                color: isDark ? Colors.white38 : Colors.black38,
+                onPressed: () => _confirmDeleteWorkout(w),
+                tooltip: 'Удалить тренировку',
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline_rounded, size: 18),
-            color: isDark ? Colors.white38 : Colors.black38,
-            onPressed: () => _confirmDeleteWorkout(w),
-            tooltip: 'Удалить тренировку',
-          ),
-        ],
+        ),
       ),
     );
   }

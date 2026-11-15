@@ -6,6 +6,7 @@ from models import (
     NutritionGoals,
     WorkoutType,
     CreateWorkoutRequest,
+    UpdateWorkoutRequest,
 )
 import db
 
@@ -275,7 +276,38 @@ def test_database_workflow():
     assert len(summary_after_del.workouts) == 1
     assert summary_after_del.total_workout_calories == 360.0
     assert summary_after_del.total_workout_minutes == 45
-    print("✅ 12. Учет тренировок (сохранение, эллипс/бег, расчет минут/калорий в DailySummary, удаление) работает корректно.")
+
+    # Обновление существующей тренировки
+    updated_w1 = db.update_workout(
+        w1_id,
+        UpdateWorkoutRequest(
+            workout_type=WorkoutType.GYM,
+            custom_name="Силовая верх",
+            duration_minutes=60,
+            calories_burned=410.0,
+        ),
+        db_path=test_db_path,
+    )
+    assert updated_w1 is not None
+    assert updated_w1.workout_type == WorkoutType.GYM
+    assert updated_w1.custom_name == "Силовая верх"
+    assert updated_w1.duration_minutes == 60
+    assert updated_w1.calories_burned == 410.0
+
+    summary_after_upd = db.get_daily_summary(today_str, db_path=test_db_path)
+    assert summary_after_upd.total_workout_calories == 410.0
+    assert summary_after_upd.total_workout_minutes == 60
+
+    # Проверка сброса custom_name на пустую строку
+    updated_w1_reset = db.update_workout(
+        w1_id,
+        UpdateWorkoutRequest(custom_name=""),
+        db_path=test_db_path,
+    )
+    assert updated_w1_reset is not None
+    assert updated_w1_reset.custom_name is None
+    assert db.update_workout(999999, UpdateWorkoutRequest(duration_minutes=20), db_path=test_db_path) is None
+    print("✅ 12. Учет тренировок (сохранение, обновление, расчет минут/калорий в DailySummary, удаление) работает корректно.")
 
     # Удаляем временную тестовую БД
     if test_db_path.exists():

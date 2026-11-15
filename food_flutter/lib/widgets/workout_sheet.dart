@@ -7,12 +7,14 @@ class WorkoutSheet extends StatefulWidget {
   final DateTime date;
   final ApiService apiService;
   final VoidCallback onWorkoutSaved;
+  final WorkoutRecord? initialWorkout;
 
   const WorkoutSheet({
     super.key,
     required this.date,
     required this.apiService,
     required this.onWorkoutSaved,
+    this.initialWorkout,
   });
 
   @override
@@ -29,6 +31,27 @@ class _WorkoutSheetState extends State<WorkoutSheet> {
 
   bool _isSaving = false;
   String? _errorMessage;
+
+  bool get _isEditing => widget.initialWorkout != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialWorkout;
+    if (initial != null) {
+      _selectedWorkoutType = initial.workoutType;
+      _durationController.text = initial.durationMinutes.toString();
+      if (initial.caloriesBurned > 0) {
+        final cal = initial.caloriesBurned;
+        _caloriesController.text = cal == cal.roundToDouble()
+            ? cal.toInt().toString()
+            : cal.toString();
+      }
+      if (initial.customName != null && initial.customName!.trim().isNotEmpty) {
+        _titleController.text = initial.customName!.trim();
+      }
+    }
+  }
 
   static const List<Map<String, String>> _workoutTypes = [
     {'type': 'run', 'title': 'Бег', 'emoji': '🏃'},
@@ -58,7 +81,8 @@ class _WorkoutSheetState extends State<WorkoutSheet> {
     }
 
     final calories = double.tryParse(_caloriesController.text.trim().replaceAll(',', '.')) ?? 0.0;
-    final customName = _titleController.text.trim().isNotEmpty ? _titleController.text.trim() : null;
+    final trimmedTitle = _titleController.text.trim();
+    final customName = trimmedTitle.isNotEmpty ? trimmedTitle : null;
 
     setState(() {
       _isSaving = true;
@@ -66,21 +90,35 @@ class _WorkoutSheetState extends State<WorkoutSheet> {
     });
 
     try {
-      await widget.apiService.addWorkout(
-        workoutType: _selectedWorkoutType,
-        customName: customName,
-        durationMinutes: duration,
-        caloriesBurned: calories,
-        date: widget.date,
-      );
+      if (_isEditing) {
+        await widget.apiService.updateWorkout(
+          widget.initialWorkout!.id,
+          workoutType: _selectedWorkoutType,
+          customName: customName ?? '',
+          durationMinutes: duration,
+          caloriesBurned: calories,
+        );
+      } else {
+        await widget.apiService.addWorkout(
+          workoutType: _selectedWorkoutType,
+          customName: customName,
+          durationMinutes: duration,
+          caloriesBurned: calories,
+          date: widget.date,
+        );
+      }
 
       if (mounted) {
         widget.onWorkoutSaved();
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('🏃 Тренировка успешно сохранена!'),
-            backgroundColor: Color(0xFF059669),
+          SnackBar(
+            content: Text(
+              _isEditing
+                  ? '✏️ Тренировка обновлена!'
+                  : '🏃 Тренировка успешно сохранена!',
+            ),
+            backgroundColor: const Color(0xFF059669),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -159,7 +197,7 @@ class _WorkoutSheetState extends State<WorkoutSheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Внести тренировку',
+                            _isEditing ? 'Редактировать тренировку' : 'Внести тренировку',
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w800,
@@ -395,14 +433,14 @@ class _WorkoutSheetState extends State<WorkoutSheet> {
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : const Row(
+                      : Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.check_circle_rounded, size: 18),
-                            SizedBox(width: 8),
+                            const Icon(Icons.check_circle_rounded, size: 18),
+                            const SizedBox(width: 8),
                             Text(
-                              'Сохранить тренировку',
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                              _isEditing ? 'Сохранить изменения' : 'Сохранить тренировку',
+                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                             ),
                           ],
                         ),

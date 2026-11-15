@@ -336,6 +336,43 @@ class ApiService {
     }
   }
 
+  Future<WorkoutRecord> updateWorkout(
+    int workoutId, {
+    required String workoutType,
+    String? customName,
+    required int durationMinutes,
+    required double caloriesBurned,
+    String? comment,
+  }) async {
+    final baseUrl = await _getBaseUrl();
+    final uri = Uri.parse('$baseUrl/api/workouts/$workoutId');
+    final headers = await _getHeaders(isJson: true);
+
+    final payload = {
+      'workout_type': workoutType,
+      'custom_name': customName ?? '',
+      'duration_minutes': durationMinutes,
+      'calories_burned': caloriesBurned,
+      'comment': comment ?? '',
+    };
+
+    final res = await http
+        .put(uri, headers: headers, body: json.encode(payload))
+        .timeout(const Duration(seconds: 10));
+
+    if (res.statusCode == 200) {
+      final decoded = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      return WorkoutRecord.fromJson(decoded);
+    } else {
+      String err = 'Ошибка обновления тренировки: ${res.statusCode}';
+      try {
+        final body = json.decode(utf8.decode(res.bodyBytes));
+        if (body['detail'] != null) err = body['detail'].toString();
+      } catch (_) {}
+      throw Exception(err);
+    }
+  }
+
   Future<void> deleteWorkout(int workoutId) async {
     final baseUrl = await _getBaseUrl();
     final uri = Uri.parse('$baseUrl/api/workouts/$workoutId');
