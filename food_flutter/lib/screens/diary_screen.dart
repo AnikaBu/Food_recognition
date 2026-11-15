@@ -39,9 +39,16 @@ class DiaryScreenState extends State<DiaryScreen> {
   double _horizontalDragDistance = 0.0;
   int _slideDirection = 1;
   final Map<String, DailySummary> _summaryCache = {};
+  String? _loadedWeekKey;
+  final Map<String, int> _daysMealsCount = {};
 
   String _formatDateKey(DateTime date) =>
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+  String _getWeekKey(DateTime date) {
+    final monday = DateTime(date.year, date.month, date.day - (date.weekday - 1));
+    return _formatDateKey(monday);
+  }
 
   double _targetCalories = 2000;
   double _targetProtein = 90;
@@ -88,6 +95,7 @@ class DiaryScreenState extends State<DiaryScreen> {
   /// Публичный метод для полного обновления целей и сводки
   Future<void> reloadGoalsAndData() async {
     _summaryCache.clear();
+    _loadedWeekKey = null;
     await _loadSettingsAndData();
   }
 
@@ -139,6 +147,7 @@ class DiaryScreenState extends State<DiaryScreen> {
     }
 
     await _loadSummary();
+    _loadWeekMeals();
   }
 
   Future<void> _loadSummary() async {
@@ -159,6 +168,7 @@ class DiaryScreenState extends State<DiaryScreen> {
           setState(() {
             _summary = summary;
             _isLoading = false;
+            _daysMealsCount[key] = summary.meals.length;
           });
         }
       }
@@ -170,6 +180,29 @@ class DiaryScreenState extends State<DiaryScreen> {
         });
       }
     }
+
+    _loadWeekMeals();
+  }
+
+  Future<void> _loadWeekMeals({bool force = false}) async {
+    final currentWeekKey = _getWeekKey(_selectedDate);
+    if (!force && _loadedWeekKey == currentWeekKey) {
+      return;
+    }
+    try {
+      final weekly = await widget.apiService.getWeeklyMacroSummary(
+        date: _selectedDate,
+        mode: 'week',
+      );
+      if (mounted) {
+        setState(() {
+          _loadedWeekKey = currentWeekKey;
+          for (final day in weekly.days) {
+            _daysMealsCount[day.date] = day.mealsCount;
+          }
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _pickDate() async {
@@ -221,6 +254,7 @@ class DiaryScreenState extends State<DiaryScreen> {
         onMealSaved: () {
           _summaryCache.remove(_formatDateKey(_selectedDate));
           _loadSummary();
+          _loadWeekMeals(force: true);
         },
       ),
     );
@@ -275,6 +309,7 @@ class DiaryScreenState extends State<DiaryScreen> {
         }
         _summaryCache.remove(_formatDateKey(_selectedDate));
         await _loadSummary();
+        _loadWeekMeals(force: true);
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -454,12 +489,67 @@ class DiaryScreenState extends State<DiaryScreen> {
 
               const SizedBox(height: 12),
 
-              // 2. Horizontal Week Strip (Concept 1: glowing theme border on selected day)
+              // 2. Horizontal Week Strip (Concept 1: glowing theme border + filled style for days with food)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(7, (idx) {
                   final dayDate = weekDates[idx];
+                  final dayKey = _formatDateKey(dayDate);
                   final isSelected = _isSameDay(dayDate, _selectedDate);
+                  final hasMeals = (_daysMealsCount[dayKey] ?? 0) > 0 ||
+                      (_summaryCache[dayKey]?.meals.isNotEmpty ?? false) ||
+                      (isSelected && (_summary?.meals.isNotEmpty ?? false));
+
+                  // Background color
+                  final Color cardBgColor;
+                  if (isSelected) {
+                    cardBgColor = hasMeals
+                        ? tokens.primary.withOpacity(isDark ? 0.22 : 0.16)
+                        : (isDark ? tokens.cardBg : AppColors.lightCard);
+                  } else if (hasMeals) {
+                    cardBgColor = tokens.primary.withOpacity(isDark ? 0.16 : 0.10);
+                  } else {
+                    cardBgColor = isDark ? tokens.cardBg : AppColors.lightCard;
+                  }
+
+                  // Border
+                  final Border cardBorder;
+                  if (isSelected) {
+                    cardBorder = Border.all(color: tokens.primary, width: 2.0);
+                  } else if (hasMeals) {
+                    cardBorder = Border.all(
+                      color: tokens.primary.withOpacity(isDark ? 0.40 : 0.30),
+                      width: 1.0,
+                    );
+                  } else {
+                    cardBorder = Border.all(
+                      color: isDark ? tokens.cardBorder : AppColors.lightBorder,
+                      width: 1.0,
+                    );
+                  }
+
+                  // Shadow
+                  final List<BoxShadow>? cardShadow;
+                  if (isSelected) {
+                    cardShadow = [
+                      BoxShadow(
+                        color: tokens.primary.withOpacity(isDark ? 0.35 : 0.20),
+                        blurRadius: 10,
+                        spreadRadius: 0.5,
+                        offset: const Offset(0, 2),
+                      ),
+                    ];
+                  } else if (hasMeals) {
+                    cardShadow = [
+                      BoxShadow(
+                        color: tokens.primary.withOpacity(isDark ? 0.10 : 0.06),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ];
+                  } else {
+                    cardShadow = null;
+                  }
 
                   return GestureDetector(
                     onTap: () {
@@ -475,24 +565,12 @@ class DiaryScreenState extends State<DiaryScreen> {
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       width: 44,
-                      height: 56,
+                      height: 58,
                       decoration: BoxDecoration(
-                        color: isDark ? tokens.cardBg : AppColors.lightCard,
+                        color: cardBgColor,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: isSelected ? tokens.primary : (isDark ? tokens.cardBorder : AppColors.lightBorder),
-                          width: isSelected ? 2.0 : 1.0,
-                        ),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: tokens.primary.withOpacity(isDark ? 0.35 : 0.20),
-                                  blurRadius: 10,
-                                  spreadRadius: 0.5,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ]
-                            : null,
+                        border: cardBorder,
+                        boxShadow: cardShadow,
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -504,7 +582,9 @@ class DiaryScreenState extends State<DiaryScreen> {
                               fontWeight: FontWeight.w700,
                               color: isSelected
                                   ? tokens.primary
-                                  : (isDark ? tokens.textSecondary : AppColors.lightTextSecondary),
+                                  : (hasMeals
+                                      ? (isDark ? tokens.textPrimary : tokens.primaryDark)
+                                      : (isDark ? tokens.textSecondary : AppColors.lightTextSecondary)),
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -512,12 +592,26 @@ class DiaryScreenState extends State<DiaryScreen> {
                             dayDate.day.toString(),
                             style: TextStyle(
                               fontSize: 15.5,
-                              fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
+                              fontWeight: (isSelected || hasMeals) ? FontWeight.w900 : FontWeight.w700,
                               color: isSelected
                                   ? tokens.primary
-                                  : (isDark ? tokens.textPrimary : AppColors.lightTextPrimary),
+                                  : (hasMeals
+                                      ? (isDark ? tokens.textPrimary : AppColors.lightTextPrimary)
+                                      : (isDark ? tokens.textSecondary : AppColors.lightTextSecondary)),
                             ),
                           ),
+                          const SizedBox(height: 3),
+                          if (hasMeals)
+                            Container(
+                              width: 4.5,
+                              height: 4.5,
+                              decoration: BoxDecoration(
+                                color: isSelected ? tokens.primary : tokens.primary.withOpacity(0.85),
+                                shape: BoxShape.circle,
+                              ),
+                            )
+                          else
+                            const SizedBox(height: 4.5),
                         ],
                       ),
                     ),

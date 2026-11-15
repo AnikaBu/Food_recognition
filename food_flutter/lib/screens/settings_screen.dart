@@ -575,33 +575,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                             : textPrimary,
                                       ),
                                     ),
-                                    if (palette == AppThemePalette.cyberSapphire) ...[
-                                      const SizedBox(width: 6),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: pTokens.primary.withOpacity(0.18),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: Text(
-                                          'Концепт 2',
-                                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: pTokens.primary),
-                                        ),
-                                      ),
-                                    ] else if (palette == AppThemePalette.bioForest) ...[
-                                      const SizedBox(width: 6),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: pTokens.primary.withOpacity(0.18),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: Text(
-                                          'Концепт 3',
-                                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: pTokens.primary),
-                                        ),
-                                      ),
-                                    ],
                                   ],
                                 ),
                                 const SizedBox(height: 2),
