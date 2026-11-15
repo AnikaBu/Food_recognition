@@ -237,6 +237,10 @@
   - [x] Веб-клиент PWA: блок тренировок между КБЖУ и загрузкой фото, кнопка «+ Внести тренировку», модальное окно `#workoutModal` с чипами видов спорта и удаление;
   - [x] Flutter Android: модель `WorkoutRecord`, методы `ApiService`, модальная шторка `WorkoutSheet`, карточка активности и удаление тренировок в `DiaryScreen`;
   - [x] 100% покрытие сквозными тестами в `test_db.py`, `test_api.py`, `test_frontend.py` (Playwright) и валидация скобок во всех 28 Dart-файлах.
+- [x] Адаптация модального календаря дат под активную тему оформления (DatePicker Theme Adaptation):
+  - [x] Динамическая привязка `DatePickerThemeData` к токенам выбранной палитры (`AppThemeTokens.active.palette`);
+  - [x] Применение темы в `showDatePicker` в `DiaryScreen`: адаптивные акцентные цвета кнопок «Отмена»/«ОК», обводка текущего дня (`todayBorder`), круг выделения дня с контрастным цветом текста (`onPrimary`);
+  - [x] Устранение сброса на Cyber Sapphire при вызове календаря из тем Bio-Forest, Neo-Obsidian и Sunset Amethyst.
 
 
 

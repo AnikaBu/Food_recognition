@@ -3,9 +3,9 @@ import 'app_colors.dart';
 import 'theme_palette.dart';
 
 class AppTheme {
-  static ThemeData get lightTheme => lightThemeFor(AppThemePalette.cyberSapphire);
+  static ThemeData get lightTheme => lightThemeFor(AppThemeTokens.active.palette);
 
-  static ThemeData get darkTheme => darkThemeFor(AppThemePalette.cyberSapphire);
+  static ThemeData get darkTheme => darkThemeFor(AppThemeTokens.active.palette);
 
   static ThemeData lightThemeFor(AppThemePalette palette) {
     final tokens = AppThemeTokens.forPalette(palette, isDark: false);
@@ -18,6 +18,9 @@ class AppTheme {
       extensions: [tokens],
       colorScheme: ColorScheme.light(
         primary: tokens.primaryRoyal,
+        onPrimary: ThemeData.estimateBrightnessForColor(tokens.primaryRoyal) == Brightness.light
+            ? const Color(0xFF0F172A)
+            : Colors.white,
         secondary: tokens.primaryDark,
         surface: AppColors.lightCard,
         onSurface: AppColors.lightTextPrimary,
@@ -95,8 +98,21 @@ class AppTheme {
           borderRadius: BorderRadius.circular(20),
           side: const BorderSide(color: AppColors.lightBorder),
         ),
-        cancelButtonStyle: TextButton.styleFrom(foregroundColor: tokens.primaryRoyal),
-        confirmButtonStyle: TextButton.styleFrom(foregroundColor: tokens.primaryRoyal),
+        cancelButtonStyle: TextButton.styleFrom(
+          foregroundColor: tokens.primaryRoyal,
+          textStyle: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        confirmButtonStyle: TextButton.styleFrom(
+          foregroundColor: tokens.primaryRoyal,
+          textStyle: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        todayBorder: BorderSide(color: tokens.primaryRoyal, width: 1.5),
+        todayForegroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return Colors.white;
+          }
+          return tokens.primaryRoyal;
+        }),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.lightInput,
@@ -139,6 +155,9 @@ class AppTheme {
       extensions: [tokens],
       colorScheme: ColorScheme.dark(
         primary: tokens.primary,
+        onPrimary: ThemeData.estimateBrightnessForColor(tokens.primary) == Brightness.light
+            ? const Color(0xFF0F172A)
+            : Colors.white,
         secondary: tokens.primaryLight,
         surface: tokens.cardBg,
         onSurface: tokens.textPrimary,
@@ -216,8 +235,23 @@ class AppTheme {
           borderRadius: BorderRadius.circular(20),
           side: BorderSide(color: tokens.cardBorder),
         ),
-        cancelButtonStyle: TextButton.styleFrom(foregroundColor: tokens.primary),
-        confirmButtonStyle: TextButton.styleFrom(foregroundColor: tokens.primary),
+        cancelButtonStyle: TextButton.styleFrom(
+          foregroundColor: tokens.primary,
+          textStyle: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        confirmButtonStyle: TextButton.styleFrom(
+          foregroundColor: tokens.primary,
+          textStyle: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        todayBorder: BorderSide(color: tokens.primary, width: 1.5),
+        todayForegroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return ThemeData.estimateBrightnessForColor(tokens.primary) == Brightness.light
+                ? const Color(0xFF0F172A)
+                : Colors.white;
+          }
+          return tokens.primary;
+        }),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: tokens.inputBg,

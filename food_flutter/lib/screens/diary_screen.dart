@@ -207,7 +207,10 @@ class DiaryScreenState extends State<DiaryScreen> {
   }
 
   Future<void> _pickDate() async {
+    final tokens = AppThemeTokens.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentPalette = tokens.palette;
+
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -215,7 +218,9 @@ class DiaryScreenState extends State<DiaryScreen> {
       lastDate: DateTime(2030),
       builder: (context, child) {
         return Theme(
-          data: isDark ? AppTheme.darkTheme : AppTheme.lightTheme,
+          data: isDark
+              ? AppTheme.darkThemeFor(currentPalette)
+              : AppTheme.lightThemeFor(currentPalette),
           child: child!,
         );
       },
