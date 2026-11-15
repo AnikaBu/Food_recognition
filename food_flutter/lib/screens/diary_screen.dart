@@ -145,6 +145,27 @@ class DiaryScreenState extends State<DiaryScreen> {
           );
         }
       }).catchError((_) {});
+    } else {
+      // Пользователь настроил свои цели: синхронизируем их с сервером, если в базе другие значения
+      widget.apiService.getGoals().then((remoteGoals) {
+        if (remoteGoals.calories != widget.settingsService.targetCalories ||
+            remoteGoals.protein != widget.settingsService.targetProtein ||
+            remoteGoals.fat != widget.settingsService.targetFat ||
+            remoteGoals.carbs != widget.settingsService.targetCarbs) {
+          widget.apiService.updateGoals(NutritionGoals(
+            calories: widget.settingsService.targetCalories,
+            protein: widget.settingsService.targetProtein,
+            fat: widget.settingsService.targetFat,
+            carbs: widget.settingsService.targetCarbs,
+            gender: widget.settingsService.calcGender,
+            age: widget.settingsService.calcAge,
+            heightCm: widget.settingsService.calcHeight,
+            weightKg: widget.settingsService.calcWeight,
+            activityLevel: widget.settingsService.calcActivity,
+            goal: widget.settingsService.calcGoal,
+          )).catchError((_) {});
+        }
+      }).catchError((_) {});
     }
 
     await _loadSummary();

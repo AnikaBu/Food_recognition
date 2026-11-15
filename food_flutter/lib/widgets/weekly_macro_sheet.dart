@@ -119,6 +119,31 @@ class _WeeklyMacroSheetState extends State<WeeklyMacroSheet> {
       settingsService: widget.settingsService,
     );
     if (result != null && mounted) {
+      // 1. Сохраняем новые цели локально в SettingsService
+      await widget.settingsService.saveLocalGoals(
+        result.calories,
+        result.protein,
+        result.fat,
+        result.carbs,
+        isExplicitUserAction: true,
+      );
+
+      // 2. Синхронизируем обновленные цели с сервером
+      try {
+        await widget.apiService.updateGoals(NutritionGoals(
+          calories: result.calories,
+          protein: result.protein,
+          fat: result.fat,
+          carbs: result.carbs,
+          gender: result.gender,
+          age: result.age,
+          heightCm: result.heightCm,
+          weightKg: result.weightKg,
+          activityLevel: result.activityLevel,
+          goal: result.goal,
+        ));
+      } catch (_) {}
+
       widget.onGoalsChanged?.call();
       _loadSummary();
     }
@@ -325,6 +350,19 @@ class _WeeklyMacroSheetState extends State<WeeklyMacroSheet> {
 
   Widget _buildMacroCards(bool isDark) {
     final s = _summary!;
+
+    // Цели берем из SettingsService (актуальные цели пользователя, отображаемые в дневнике),
+    // чтобы показатели в статистике динамики были согласованы со сводкой дня
+    final targetCarbs = widget.settingsService.targetCarbs > 0
+        ? widget.settingsService.targetCarbs
+        : (s.targetCarbs > 0 ? s.targetCarbs : SettingsService.defaultTargetCarbs);
+    final targetFat = widget.settingsService.targetFat > 0
+        ? widget.settingsService.targetFat
+        : (s.targetFat > 0 ? s.targetFat : SettingsService.defaultTargetFat);
+    final targetProtein = widget.settingsService.targetProtein > 0
+        ? widget.settingsService.targetProtein
+        : (s.targetProtein > 0 ? s.targetProtein : SettingsService.defaultTargetProtein);
+
     return ListView(
       shrinkWrap: true,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -334,7 +372,7 @@ class _WeeklyMacroSheetState extends State<WeeklyMacroSheet> {
           title: 'Углев.',
           fullName: 'Углеводы',
           avgGrams: s.avgCarbs,
-          targetGrams: s.targetCarbs,
+          targetGrams: targetCarbs,
           macroColor: AppColors.macroCarb,
           macroColorLight: AppColors.macroCarbLight,
           days: s.days,
@@ -348,7 +386,7 @@ class _WeeklyMacroSheetState extends State<WeeklyMacroSheet> {
           title: 'Жиры',
           fullName: 'Жиры',
           avgGrams: s.avgFat,
-          targetGrams: s.targetFat,
+          targetGrams: targetFat,
           macroColor: AppColors.macroFat,
           macroColorLight: AppColors.macroFatLight,
           days: s.days,
@@ -362,7 +400,7 @@ class _WeeklyMacroSheetState extends State<WeeklyMacroSheet> {
           title: 'Белок',
           fullName: 'Белки',
           avgGrams: s.avgProtein,
-          targetGrams: s.targetProtein,
+          targetGrams: targetProtein,
           macroColor: AppColors.macroProtein,
           macroColorLight: AppColors.macroProteinLight,
           days: s.days,
