@@ -100,6 +100,9 @@ def generate_full_bleed_icon(source_path: str, output_1024_path: str, crop_size:
 
 
 if __name__ == "__main__":
-    src = sys.argv[1] if len(sys.argv) > 1 else "/home/buravchik/.gemini/antigravity/brain/f36130dd-88ea-4de5-b41b-65802f6ac327/.user_uploaded/media_1793723635824.jpg"
+    if len(sys.argv) < 2:
+        print("Usage: python3 generate_app_icon.py <path_to_source_image>")
+        sys.exit(1)
+    src = sys.argv[1]
     out = os.path.join(FOOD_FLUTTER_DIR, "assets", "icon", "app_icon.png")
     generate_full_bleed_icon(src, out)
