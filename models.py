@@ -269,14 +269,31 @@ class WeeklyMacroSummary(BaseModel):
     start_date: str = Field(description="Начальная дата недели (YYYY-MM-DD)")
     end_date: str = Field(description="Конечная дата недели (YYYY-MM-DD)")
     days: list[WeeklyMacroDay] = Field(default=[], description="Список данных по 7 дням")
-    avg_calories: float = Field(default=0.0, description="Среднее количество калорий за день")
-    avg_protein: float = Field(default=0.0, description="Среднее количество белков за день (г)")
-    avg_fat: float = Field(default=0.0, description="Среднее количество жиров за день (г)")
-    avg_carbs: float = Field(default=0.0, description="Среднее количество углеводов за день (г)")
+    active_days: int = Field(default=0, ge=0, description="Количество дней недели с записями о еде")
+    avg_calories: float = Field(default=0.0, description="Среднее количество калорий за активный день")
+    avg_protein: float = Field(default=0.0, description="Среднее количество белков за активный день (г)")
+    avg_fat: float = Field(default=0.0, description="Среднее количество жиров за активный день (г)")
+    avg_carbs: float = Field(default=0.0, description="Среднее количество углеводов за активный день (г)")
     target_calories: float = Field(default=2000.0, description="Суточная цель по калориям")
     target_protein: float = Field(default=90.0, description="Суточная цель по белкам")
     target_fat: float = Field(default=65.0, description="Суточная цель по жирам")
     target_carbs: float = Field(default=250.0, description="Суточная цель по углеводам")
+
+
+class WeeklyReportRequest(BaseModel):
+    date: Optional[str] = Field(default=None, description="Дата отсчета YYYY-MM-DD")
+    mode: str = Field(default="week", description="Режим расчета: 'week' или 'trailing'")
+    target_calories: Optional[float] = Field(default=None, ge=0, description="Актуальная цель по калориям")
+    target_protein: Optional[float] = Field(default=None, ge=0, description="Актуальная цель по белкам (г)")
+    target_fat: Optional[float] = Field(default=None, ge=0, description="Актуальная цель по жирам (г)")
+    target_carbs: Optional[float] = Field(default=None, ge=0, description="Актуальная цель по углеводам (г)")
+
+
+class WeeklyReportResponse(BaseModel):
+    headline: str = Field(description="Короткий заголовок-резюме за неделю на русском языке")
+    summary: str = Field(description="Общий разбор питания за период (2-3 предложения)")
+    strengths: list[str] = Field(default=[], description="Что получилось хорошо за период (1-3 пункта)")
+    recommendations: list[str] = Field(default=[], description="Практические рекомендации по рациону (2-3 пункта)")
 
 
 class SavedProductRecord(BaseModel):

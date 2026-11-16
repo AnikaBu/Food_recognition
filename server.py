@@ -33,12 +33,18 @@ from models import (
     RecipeRecord,
     LogRecipePortionRequest,
     WeeklyMacroSummary,
+    WeeklyReportRequest,
+    WeeklyReportResponse,
     SavedProductRecord,
     CreateWorkoutRequest,
     UpdateWorkoutRequest,
     WorkoutRecord,
 )
-from vision import analyze_food_image, estimate_food_nutrition_by_text
+from vision import (
+    analyze_food_image,
+    estimate_food_nutrition_by_text,
+    generate_weekly_nutrition_report,
+)
 from barcode_service import get_product_by_barcode, clean_barcode
 
 # Загружаем настройки из .env
@@ -448,6 +454,48 @@ def get_weekly_macro_summary_endpoint(
     среднесуточные значения за 7 дней и суточные целевые нормы.
     """
     return db.get_weekly_macro_summary(date_str=date, mode=mode)
+
+
+@app.post(
+    "/api/stats/weekly-report",
+    response_model=WeeklyReportResponse,
+    tags=["Дневник питания"],
+    summary="Сгенерировать ИИ-анализ питания за неделю",
+)
+async def generate_weekly_report_endpoint(payload: WeeklyReportRequest):
+    """
+    Формирует текстовый разбор питания за 7 дней (что прошло хорошо, где недобор/перебор БЖУ
+    и конкретные рекомендации по рациону на основе съеденных блюд).
+    """
+    summary = db.get_weekly_macro_summary(date_str=payload.date, mode=payload.mode)
+    if summary.active_days == 0:
+        return WeeklyReportResponse(
+            headline="Недостаточно данных за выбранный период",
+            summary="В выбранном периоде пока нет записей о приемах пищи.",
+            strengths=[],
+            recommendations=["Добавьте хотя бы 1–2 дня питания, чтобы получить разбор рациона."],
+        )
+
+    context = db.get_weekly_dishes_context(summary.start_date, summary.end_date)
+    targets = {
+        "calories": payload.target_calories if payload.target_calories and payload.target_calories > 0 else summary.target_calories,
+        "protein": payload.target_protein if payload.target_protein and payload.target_protein > 0 else summary.target_protein,
+        "fat": payload.target_fat if payload.target_fat and payload.target_fat > 0 else summary.target_fat,
+        "carbs": payload.target_carbs if payload.target_carbs and payload.target_carbs > 0 else summary.target_carbs,
+    }
+
+    try:
+        return await asyncio.to_thread(
+            generate_weekly_nutrition_report,
+            summary=summary,
+            context=context,
+            targets=targets,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка генерации недельного анализа через Gemini: {str(e)}",
+        )
 
 
 @app.post(

@@ -177,8 +177,11 @@ def test_database_workflow():
     weekly = db.get_weekly_macro_summary(db_path=test_db_path)
     assert len(weekly.days) == 7, "Неделя должна содержать ровно 7 дней"
     assert weekly.target_calories == 2300.0, "Цели должны соответствовать обновленным"
-    assert weekly.avg_calories >= 0.0
-    print(f"✅ 10. Недельный обзор сформирован: {weekly.start_date} - {weekly.end_date}, дней: {len(weekly.days)}, ср. калорий: {weekly.avg_calories}")
+    assert weekly.active_days == 1, f"Ожидался 1 активный день с записями, получено {weekly.active_days}"
+    assert abs(weekly.avg_calories - 810.1) < 0.2, "Среднее должно считаться по активным дням (540.0 + 270.1 = 810.1), а не делиться на 7"
+    ctx = db.get_weekly_dishes_context(weekly.start_date, weekly.end_date, db_path=test_db_path)
+    assert len(ctx["meals_by_day"]) == 1
+    print(f"✅ 10. Недельный обзор сформирован: {weekly.start_date} - {weekly.end_date}, активных дней: {weekly.active_days}, ср. калорий: {weekly.avg_calories}")
 
     # 11. Тестирование персонального каталога продуктов (saved_products)
     prod_id = db.upsert_saved_product(

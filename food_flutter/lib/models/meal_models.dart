@@ -715,6 +715,7 @@ class WeeklyMacroSummary {
   final String startDate;
   final String endDate;
   final List<WeeklyMacroDay> days;
+  final int activeDays;
   final double avgCalories;
   final double avgProtein;
   final double avgFat;
@@ -728,6 +729,7 @@ class WeeklyMacroSummary {
     required this.startDate,
     required this.endDate,
     required this.days,
+    required this.activeDays,
     required this.avgCalories,
     required this.avgProtein,
     required this.avgFat,
@@ -743,10 +745,13 @@ class WeeklyMacroSummary {
             ?.map((e) => WeeklyMacroDay.fromJson(e as Map<String, dynamic>))
             .toList() ??
         [];
+    final computedActiveDays =
+        daysList.where((d) => d.mealsCount > 0 || d.calories > 0).length;
     return WeeklyMacroSummary(
       startDate: json['start_date'] as String? ?? '',
       endDate: json['end_date'] as String? ?? '',
       days: daysList,
+      activeDays: (json['active_days'] as num?)?.toInt() ?? computedActiveDays,
       avgCalories: (json['avg_calories'] as num?)?.toDouble() ?? 0.0,
       avgProtein: (json['avg_protein'] as num?)?.toDouble() ?? 0.0,
       avgFat: (json['avg_fat'] as num?)?.toDouble() ?? 0.0,
@@ -755,6 +760,35 @@ class WeeklyMacroSummary {
       targetProtein: (json['target_protein'] as num?)?.toDouble() ?? 90.0,
       targetFat: (json['target_fat'] as num?)?.toDouble() ?? 65.0,
       targetCarbs: (json['target_carbs'] as num?)?.toDouble() ?? 250.0,
+    );
+  }
+}
+
+class WeeklyReportResult {
+  final String headline;
+  final String summary;
+  final List<String> strengths;
+  final List<String> recommendations;
+
+  WeeklyReportResult({
+    required this.headline,
+    required this.summary,
+    required this.strengths,
+    required this.recommendations,
+  });
+
+  factory WeeklyReportResult.fromJson(Map<String, dynamic> json) {
+    return WeeklyReportResult(
+      headline: json['headline'] as String? ?? 'Анализ недели',
+      summary: json['summary'] as String? ?? '',
+      strengths: (json['strengths'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      recommendations: (json['recommendations'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
     );
   }
 }

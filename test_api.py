@@ -192,10 +192,19 @@ def test_api_endpoints():
     weekly_data = resp_weekly.json()
     assert "days" in weekly_data
     assert len(weekly_data["days"]) == 7
+    assert "active_days" in weekly_data
+    assert weekly_data["active_days"] >= 0
     assert "avg_calories" in weekly_data
     assert "target_calories" in weekly_data
     assert weekly_data["target_calories"] == 2150.0
     print(f"✅ 6.3. GET /api/stats/weekly — недельный обзор успешно получен (7 дней, цель: {weekly_data['target_calories']} ккал).")
+
+    # 6.4 Проверка контракта /api/stats/weekly-report на пустой неделе (без вызова Gemini)
+    resp_report_empty = client.post("/api/stats/weekly-report", json={"date": "2020-01-06", "mode": "week"})
+    assert resp_report_empty.status_code == 200
+    report_empty = resp_report_empty.json()
+    assert "headline" in report_empty and "recommendations" in report_empty
+    print("✅ 6.4. POST /api/stats/weekly-report — корректный ответ при отсутствии записей за период.")
 
 
     # 7. Тестирование распознавания фото через эндпоинт /api/analyze-photo

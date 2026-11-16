@@ -830,10 +830,13 @@ def get_weekly_macro_summary(
             )
         )
 
-    avg_cal = round(total_cal / 7.0, 1)
-    avg_p = round(total_p / 7.0, 1)
-    avg_f = round(total_f / 7.0, 1)
-    avg_c = round(total_c / 7.0, 1)
+    active_days = sum(1 for d in days_list if d.meals_count > 0)
+    divisor = float(active_days) if active_days > 0 else 1.0
+
+    avg_cal = round(total_cal / divisor, 1) if active_days > 0 else 0.0
+    avg_p = round(total_p / divisor, 1) if active_days > 0 else 0.0
+    avg_f = round(total_f / divisor, 1) if active_days > 0 else 0.0
+    avg_c = round(total_c / divisor, 1) if active_days > 0 else 0.0
 
     goals = get_goals(db_path=db_path)
 
@@ -841,6 +844,7 @@ def get_weekly_macro_summary(
         start_date=start_str,
         end_date=end_str,
         days=days_list,
+        active_days=active_days,
         avg_calories=avg_cal,
         avg_protein=avg_p,
         avg_fat=avg_f,
@@ -850,6 +854,65 @@ def get_weekly_macro_summary(
         target_fat=goals.fat,
         target_carbs=goals.carbs,
     )
+
+
+def get_weekly_dishes_context(
+    start_str: str,
+    end_str: str,
+    db_path: Optional[Path] = None,
+) -> dict:
+    """Возвращает список приемов пищи и сводку тренировок за период [start_str, end_str] для недельного отчета."""
+    init_db(db_path)
+    with get_connection(db_path) as conn:
+        meal_rows = conn.execute(
+            """
+            SELECT date(m.created_at) AS day_str,
+                   m.meal_type,
+                   m.dish_name,
+                   COALESCE(SUM(i.calories), 0.0) AS cal,
+                   COALESCE(SUM(i.protein), 0.0) AS p,
+                   COALESCE(SUM(i.fat), 0.0) AS f,
+                   COALESCE(SUM(i.carbs), 0.0) AS c
+            FROM meals m
+            LEFT JOIN meal_items i ON m.id = i.meal_id
+            WHERE date(m.created_at) >= date(?) AND date(m.created_at) <= date(?)
+            GROUP BY m.id
+            ORDER BY m.created_at ASC
+            """,
+            (start_str, end_str),
+        ).fetchall()
+
+        workout_row = conn.execute(
+            """
+            SELECT COUNT(*) AS cnt,
+                   COALESCE(SUM(duration_minutes), 0) AS total_min,
+                   COALESCE(SUM(calories_burned), 0.0) AS total_cal
+            FROM workouts
+            WHERE date >= date(?) AND date <= date(?)
+            """,
+            (start_str, end_str),
+        ).fetchone()
+
+    meals_by_day: dict[str, list[dict]] = {}
+    for r in meal_rows:
+        d = r["day_str"]
+        meals_by_day.setdefault(d, []).append(
+            {
+                "meal_type": r["meal_type"],
+                "dish_name": r["dish_name"],
+                "calories": round(float(r["cal"] or 0.0), 1),
+                "protein": round(float(r["p"] or 0.0), 1),
+                "fat": round(float(r["f"] or 0.0), 1),
+                "carbs": round(float(r["c"] or 0.0), 1),
+            }
+        )
+
+    return {
+        "meals_by_day": meals_by_day,
+        "workouts_count": int(workout_row["cnt"] or 0) if workout_row else 0,
+        "workout_minutes": int(workout_row["total_min"] or 0) if workout_row else 0,
+        "workout_calories": round(float(workout_row["total_cal"] or 0.0), 1) if workout_row else 0.0,
+    }
 
 
 # =====================================================================

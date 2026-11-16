@@ -282,6 +282,51 @@ class ApiService {
     }
   }
 
+  Future<WeeklyReportResult> generateWeeklyReport({
+    DateTime? date,
+    String mode = 'week',
+    double? targetCalories,
+    double? targetProtein,
+    double? targetFat,
+    double? targetCarbs,
+  }) async {
+    final baseUrl = await _getBaseUrl();
+    final uri = Uri.parse('$baseUrl/api/stats/weekly-report');
+    final headers = await _getHeaders(isJson: true);
+
+    final payload = <String, dynamic>{
+      if (date != null) 'date': DateFormat('yyyy-MM-dd').format(date),
+      'mode': mode,
+      if (targetCalories != null && targetCalories > 0)
+        'target_calories': targetCalories,
+      if (targetProtein != null && targetProtein > 0)
+        'target_protein': targetProtein,
+      if (targetFat != null && targetFat > 0) 'target_fat': targetFat,
+      if (targetCarbs != null && targetCarbs > 0) 'target_carbs': targetCarbs,
+    };
+
+    final res = await http
+        .post(
+          uri,
+          headers: headers,
+          body: json.encode(payload),
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (res.statusCode == 200) {
+      final decoded =
+          json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      return WeeklyReportResult.fromJson(decoded);
+    } else {
+      String err = 'Не удалось сформировать анализ недели: ${res.statusCode}';
+      try {
+        final body = json.decode(utf8.decode(res.bodyBytes));
+        if (body['detail'] != null) err = body['detail'].toString();
+      } catch (_) {}
+      throw Exception(err);
+    }
+  }
+
   Future<void> deleteMeal(int mealId) async {
     final baseUrl = await _getBaseUrl();
     final uri = Uri.parse('$baseUrl/api/meals/$mealId');
