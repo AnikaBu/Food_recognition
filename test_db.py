@@ -312,6 +312,52 @@ def test_database_workflow():
     assert db.update_workout(999999, UpdateWorkoutRequest(duration_minutes=20), db_path=test_db_path) is None
     print("✅ 12. Учет тренировок (сохранение, обновление, расчет минут/калорий в DailySummary, удаление) работает корректно.")
 
+    # 13. Проверка защиты от дублирования бренда в saved_products и автоочистки истории
+    dup_pid = db.upsert_saved_product(
+        name="Carski sir",
+        brand="Pilos",
+        calories_100g=350.0,
+        protein_100g=25.0,
+        fat_100g=27.0,
+        carbs_100g=0.5,
+        barcode="20146699",
+        db_path=test_db_path,
+    )
+    # Имитируем повторное сохранение с клиента со склеенным брендом и пустым полем brand
+    dup_pid2 = db.upsert_saved_product(
+        name="Carski sir (Pilos) (Pilos)",
+        calories_100g=350.0,
+        protein_100g=25.0,
+        fat_100g=27.0,
+        carbs_100g=0.5,
+        barcode="20146699",
+        db_path=test_db_path,
+    )
+    assert dup_pid2 == dup_pid
+    cleaned_prod = db.get_saved_product_by_barcode("20146699", db_path=test_db_path)
+    assert cleaned_prod is not None
+    assert cleaned_prod.name == "Carski sir"
+    assert cleaned_prod.brand == "Pilos"
+
+    # Проверка очистки старых дублей при init_db
+    with db.get_connection(test_db_path) as conn:
+        conn.execute(
+            "INSERT INTO meals (meal_type, dish_name, created_at) VALUES ('breakfast', 'Сыр (Pilos) (Pilos) (Pilos)', '2026-11-16 09:00:00')"
+        )
+        m_dup_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        conn.execute(
+            "INSERT INTO meal_items (meal_id, name, weight_g, calories, protein, fat, carbs) VALUES (?, 'Сыр (Pilos) (Pilos)', 50, 175, 12.5, 13.5, 0.3)",
+            (m_dup_id,),
+        )
+        conn.commit()
+    db.init_db(db_path=test_db_path)
+    cleaned_meal = db.get_meal(m_dup_id, db_path=test_db_path)
+    assert cleaned_meal is not None
+    assert cleaned_meal.dish_name == "Сыр (Pilos)"
+    assert cleaned_meal.items[0].name == "Сыр (Pilos)"
+    db.delete_saved_product(dup_pid, db_path=test_db_path)
+    print("✅ 13. Дедупликация бренда и очистка старых записей работают корректно.")
+
     # Удаляем временную тестовую БД
     if test_db_path.exists():
         test_db_path.unlink()

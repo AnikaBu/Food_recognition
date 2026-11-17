@@ -516,6 +516,18 @@ class EstimateNutritionResult {
   }
 }
 
+String formatProductDisplayName(String name, String brand) {
+  final cleanName = name.trim();
+  final cleanBrand = brand.trim();
+  if (cleanBrand.isEmpty) return cleanName;
+  final lowerName = cleanName.toLowerCase();
+  final lowerBrand = cleanBrand.toLowerCase();
+  if (lowerName == lowerBrand || lowerName.contains('($lowerBrand)')) {
+    return cleanName;
+  }
+  return '$cleanName ($cleanBrand)';
+}
+
 class BarcodeProductResult {
   final String barcode;
   final String name;
@@ -546,6 +558,8 @@ class BarcodeProductResult {
     required this.carbs100g,
     this.imageUrl = '',
   });
+
+  String get fullName => formatProductDisplayName(name, brand);
 
   factory BarcodeProductResult.fromJson(Map<String, dynamic> json) {
     return BarcodeProductResult(
@@ -818,7 +832,7 @@ class SavedProduct {
     required this.updatedAt,
   });
 
-  String get fullName => brand.isNotEmpty ? '$name ($brand)' : name;
+  String get fullName => formatProductDisplayName(name, brand);
 
   factory SavedProduct.fromJson(Map<String, dynamic> json) {
     return SavedProduct(

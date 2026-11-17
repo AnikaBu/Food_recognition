@@ -43,6 +43,18 @@ function formatDateTitle(dateStr) {
   return target.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
 }
 
+function formatProductFullName(name, brand) {
+  const cleanName = (name || "").trim();
+  const cleanBrand = (brand || "").trim();
+  if (!cleanBrand) return cleanName;
+  const lowerName = cleanName.toLowerCase();
+  const lowerBrand = cleanBrand.toLowerCase();
+  if (lowerName === lowerBrand || lowerName.includes(`(${lowerBrand})`)) {
+    return cleanName;
+  }
+  return `${cleanName} (${cleanBrand})`;
+}
+
 // Toast уведомления
 function showToast(msg) {
   const toast = document.getElementById("toast");
@@ -957,7 +969,7 @@ async function handleBarcodeLookup() {
     // Заполняем форму ручного ввода
     const dishInput = document.getElementById("manualDishName");
     const weightInput = document.getElementById("manualDishWeight");
-    const fullName = data.brand ? `${data.name} (${data.brand})` : data.name;
+    const fullName = formatProductFullName(data.name, data.brand);
     dishInput.value = fullName;
     weightInput.value = Math.round(data.weight_g || 100);
 
@@ -1071,7 +1083,7 @@ function renderDishSuggestions(products) {
   products.forEach((p) => {
     const item = document.createElement("div");
     item.className = "suggestion-item";
-    const fullName = p.brand ? `${p.name} (${p.brand})` : p.name;
+    const fullName = formatProductFullName(p.name, p.brand);
     item.innerHTML = `
       <span class="suggestion-name">${escapeHtml(fullName)}</span>
       <span class="suggestion-macros">${Math.round(p.calories_100g)} ккал • Б:${p.protein_100g.toFixed(1)} Ж:${p.fat_100g.toFixed(1)} У:${p.carbs_100g.toFixed(1)}</span>
@@ -1083,7 +1095,7 @@ function renderDishSuggestions(products) {
 }
 
 function selectDishSuggestion(p) {
-  const fullName = p.brand ? `${p.name} (${p.brand})` : p.name;
+  const fullName = formatProductFullName(p.name, p.brand);
   document.getElementById("manualDishName").value = fullName;
 
   state.manual100g = {
@@ -1688,7 +1700,7 @@ async function handleRecipeAddBarcode() {
 
     const data = await res.json();
     const it = {
-      name: data.brand ? `${data.name} (${data.brand})` : data.name,
+      name: formatProductFullName(data.name, data.brand),
       weight_g: data.weight_g || 100,
       calories: data.calories_100g || 0,
       protein: data.protein_100g || 0,

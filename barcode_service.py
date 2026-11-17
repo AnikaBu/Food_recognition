@@ -220,8 +220,10 @@ def estimate_product_by_barcode_with_gemini(barcode: str) -> Optional[BarcodePro
                     parsed = GeminiBarcodeResult(**data)
 
                     if parsed.found and parsed.name.strip():
-                        name = parsed.name.strip()
+                        from db import strip_brand_suffix
+
                         brand = (parsed.brand or "").strip()
+                        name = strip_brand_suffix(parsed.name.strip(), brand)
                         serving_g = parsed.weight_g if 5.0 <= parsed.weight_g <= 2500.0 else 100.0
                         kcal_100 = max(0.0, min(950.0, float(parsed.calories_100g)))
                         prot_100 = max(0.0, min(100.0, round(float(parsed.protein_100g), 2)))
@@ -376,8 +378,10 @@ def get_product_by_barcode(barcode: str, timeout: float = 6.0) -> Optional[Barco
     p = raw_data["product"]
 
     # 3. Извлекаем локализованное наименование (сербский, балканские языки, русский, оригинал)
-    name = extract_localized_product_name(p)
+    from db import strip_brand_suffix
+
     brand = (p.get("brands") or "").strip()
+    name = strip_brand_suffix(extract_localized_product_name(p), brand)
     image_url = (p.get("image_front_url") or p.get("image_url") or "").strip()
 
     nutriments = p.get("nutriments", {})

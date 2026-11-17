@@ -573,6 +573,48 @@ def test_api_endpoints():
     assert resp_del_404.status_code == 404
     print("✅ 12. POST/GET/PUT/DELETE /api/workouts — учет и редактирование тренировок и включение в /api/diary работает корректно.")
 
+    # 13. Проверка защиты от накопления дублей бренда при повторном сохранении товара со штрихкодом
+    db.upsert_saved_product(
+        name="Carski sir",
+        brand="Pilos",
+        calories_100g=350.0,
+        protein_100g=25.0,
+        fat_100g=27.0,
+        carbs_100g=0.5,
+        barcode="20146688",
+    )
+    for _ in range(2):
+        r_dup_meal = client.post(
+            "/api/meals",
+            json={
+                "meal_type": "breakfast",
+                "dish_name": "Carski sir (Pilos)",
+                "comment": "Штрихкод: 20146688",
+                "items": [
+                    {
+                        "name": "Carski sir (Pilos)",
+                        "weight_g": 40.0,
+                        "calories": 140.0,
+                        "protein": 10.0,
+                        "fat": 10.8,
+                        "carbs": 0.2,
+                    }
+                ],
+                "created_at": "2026-11-17 09:00:00",
+            },
+        )
+        assert r_dup_meal.status_code == 201
+        client.delete(f"/api/meals/{r_dup_meal.json()['id']}")
+
+    resp_after_dup = client.get("/api/products/search?q=carski")
+    assert resp_after_dup.status_code == 200
+    found_dup = next((p for p in resp_after_dup.json() if p["barcode"] == "20146688"), None)
+    assert found_dup is not None
+    assert found_dup["name"] == "Carski sir"
+    assert found_dup["brand"] == "Pilos"
+    client.delete(f"/api/products/{found_dup['id']}")
+    print("✅ 13. Защита от дублирования бренда при повторном сохранении блюда работает корректно.")
+
     print("\n🎉 Все тесты FastAPI бэкенда пройдены успешно!")
 
 if __name__ == "__main__":

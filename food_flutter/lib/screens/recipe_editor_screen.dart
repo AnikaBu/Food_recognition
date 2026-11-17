@@ -122,7 +122,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
       if (!mounted) return;
 
       final initialItem = RecipeIngredientItem(
-        name: product.brand.isNotEmpty ? '${product.name} (${product.brand})' : product.name,
+        name: product.fullName,
         weightG: product.weightG > 0 ? product.weightG : 100.0,
         calories: double.parse(product.calories100g.toStringAsFixed(1)),
         protein: double.parse(product.protein100g.toStringAsFixed(1)),

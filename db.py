@@ -1,4 +1,5 @@
 import os
+import re
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -23,6 +24,46 @@ from models import (
 )
 
 DEFAULT_DB_PATH = Path(__file__).resolve().parent / "nutrition.db"
+_REPEATED_PAREN_RE = re.compile(r"\(([^()]+)\)(?:\s*\(\1\))+", re.IGNORECASE)
+
+
+def _collapse_repeated_parens(text: str) -> str:
+    """Схлопывает повторяющиеся подряд группы в скобках, например '(Pilos) (Pilos)' -> '(Pilos)'."""
+    if not text:
+        return text
+    return _REPEATED_PAREN_RE.sub(r"(\1)", text).strip()
+
+
+def strip_brand_suffix(name: str, brand: Optional[str]) -> str:
+    """Очищает название от суффиксов '(Brand)', чтобы бренд не дублировался при склейке на клиенте."""
+    cleaned = _collapse_repeated_parens((name or "").strip())
+    clean_brand = (brand or "").strip()
+    if not clean_brand or not cleaned:
+        return cleaned
+    pattern = re.compile(rf"\s*\(\s*{re.escape(clean_brand)}\s*\)", re.IGNORECASE)
+    without_brand = re.sub(r"\s{2,}", " ", pattern.sub("", cleaned)).strip()
+    return without_brand if without_brand else cleaned
+
+
+def _cleanup_duplicated_brand_names(conn: sqlite3.Connection) -> None:
+    """Идемпотентно очищает дубли брендов в каталоге saved_products и в сохранённых записях."""
+    saved_rows = conn.execute(
+        "SELECT id, name, brand FROM saved_products WHERE name LIKE '%(%';"
+    ).fetchall()
+    for row in saved_rows:
+        cleaned = strip_brand_suffix(row["name"], row["brand"])
+        if cleaned and cleaned != row["name"]:
+            conn.execute("UPDATE saved_products SET name = ? WHERE id = ?;", (cleaned, row["id"]))
+
+    for table, col in (("meals", "dish_name"), ("meal_items", "name"), ("recipe_items", "name")):
+        rows = conn.execute(
+            f"SELECT id, {col} FROM {table} WHERE {col} LIKE '%(%)%(%';"
+        ).fetchall()
+        for row in rows:
+            val = row[col]
+            cleaned = _collapse_repeated_parens(val)
+            if cleaned and cleaned != val:
+                conn.execute(f"UPDATE {table} SET {col} = ? WHERE id = ?;", (cleaned, row["id"]))
 
 
 def get_db_path(db_path: Optional[Path] = None) -> Path:
@@ -159,6 +200,7 @@ def init_db(db_path: Optional[Path] = None) -> None:
         ]:
             if col_name not in existing_goal_cols:
                 conn.execute(f"ALTER TABLE nutrition_goals ADD COLUMN {col_name} {col_type};")
+        _cleanup_duplicated_brand_names(conn)
         conn.commit()
 
 
@@ -183,14 +225,14 @@ def save_meal(
             INSERT INTO meals (meal_type, dish_name, comment, created_at)
             VALUES (?, ?, ?, ?)
             """,
-            (meal_type.value, analysis.dish_name, analysis.comment, created_at),
+            (meal_type.value, _collapse_repeated_parens(analysis.dish_name), analysis.comment, created_at),
         )
         meal_id = cursor.lastrowid
 
         items_data = [
             (
                 meal_id,
-                item.name,
+                _collapse_repeated_parens(item.name),
                 item.weight_g,
                 item.calories,
                 item.protein,
@@ -339,7 +381,7 @@ def update_meal(
         params = []
         if dish_name is not None and dish_name.strip():
             updates.append("dish_name = ?")
-            params.append(dish_name.strip())
+            params.append(_collapse_repeated_parens(dish_name.strip()))
         if meal_type is not None:
             updates.append("meal_type = ?")
             params.append(meal_type.value)
@@ -356,7 +398,7 @@ def update_meal(
             items_data = [
                 (
                     meal_id,
-                    it.name.strip(),
+                    _collapse_repeated_parens(it.name.strip()),
                     round(float(it.weight_g), 1),
                     round(float(it.calories), 1),
                     round(float(it.protein), 1),
@@ -967,7 +1009,7 @@ def upsert_saved_product(
     Добавляет продукт в каталог или обновляет его данные/счетчик использования.
     Возвращает id сохраненного продукта.
     """
-    clean_name = (name or "").strip()
+    clean_name = _collapse_repeated_parens((name or "").strip())
     clean_barcode = (barcode or "").strip() or None
     clean_brand = (brand or "").strip()
 
@@ -975,14 +1017,17 @@ def upsert_saved_product(
     with get_connection(resolved_path) as conn:
         if clean_barcode:
             existing = conn.execute(
-                "SELECT id, use_count FROM saved_products WHERE barcode = ?;",
+                "SELECT id, brand, use_count FROM saved_products WHERE barcode = ?;",
                 (clean_barcode,),
             ).fetchone()
         else:
             existing = conn.execute(
-                "SELECT id, use_count FROM saved_products WHERE lower(name) = lower(?) AND (barcode IS NULL OR barcode = '');",
+                "SELECT id, brand, use_count FROM saved_products WHERE lower(name) = lower(?) AND (barcode IS NULL OR barcode = '');",
                 (clean_name,),
             ).fetchone()
+
+        effective_brand = clean_brand or (existing["brand"] if existing else "") or ""
+        clean_name = strip_brand_suffix(clean_name, effective_brand)
 
         if existing:
             prod_id = existing["id"]

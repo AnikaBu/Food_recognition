@@ -288,9 +288,7 @@ class _ManualMealSheetState extends State<ManualMealSheet> {
       final result = await widget.apiService.lookupBarcode(barcode);
 
       if (mounted) {
-        final fullName = result.brand.isNotEmpty
-            ? '${result.name} (${result.brand})'
-            : result.name;
+        final fullName = result.fullName;
 
         final hasZeroNutrition = result.calories100g == 0 &&
             result.protein100g == 0 &&
