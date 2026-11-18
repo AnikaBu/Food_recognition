@@ -263,6 +263,7 @@ class WeeklyMacroDay(BaseModel):
     fat: float = Field(default=0.0, ge=0, description="Жиры за день (г)")
     carbs: float = Field(default=0.0, ge=0, description="Углеводы за день (г)")
     meals_count: int = Field(default=0, ge=0, description="Количество приемов пищи")
+    workouts_count: int = Field(default=0, ge=0, description="Количество тренировок за день")
 
 
 class WeeklyMacroSummary(BaseModel):

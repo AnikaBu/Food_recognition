@@ -262,6 +262,14 @@
   - [x] `barcode_service.py`: очистка `name` от дублирующегося суффикса `(brand)` при разборе ответов Open Food Facts и Gemini AI;
   - [x] Flutter и PWA (`meal_models.dart`, `manual_meal_sheet.dart`, `recipe_editor_screen.dart`, `frontend/app.js`): единые функции форматирования `formatProductDisplayName` / `formatProductFullName`, исключающие повторное добавление `(Brand)` при выборе из подсказок или сканировании штрихкода;
   - [x] Тесты в `test_db.py` и `test_api.py` для проверки дедупликации бренда и очистки прошлых записей.
+- [x] Сдвоенные индикаторы питания и активности в недельной полосе (Dual Dots Habit Tracker):
+  - [x] Бэкенд (`models.py`, `db.py`): добавление `workouts_count` в `WeeklyMacroDay` и запрос к таблице `workouts` в `get_weekly_macro_summary` за 1 вызов;
+  - [x] Модели Flutter (`meal_models.dart`): парсинг `workoutsCount` в модели `WeeklyMacroDay`;
+  - [x] Недельная полоса Flutter (`DiaryScreen`): поддержка сдвоенных микро-индикаторов:
+    - Только еда: 1 точка по центру цвета активной темы (`tokens.primary`);
+    - Только тренировка: 1 точка по центру цвета энергии и огня (`#F97316` со свечением);
+    - И еда, и тренировка: 2 аккуратные микро-точки рядом `• •` (левая — питание, правая — активность);
+    - Подсветка карточки дня при любом типе активности (`hasMeals || hasWorkouts`) и реактивное обновление при создании/удалении тренировки.
 
 
 

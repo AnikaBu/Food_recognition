@@ -312,6 +312,13 @@ def test_database_workflow():
     assert db.update_workout(999999, UpdateWorkoutRequest(duration_minutes=20), db_path=test_db_path) is None
     print("✅ 12. Учет тренировок (сохранение, обновление, расчет минут/калорий в DailySummary, удаление) работает корректно.")
 
+    # Проверка включения тренировок в недельный обзор
+    weekly_with_workouts = db.get_weekly_macro_summary(date_str=today_str, mode="week", db_path=test_db_path)
+    target_day = next((d for d in weekly_with_workouts.days if d.date == today_str), None)
+    assert target_day is not None
+    assert target_day.workouts_count == 1
+    print("✅ 12.1. workouts_count в get_weekly_macro_summary корректно отражает сохраненную активность.")
+
     # 13. Проверка защиты от дублирования бренда в saved_products и автоочистки истории
     dup_pid = db.upsert_saved_product(
         name="Carski sir",

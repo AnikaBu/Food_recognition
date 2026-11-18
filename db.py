@@ -827,6 +827,19 @@ def get_weekly_macro_summary(
         )
         rows = cursor.fetchall()
 
+        cursor.execute(
+            """
+            SELECT date, COUNT(id) as cnt
+            FROM workouts
+            WHERE date >= date(?) AND date <= date(?)
+            GROUP BY date
+            """,
+            (start_str, end_str),
+        )
+        w_rows = cursor.fetchall()
+
+    workout_stats = {r["date"]: int(r["cnt"]) for r in w_rows}
+
     day_stats = {}
     for r in rows:
         day_stats[r["day_str"]] = {
@@ -869,6 +882,7 @@ def get_weekly_macro_summary(
                 fat=f,
                 carbs=c,
                 meals_count=stat["cnt"],
+                workouts_count=workout_stats.get(d_str, 0),
             )
         )
 

@@ -697,6 +697,7 @@ class WeeklyMacroDay {
   final double fat;
   final double carbs;
   final int mealsCount;
+  final int workoutsCount;
 
   WeeklyMacroDay({
     required this.date,
@@ -708,6 +709,7 @@ class WeeklyMacroDay {
     required this.fat,
     required this.carbs,
     required this.mealsCount,
+    this.workoutsCount = 0,
   });
 
   factory WeeklyMacroDay.fromJson(Map<String, dynamic> json) {
@@ -721,6 +723,7 @@ class WeeklyMacroDay {
       fat: (json['fat'] as num?)?.toDouble() ?? 0.0,
       carbs: (json['carbs'] as num?)?.toDouble() ?? 0.0,
       mealsCount: (json['meals_count'] as num?)?.toInt() ?? 0,
+      workoutsCount: (json['workouts_count'] as num?)?.toInt() ?? 0,
     );
   }
 }

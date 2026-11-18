@@ -42,6 +42,7 @@ class DiaryScreenState extends State<DiaryScreen> {
   final Map<String, DailySummary> _summaryCache = {};
   String? _loadedWeekKey;
   final Map<String, int> _daysMealsCount = {};
+  final Map<String, int> _daysWorkoutsCount = {};
 
   String _formatDateKey(DateTime date) =>
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
@@ -191,6 +192,7 @@ class DiaryScreenState extends State<DiaryScreen> {
             _summary = summary;
             _isLoading = false;
             _daysMealsCount[key] = summary.meals.length;
+            _daysWorkoutsCount[key] = summary.workouts.length;
           });
         }
       }
@@ -221,6 +223,7 @@ class DiaryScreenState extends State<DiaryScreen> {
           _loadedWeekKey = currentWeekKey;
           for (final day in weekly.days) {
             _daysMealsCount[day.date] = day.mealsCount;
+            _daysWorkoutsCount[day.date] = day.workoutsCount;
           }
         });
       }
@@ -299,6 +302,7 @@ class DiaryScreenState extends State<DiaryScreen> {
         onWorkoutSaved: () {
           _summaryCache.remove(_formatDateKey(_selectedDate));
           _loadSummary();
+          _loadWeekMeals(force: true);
         },
       ),
     );
@@ -350,6 +354,7 @@ class DiaryScreenState extends State<DiaryScreen> {
         await widget.apiService.deleteWorkout(workout.id);
         _summaryCache.remove(_formatDateKey(_selectedDate));
         _loadSummary();
+        _loadWeekMeals(force: true);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Тренировка удалена'), behavior: SnackBarBehavior.floating),
@@ -598,7 +603,7 @@ class DiaryScreenState extends State<DiaryScreen> {
 
               const SizedBox(height: 12),
 
-              // 2. Horizontal Week Strip (Concept 1: glowing theme border + filled style for days with food)
+              // 2. Horizontal Week Strip (Concept 1: glowing theme border + filled style for days with food/workouts)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(7, (idx) {
@@ -608,14 +613,18 @@ class DiaryScreenState extends State<DiaryScreen> {
                   final hasMeals = (_daysMealsCount[dayKey] ?? 0) > 0 ||
                       (_summaryCache[dayKey]?.meals.isNotEmpty ?? false) ||
                       (isSelected && (_summary?.meals.isNotEmpty ?? false));
+                  final hasWorkouts = (_daysWorkoutsCount[dayKey] ?? 0) > 0 ||
+                      (_summaryCache[dayKey]?.workouts.isNotEmpty ?? false) ||
+                      (isSelected && (_summary?.workouts.isNotEmpty ?? false));
+                  final hasActivity = hasMeals || hasWorkouts;
 
                   // Background color
                   final Color cardBgColor;
                   if (isSelected) {
-                    cardBgColor = hasMeals
+                    cardBgColor = hasActivity
                         ? tokens.primary.withOpacity(isDark ? 0.22 : 0.16)
                         : (isDark ? tokens.cardBg : AppColors.lightCard);
-                  } else if (hasMeals) {
+                  } else if (hasActivity) {
                     cardBgColor = tokens.primary.withOpacity(isDark ? 0.16 : 0.10);
                   } else {
                     cardBgColor = isDark ? tokens.cardBg : AppColors.lightCard;
@@ -625,7 +634,7 @@ class DiaryScreenState extends State<DiaryScreen> {
                   final Border cardBorder;
                   if (isSelected) {
                     cardBorder = Border.all(color: tokens.primary, width: 2.0);
-                  } else if (hasMeals) {
+                  } else if (hasActivity) {
                     cardBorder = Border.all(
                       color: tokens.primary.withOpacity(isDark ? 0.40 : 0.30),
                       width: 1.0,
@@ -648,7 +657,7 @@ class DiaryScreenState extends State<DiaryScreen> {
                         offset: const Offset(0, 2),
                       ),
                     ];
-                  } else if (hasMeals) {
+                  } else if (hasActivity) {
                     cardShadow = [
                       BoxShadow(
                         color: tokens.primary.withOpacity(isDark ? 0.10 : 0.06),
@@ -691,7 +700,7 @@ class DiaryScreenState extends State<DiaryScreen> {
                               fontWeight: FontWeight.w700,
                               color: isSelected
                                   ? tokens.primary
-                                  : (hasMeals
+                                  : (hasActivity
                                       ? (isDark ? tokens.textPrimary : tokens.primaryDark)
                                       : (isDark ? tokens.textSecondary : AppColors.lightTextSecondary)),
                             ),
@@ -701,26 +710,83 @@ class DiaryScreenState extends State<DiaryScreen> {
                             dayDate.day.toString(),
                             style: TextStyle(
                               fontSize: 15.5,
-                              fontWeight: (isSelected || hasMeals) ? FontWeight.w900 : FontWeight.w700,
+                              fontWeight: (isSelected || hasActivity) ? FontWeight.w900 : FontWeight.w700,
                               color: isSelected
                                   ? tokens.primary
-                                  : (hasMeals
+                                  : (hasActivity
                                       ? (isDark ? tokens.textPrimary : AppColors.lightTextPrimary)
                                       : (isDark ? tokens.textSecondary : AppColors.lightTextSecondary)),
                             ),
                           ),
                           const SizedBox(height: 3),
-                          if (hasMeals)
-                            Container(
-                              width: 4.5,
-                              height: 4.5,
-                              decoration: BoxDecoration(
-                                color: isSelected ? tokens.primary : tokens.primary.withOpacity(0.85),
-                                shape: BoxShape.circle,
-                              ),
-                            )
-                          else
-                            const SizedBox(height: 4.5),
+                          SizedBox(
+                            height: 4.5,
+                            child: Center(
+                              child: hasMeals && hasWorkouts
+                                  ? Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        // Точка питания (цвет темы)
+                                        Container(
+                                          width: 4.0,
+                                          height: 4.0,
+                                          decoration: BoxDecoration(
+                                            color: isSelected
+                                                ? tokens.primary
+                                                : tokens.primary.withOpacity(0.9),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 3.5),
+                                        // Точка тренировки (энергичный оранжевый с мягким неоновым свечением)
+                                        Container(
+                                          width: 4.0,
+                                          height: 4.0,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFF97316),
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: const Color(0xFFF97316).withOpacity(0.45),
+                                                blurRadius: 2.0,
+                                                spreadRadius: 0.2,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : hasMeals
+                                      ? Container(
+                                          width: 4.5,
+                                          height: 4.5,
+                                          decoration: BoxDecoration(
+                                            color: isSelected
+                                                ? tokens.primary
+                                                : tokens.primary.withOpacity(0.85),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        )
+                                      : hasWorkouts
+                                          ? Container(
+                                              width: 4.5,
+                                              height: 4.5,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFF97316),
+                                                shape: BoxShape.circle,
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: const Color(0xFFF97316).withOpacity(0.5),
+                                                    blurRadius: 2.5,
+                                                    spreadRadius: 0.2,
+                                                  ),
+                                                ],
+                                              ),
+                                            )
+                                          : const SizedBox(height: 4.5),
+                            ),
+                          ),
                         ],
                       ),
                     ),
