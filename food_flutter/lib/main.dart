@@ -444,7 +444,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             ),
           ),
 
-          // Center Elevated Glowing Button
+          // Center Elevated Button (Soft accent without harsh neon glare)
           Positioned(
             top: 0,
             child: GestureDetector(
@@ -461,15 +461,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: tokens.primary.withOpacity(isDark ? 0.50 : 0.35),
-                      blurRadius: 18,
-                      spreadRadius: 2,
-                      offset: const Offset(0, 4),
+                      color: tokens.primary.withOpacity(isDark ? 0.24 : 0.18),
+                      blurRadius: 10,
+                      spreadRadius: 0.5,
+                      offset: const Offset(0, 3),
                     ),
                   ],
                   border: Border.all(
-                    color: isDark ? Colors.white.withOpacity(0.35) : Colors.white,
-                    width: 2.5,
+                    color: isDark ? Colors.white.withOpacity(0.18) : Colors.white,
+                    width: 2.0,
                   ),
                 ),
                 child: const Icon(

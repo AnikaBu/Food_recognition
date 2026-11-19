@@ -57,13 +57,24 @@ class DiaryScreenState extends State<DiaryScreen> {
   double _targetFat = 65;
   double _targetCarbs = 250;
 
-  // Track expanded category cards
-  final Set<MealType> _expandedCategories = {
-    MealType.breakfast,
-    MealType.lunch,
-    MealType.dinner,
-    MealType.snack,
-  };
+  // Track expanded category cards (empty by default until summary syncs: filled -> collapsed, empty -> expanded)
+  final Set<MealType> _expandedCategories = {};
+  bool _autoSyncExpanded = true;
+
+  void _syncExpandedWithSummary(DailySummary summary) {
+    _expandedCategories.clear();
+    for (final type in [
+      MealType.breakfast,
+      MealType.lunch,
+      MealType.dinner,
+      MealType.snack,
+    ]) {
+      final hasMeals = summary.meals.any((m) => m.mealType == type);
+      if (!hasMeals) {
+        _expandedCategories.add(type);
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -179,6 +190,10 @@ class DiaryScreenState extends State<DiaryScreen> {
 
     setState(() {
       _summary = cached;
+      if (cached != null && _autoSyncExpanded) {
+        _syncExpandedWithSummary(cached);
+        _autoSyncExpanded = false;
+      }
       _isLoading = (cached == null);
       _errorMessage = null;
     });
@@ -190,6 +205,10 @@ class DiaryScreenState extends State<DiaryScreen> {
         if (_formatDateKey(_selectedDate) == key) {
           setState(() {
             _summary = summary;
+            if (_autoSyncExpanded) {
+              _syncExpandedWithSummary(summary);
+              _autoSyncExpanded = false;
+            }
             _isLoading = false;
             _daysMealsCount[key] = summary.meals.length;
             _daysWorkoutsCount[key] = summary.workouts.length;
@@ -254,6 +273,7 @@ class DiaryScreenState extends State<DiaryScreen> {
       setState(() {
         _slideDirection = delta >= 0 ? 1 : -1;
         _selectedDate = picked;
+        _autoSyncExpanded = true;
       });
       await _loadSummary();
     }
@@ -268,6 +288,7 @@ class DiaryScreenState extends State<DiaryScreen> {
     setState(() {
       _slideDirection = delta > 0 ? 1 : -1;
       _selectedDate = newDate;
+      _autoSyncExpanded = true;
     });
     _loadSummary();
   }
@@ -618,25 +639,28 @@ class DiaryScreenState extends State<DiaryScreen> {
                       (isSelected && (_summary?.workouts.isNotEmpty ?? false));
                   final hasActivity = hasMeals || hasWorkouts;
 
-                  // Background color
+                  // Background color (Soft, non-blinding tint)
                   final Color cardBgColor;
                   if (isSelected) {
                     cardBgColor = hasActivity
-                        ? tokens.primary.withOpacity(isDark ? 0.22 : 0.16)
+                        ? tokens.primary.withOpacity(isDark ? 0.15 : 0.10)
                         : (isDark ? tokens.cardBg : AppColors.lightCard);
                   } else if (hasActivity) {
-                    cardBgColor = tokens.primary.withOpacity(isDark ? 0.16 : 0.10);
+                    cardBgColor = tokens.primary.withOpacity(isDark ? 0.10 : 0.06);
                   } else {
                     cardBgColor = isDark ? tokens.cardBg : AppColors.lightCard;
                   }
 
-                  // Border
+                  // Border (Refined 1.5px accent line instead of heavy neon)
                   final Border cardBorder;
                   if (isSelected) {
-                    cardBorder = Border.all(color: tokens.primary, width: 2.0);
+                    cardBorder = Border.all(
+                      color: tokens.primary.withOpacity(isDark ? 0.70 : 0.85),
+                      width: 1.5,
+                    );
                   } else if (hasActivity) {
                     cardBorder = Border.all(
-                      color: tokens.primary.withOpacity(isDark ? 0.40 : 0.30),
+                      color: tokens.primary.withOpacity(isDark ? 0.28 : 0.20),
                       width: 1.0,
                     );
                   } else {
@@ -646,22 +670,22 @@ class DiaryScreenState extends State<DiaryScreen> {
                     );
                   }
 
-                  // Shadow
+                  // Shadow (Calm subtle depth)
                   final List<BoxShadow>? cardShadow;
                   if (isSelected) {
                     cardShadow = [
                       BoxShadow(
-                        color: tokens.primary.withOpacity(isDark ? 0.35 : 0.20),
-                        blurRadius: 10,
-                        spreadRadius: 0.5,
-                        offset: const Offset(0, 2),
+                        color: tokens.primary.withOpacity(isDark ? 0.16 : 0.10),
+                        blurRadius: 6,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 1.5),
                       ),
                     ];
                   } else if (hasActivity) {
                     cardShadow = [
                       BoxShadow(
-                        color: tokens.primary.withOpacity(isDark ? 0.10 : 0.06),
-                        blurRadius: 4,
+                        color: tokens.primary.withOpacity(isDark ? 0.06 : 0.03),
+                        blurRadius: 3,
                         offset: const Offset(0, 1),
                       ),
                     ];
@@ -676,6 +700,7 @@ class DiaryScreenState extends State<DiaryScreen> {
                         setState(() {
                           _slideDirection = delta >= 0 ? 1 : -1;
                           _selectedDate = dayDate;
+                          _autoSyncExpanded = true;
                         });
                         _loadSummary();
                       }
@@ -712,7 +737,7 @@ class DiaryScreenState extends State<DiaryScreen> {
                               fontSize: 15.5,
                               fontWeight: (isSelected || hasActivity) ? FontWeight.w900 : FontWeight.w700,
                               color: isSelected
-                                  ? tokens.primary
+                                  ? (isDark ? tokens.textPrimary : tokens.primaryDark)
                                   : (hasActivity
                                       ? (isDark ? tokens.textPrimary : AppColors.lightTextPrimary)
                                       : (isDark ? tokens.textSecondary : AppColors.lightTextSecondary)),

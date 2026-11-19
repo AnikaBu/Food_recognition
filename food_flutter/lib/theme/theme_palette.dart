@@ -192,9 +192,9 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
         return const AppThemeTokens(
           palette: AppThemePalette.bioForest,
           isDark: true,
-          primary: Color(0xFF84CC16),         // Теплый лайм / золотистая олива (#84CC16)
-          primaryRoyal: Color(0xFF65A30D),    // Насыщенная олива
-          primaryDark: Color(0xFF4D7C0F),     // Хвойный темно-зеленый
+          primary: Color(0xFF65A30D),         // Мягкая золотистая олива (#65A30D)
+          primaryRoyal: Color(0xFF4D7C0F),    // Насыщенная приглушенная олива
+          primaryDark: Color(0xFF365314),     // Хвойный темно-зеленый
           primaryLight: Color(0xFFF7FEE7),
           bgTop: bgTop,
           bgMiddle: bgMiddle,
@@ -206,9 +206,9 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
           inputBg: Color(0xFF101B14),
           textPrimary: Color(0xFFF4FBF5),
           textSecondary: Color(0xFF98AA9D),
-          macroCalorie: Color(0xFF84CC16),    // Золотая олива
-          macroCalorieLight: Color(0xFFA3E635),
-          macroCalorieDark: Color(0xFF65A30D),
+          macroCalorie: Color(0xFF65A30D),    // Золотая олива
+          macroCalorieLight: Color(0xFF84CC16),
+          macroCalorieDark: Color(0xFF4D7C0F),
           macroProtein: Color(0xFF4ADE80),    // Фисташково-мятный
           macroFat: Color(0xFFEAB308),        // Теплый янтарный орех
           macroCarb: Color(0xFF2DD4BF),       // Травяной шалфей / бирюза
@@ -228,9 +228,9 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
         return const AppThemeTokens(
           palette: AppThemePalette.neoObsidian,
           isDark: true,
-          primary: Color(0xFF10B981),         // Неоновый изумруд / мята (#10B981)
-          primaryRoyal: Color(0xFF059669),
-          primaryDark: Color(0xFF047857),
+          primary: Color(0xFF059669),         // Спокойный изумруд / мята (#059669)
+          primaryRoyal: Color(0xFF047857),
+          primaryDark: Color(0xFF064E3B),
           primaryLight: Color(0xFFECFDF5),
           bgTop: bgTop,
           bgMiddle: bgMiddle,
@@ -242,9 +242,9 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
           inputBg: Color(0xFF090E0C),
           textPrimary: Color(0xFFF9FAFB),
           textSecondary: Color(0xFF9CA3AF),
-          macroCalorie: Color(0xFF10B981),
-          macroCalorieLight: Color(0xFF34D399),
-          macroCalorieDark: Color(0xFF059669),
+          macroCalorie: Color(0xFF059669),
+          macroCalorieLight: Color(0xFF10B981),
+          macroCalorieDark: Color(0xFF047857),
           macroProtein: Color(0xFF38BDF8),
           macroFat: Color(0xFFFBBF24),
           macroCarb: Color(0xFF2DD4BF),
@@ -264,9 +264,9 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
         return const AppThemeTokens(
           palette: AppThemePalette.sunsetAmethyst,
           isDark: true,
-          primary: Color(0xFFA855F7),         // Электрический аметист (#A855F7)
-          primaryRoyal: Color(0xFF9333EA),
-          primaryDark: Color(0xFF7E22CE),
+          primary: Color(0xFF9333EA),         // Глубокий благородный аметист (#9333EA)
+          primaryRoyal: Color(0xFF7E22CE),
+          primaryDark: Color(0xFF6B21A8),
           primaryLight: Color(0xFFFAF5FF),
           bgTop: bgTop,
           bgMiddle: bgMiddle,
@@ -280,7 +280,7 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
           textSecondary: Color(0xFFA89BB9),
           macroCalorie: Color(0xFFFF5E62),    // Коралловый фламинго
           macroCalorieLight: Color(0xFFFF7E82),
-          macroCalorieDark: Color(0xFF9333EA),
+          macroCalorieDark: Color(0xFF7E22CE),
           macroProtein: Color(0xFF818CF8),
           macroFat: Color(0xFFFB7185),
           macroCarb: Color(0xFF38BDF8),
@@ -301,9 +301,9 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
         return const AppThemeTokens(
           palette: AppThemePalette.cyberSapphire,
           isDark: true,
-          primary: Color(0xFF3B82F6),         // Vibrant Sapphire (#3B82F6)
-          primaryRoyal: Color(0xFF2563EB),    // Rich Royal Blue (#2563EB)
-          primaryDark: Color(0xFF1D4ED8),
+          primary: Color(0xFF2563EB),         // Спокойный королевский сапфир (#2563EB)
+          primaryRoyal: Color(0xFF1D4ED8),    // Rich Royal Blue (#1D4ED8)
+          primaryDark: Color(0xFF1E40AF),
           primaryLight: Color(0xFFEFF6FF),
           bgTop: bgTop,
           bgMiddle: bgMiddle,
