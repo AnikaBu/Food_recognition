@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/meal_models.dart';
@@ -43,6 +44,7 @@ class DiaryScreenState extends State<DiaryScreen> {
   String? _loadedWeekKey;
   final Map<String, int> _daysMealsCount = {};
   final Map<String, int> _daysWorkoutsCount = {};
+  final Map<String, double> _daysCalories = {};
 
   String _formatDateKey(DateTime date) =>
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
@@ -212,6 +214,7 @@ class DiaryScreenState extends State<DiaryScreen> {
             _isLoading = false;
             _daysMealsCount[key] = summary.meals.length;
             _daysWorkoutsCount[key] = summary.workouts.length;
+            _daysCalories[key] = summary.totalCalories;
           });
         }
       }
@@ -243,6 +246,7 @@ class DiaryScreenState extends State<DiaryScreen> {
           for (final day in weekly.days) {
             _daysMealsCount[day.date] = day.mealsCount;
             _daysWorkoutsCount[day.date] = day.workoutsCount;
+            _daysCalories[day.date] = day.calories;
           }
         });
       }
@@ -624,105 +628,74 @@ class DiaryScreenState extends State<DiaryScreen> {
 
               const SizedBox(height: 12),
 
-              // 2. Horizontal Week Strip (Concept 1: glowing theme border + filled style for days with food/workouts)
+              // 2. Horizontal Week Strip with Compact Calorie Progress Rings
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(7, (idx) {
                   final dayDate = weekDates[idx];
                   final dayKey = _formatDateKey(dayDate);
                   final isSelected = _isSameDay(dayDate, _selectedDate);
+
+                  final double dayCalories;
+                  if (isSelected && _summary != null) {
+                    dayCalories = _summary!.totalCalories;
+                  } else if (_summaryCache[dayKey] != null) {
+                    dayCalories = _summaryCache[dayKey]!.totalCalories;
+                  } else {
+                    dayCalories = _daysCalories[dayKey] ?? 0.0;
+                  }
+
                   final hasMeals = (_daysMealsCount[dayKey] ?? 0) > 0 ||
                       (_summaryCache[dayKey]?.meals.isNotEmpty ?? false) ||
-                      (isSelected && (_summary?.meals.isNotEmpty ?? false));
+                      (isSelected && (_summary?.meals.isNotEmpty ?? false)) ||
+                      dayCalories > 0;
                   final hasWorkouts = (_daysWorkoutsCount[dayKey] ?? 0) > 0 ||
                       (_summaryCache[dayKey]?.workouts.isNotEmpty ?? false) ||
                       (isSelected && (_summary?.workouts.isNotEmpty ?? false));
                   final hasActivity = hasMeals || hasWorkouts;
 
-                  // Background color (Soft, non-blinding tint)
-                  final Color cardBgColor;
-                  if (isSelected) {
-                    cardBgColor = hasActivity
-                        ? tokens.primary.withOpacity(isDark ? 0.15 : 0.10)
-                        : (isDark ? tokens.cardBg : AppColors.lightCard);
-                  } else if (hasActivity) {
-                    cardBgColor = tokens.primary.withOpacity(isDark ? 0.10 : 0.06);
-                  } else {
-                    cardBgColor = isDark ? tokens.cardBg : AppColors.lightCard;
-                  }
+                  final double rawProgress = _targetCalories > 0
+                      ? (dayCalories / _targetCalories)
+                      : 0.0;
+                  final bool isOver = hasMeals && rawProgress > 1.07;
+                  final double ringProgress = hasMeals
+                      ? (rawProgress >= 0.95 ? 1.0 : rawProgress.clamp(0.08, 1.0))
+                      : 0.0;
 
-                  // Border (Refined 1.5px accent line instead of heavy neon)
-                  final Border cardBorder;
-                  if (isSelected) {
-                    cardBorder = Border.all(
-                      color: tokens.primary.withOpacity(isDark ? 0.70 : 0.85),
-                      width: 1.5,
-                    );
-                  } else if (hasActivity) {
-                    cardBorder = Border.all(
-                      color: tokens.primary.withOpacity(isDark ? 0.28 : 0.20),
-                      width: 1.0,
-                    );
-                  } else {
-                    cardBorder = Border.all(
-                      color: isDark ? tokens.cardBorder : AppColors.lightBorder,
-                      width: 1.0,
-                    );
-                  }
+                  final Color progressColor = isOver
+                      ? const Color(0xFFEF4444)
+                      : tokens.primary;
+                  final Color emptyTrackColor = isDark
+                      ? Colors.white.withOpacity(isSelected ? 0.45 : 0.18)
+                      : (isSelected
+                          ? tokens.primary.withOpacity(0.45)
+                          : const Color(0xFFCBD5E1));
+                  final Color activeTrackColor = isDark
+                      ? Colors.white.withOpacity(0.10)
+                      : const Color(0xFFE2E8F0);
 
-                  // Shadow (Calm subtle depth)
-                  final List<BoxShadow>? cardShadow;
-                  if (isSelected) {
-                    cardShadow = [
-                      BoxShadow(
-                        color: tokens.primary.withOpacity(isDark ? 0.16 : 0.10),
-                        blurRadius: 6,
-                        spreadRadius: 0,
-                        offset: const Offset(0, 1.5),
-                      ),
-                    ];
-                  } else if (hasActivity) {
-                    cardShadow = [
-                      BoxShadow(
-                        color: tokens.primary.withOpacity(isDark ? 0.06 : 0.03),
-                        blurRadius: 3,
-                        offset: const Offset(0, 1),
-                      ),
-                    ];
-                  } else {
-                    cardShadow = null;
-                  }
-
-                  return GestureDetector(
-                    onTap: () {
-                      if (!_isSameDay(dayDate, _selectedDate)) {
-                        final delta = dayDate.difference(_selectedDate).inDays;
-                        setState(() {
-                          _slideDirection = delta >= 0 ? 1 : -1;
-                          _selectedDate = dayDate;
-                          _autoSyncExpanded = true;
-                        });
-                        _loadSummary();
-                      }
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 44,
-                      height: 58,
-                      decoration: BoxDecoration(
-                        color: cardBgColor,
-                        borderRadius: BorderRadius.circular(14),
-                        border: cardBorder,
-                        boxShadow: cardShadow,
-                      ),
+                  return Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        if (!_isSameDay(dayDate, _selectedDate)) {
+                          final delta = dayDate.difference(_selectedDate).inDays;
+                          setState(() {
+                            _slideDirection = delta >= 0 ? 1 : -1;
+                            _selectedDate = dayDate;
+                            _autoSyncExpanded = true;
+                          });
+                          _loadSummary();
+                        }
+                      },
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             weekDayNames[idx],
                             style: TextStyle(
                               fontSize: 10.5,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                               color: isSelected
                                   ? tokens.primary
                                   : (hasActivity
@@ -730,86 +703,65 @@ class DiaryScreenState extends State<DiaryScreen> {
                                       : (isDark ? tokens.textSecondary : AppColors.lightTextSecondary)),
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            dayDate.day.toString(),
-                            style: TextStyle(
-                              fontSize: 15.5,
-                              fontWeight: (isSelected || hasActivity) ? FontWeight.w900 : FontWeight.w700,
+                          const SizedBox(height: 4),
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
                               color: isSelected
-                                  ? (isDark ? tokens.textPrimary : tokens.primaryDark)
-                                  : (hasActivity
-                                      ? (isDark ? tokens.textPrimary : AppColors.lightTextPrimary)
-                                      : (isDark ? tokens.textSecondary : AppColors.lightTextSecondary)),
+                                  ? tokens.primary.withOpacity(isDark ? 0.18 : 0.11)
+                                  : Colors.transparent,
+                            ),
+                            child: CustomPaint(
+                              painter: _DayProgressRingPainter(
+                                progress: ringProgress,
+                                hasMeals: hasMeals,
+                                isSelected: isSelected,
+                                progressColor: progressColor,
+                                trackColor: hasMeals ? activeTrackColor : emptyTrackColor,
+                                dashedWhenEmpty: !isSelected,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  dayDate.day.toString(),
+                                  style: TextStyle(
+                                    fontSize: 13.0,
+                                    fontWeight: (isSelected || hasActivity)
+                                        ? FontWeight.w800
+                                        : FontWeight.w600,
+                                    color: isSelected
+                                        ? (isDark ? Colors.white : tokens.primaryDark)
+                                        : (hasActivity
+                                            ? (isDark ? tokens.textPrimary : AppColors.lightTextPrimary)
+                                            : (isDark ? tokens.textSecondary : AppColors.lightTextSecondary)),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 3),
                           SizedBox(
                             height: 4.5,
                             child: Center(
-                              child: hasMeals && hasWorkouts
-                                  ? Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        // Точка питания (цвет темы)
-                                        Container(
-                                          width: 4.0,
-                                          height: 4.0,
-                                          decoration: BoxDecoration(
-                                            color: isSelected
-                                                ? tokens.primary
-                                                : tokens.primary.withOpacity(0.9),
-                                            shape: BoxShape.circle,
+                              child: hasWorkouts
+                                  ? Container(
+                                      width: 4.0,
+                                      height: 4.0,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF97316),
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFFF97316).withOpacity(0.45),
+                                            blurRadius: 2.0,
+                                            spreadRadius: 0.2,
                                           ),
-                                        ),
-                                        const SizedBox(width: 3.5),
-                                        // Точка тренировки (энергичный оранжевый с мягким неоновым свечением)
-                                        Container(
-                                          width: 4.0,
-                                          height: 4.0,
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFF97316),
-                                            shape: BoxShape.circle,
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: const Color(0xFFF97316).withOpacity(0.45),
-                                                blurRadius: 2.0,
-                                                spreadRadius: 0.2,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     )
-                                  : hasMeals
-                                      ? Container(
-                                          width: 4.5,
-                                          height: 4.5,
-                                          decoration: BoxDecoration(
-                                            color: isSelected
-                                                ? tokens.primary
-                                                : tokens.primary.withOpacity(0.85),
-                                            shape: BoxShape.circle,
-                                          ),
-                                        )
-                                      : hasWorkouts
-                                          ? Container(
-                                              width: 4.5,
-                                              height: 4.5,
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFF97316),
-                                                shape: BoxShape.circle,
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: const Color(0xFFF97316).withOpacity(0.5),
-                                                    blurRadius: 2.5,
-                                                    spreadRadius: 0.2,
-                                                  ),
-                                                ],
-                                              ),
-                                            )
-                                          : const SizedBox(height: 4.5),
+                                  : const SizedBox.shrink(),
                             ),
                           ),
                         ],
@@ -1523,5 +1475,82 @@ class DiaryScreenState extends State<DiaryScreen> {
         ),
       ),
     );
+  }
+}
+
+class _DayProgressRingPainter extends CustomPainter {
+  final double progress;
+  final bool hasMeals;
+  final bool isSelected;
+  final Color progressColor;
+  final Color trackColor;
+  final bool dashedWhenEmpty;
+
+  const _DayProgressRingPainter({
+    required this.progress,
+    required this.hasMeals,
+    required this.isSelected,
+    required this.progressColor,
+    required this.trackColor,
+    required this.dashedWhenEmpty,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    const double strokeWidth = 2.1;
+    final double radius = (math.min(size.width, size.height) - strokeWidth) / 2;
+
+    if (!hasMeals && dashedWhenEmpty) {
+      final dashPaint = Paint()
+        ..color = trackColor
+        ..strokeWidth = 1.5
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+
+      const int dashes = 12;
+      const double step = (2 * math.pi) / dashes;
+      const double dashSweep = step * 0.52;
+      final rect = Rect.fromCircle(center: center, radius: radius);
+
+      for (int i = 0; i < dashes; i++) {
+        canvas.drawArc(rect, -math.pi / 2 + i * step, dashSweep, false, dashPaint);
+      }
+      return;
+    }
+
+    final trackPaint = Paint()
+      ..color = trackColor
+      ..strokeWidth = hasMeals ? strokeWidth : 1.7
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawCircle(center, radius, trackPaint);
+
+    if (hasMeals && progress > 0) {
+      final progressPaint = Paint()
+        ..color = progressColor
+        ..strokeWidth = isSelected ? strokeWidth + 0.3 : strokeWidth
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+
+      final rect = Rect.fromCircle(center: center, radius: radius);
+      canvas.drawArc(
+        rect,
+        -math.pi / 2,
+        2 * math.pi * progress.clamp(0.0, 1.0),
+        false,
+        progressPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DayProgressRingPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.hasMeals != hasMeals ||
+        oldDelegate.isSelected != isSelected ||
+        oldDelegate.progressColor != progressColor ||
+        oldDelegate.trackColor != trackColor ||
+        oldDelegate.dashedWhenEmpty != dashedWhenEmpty;
   }
 }

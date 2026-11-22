@@ -300,7 +300,7 @@ class _RecipeCard extends StatelessWidget {
     final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
     final weightStr = recipe.cookedWeightG != null
-        ? 'Готовый вес: ${recipe.cookedWeightG!.toStringAsFixed(0)}г (сырой: ${recipe.totalRawWeightG.toStringAsFixed(0)}г)'
+        ? 'Готовый вес: ${recipe.cookedWeightG!.toStringAsFixed(0)}г'
         : 'Вес: ${recipe.totalRawWeightG.toStringAsFixed(0)}г';
 
     return Card(

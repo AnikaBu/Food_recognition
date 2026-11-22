@@ -1187,7 +1187,7 @@ function renderRecipesList() {
 
     const rawWeightVal = r.raw_weight_g != null ? r.raw_weight_g : (r.total_raw_weight_g || 0);
     const weightBadge = r.cooked_weight_g
-      ? `Готовый вес: <strong>${Math.round(r.cooked_weight_g)}г</strong> (сырой: ${Math.round(rawWeightVal)}г)`
+      ? `Готовый вес: <strong>${Math.round(r.cooked_weight_g)}г</strong>`
       : `Вес: <strong>${Math.round(rawWeightVal)}г</strong>`;
 
     return `

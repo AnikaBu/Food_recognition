@@ -672,7 +672,9 @@ class RecipeRecord {
       title: json['title'] as String? ?? 'Рецепт',
       description: json['description'] as String?,
       cookedWeightG: (json['cooked_weight_g'] as num?)?.toDouble(),
-      totalRawWeightG: (json['total_raw_weight_g'] as num?)?.toDouble() ?? 0.0,
+      totalRawWeightG: (json['raw_weight_g'] as num?)?.toDouble() ??
+          (json['total_raw_weight_g'] as num?)?.toDouble() ??
+          itemsList.fold<double>(0.0, (sum, item) => sum + item.weightG),
       totalCalories: (json['total_calories'] as num?)?.toDouble() ?? 0.0,
       totalProtein: (json['total_protein'] as num?)?.toDouble() ?? 0.0,
       totalFat: (json['total_fat'] as num?)?.toDouble() ?? 0.0,
